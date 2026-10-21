@@ -1,0 +1,241 @@
+{
+  "schema_version": "1.0.0",
+  "swarm": {
+    "id": "support-swarm-17",
+    "topology": "hierarchy",
+    "coordinator": "router",
+    "members": [
+      {
+        "member_id": "router",
+        "name": "triage gate",
+        "system": "s1.decision",
+        "system_version": "1.1.0",
+        "role": "gate",
+        "implementation": {
+          "provider": "openai",
+          "model": "gpt-6-luna"
+        }
+      },
+      {
+        "member_id": "resolver",
+        "name": "policy reasoner",
+        "system": "s2.reasoning",
+        "system_version": "1.0.2",
+        "role": "escalation target"
+      },
+      {
+        "member_id": "refunder",
+        "name": "refund agent",
+        "system": "s4.agentic",
+        "system_version": "1.3.2",
+        "role": "executor"
+      }
+    ]
+  },
+  "resource": {
+    "service.name": "support-pipeline"
+  },
+  "spans": [
+    {
+      "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+      "span_id": "00f067aa0ba902b7",
+      "name": "invoke_workflow support",
+      "kind": "INTERNAL",
+      "start_time_unix_nano": "1791968400000000000",
+      "end_time_unix_nano": "1791968422000000000",
+      "status": {
+        "code": "OK"
+      },
+      "attributes": {
+        "som.swarm.id": "support-swarm-17",
+        "gen_ai.conversation.id": "T-88213",
+        "gen_ai.operation.name": "invoke_workflow"
+      }
+    },
+    {
+      "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+      "span_id": "1a2b3c4d5e6f7081",
+      "name": "invoke_agent triage gate",
+      "kind": "INTERNAL",
+      "start_time_unix_nano": "1791968400000000000",
+      "end_time_unix_nano": "1791968400310000000",
+      "status": {
+        "code": "OK"
+      },
+      "attributes": {
+        "som.swarm.id": "support-swarm-17",
+        "gen_ai.conversation.id": "T-88213",
+        "gen_ai.operation.name": "invoke_agent",
+        "gen_ai.agent.id": "router",
+        "gen_ai.provider.name": "openai",
+        "gen_ai.request.model": "gpt-6-luna",
+        "gen_ai.response.id": "dec_01JAB6",
+        "gen_ai.usage.input_tokens": 412,
+        "som.system": "s1.decision",
+        "som.system_version": "1.1.0",
+        "som.member.id": "router",
+        "som.response.id": "dec_01JAB6",
+        "som.confidence": 0.62,
+        "som.cost.amount": 4.12e-05,
+        "som.cost.currency": "USD",
+        "som.escalation.to": "s2.reasoning",
+        "som.escalation.reason": "low_confidence"
+      },
+      "parent_span_id": "00f067aa0ba902b7",
+      "events": [
+        {
+          "name": "som.escalation",
+          "time_unix_nano": "1791968400305000000",
+          "attributes": {
+            "som.escalation.to": "s2.reasoning"
+          }
+        }
+      ]
+    },
+    {
+      "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+      "span_id": "2b3c4d5e6f708192",
+      "name": "invoke_agent policy reasoner",
+      "kind": "INTERNAL",
+      "start_time_unix_nano": "1791968400320000000",
+      "end_time_unix_nano": "1791968406720000000",
+      "status": {
+        "code": "OK"
+      },
+      "attributes": {
+        "som.swarm.id": "support-swarm-17",
+        "gen_ai.conversation.id": "T-88213",
+        "gen_ai.operation.name": "invoke_agent",
+        "gen_ai.agent.id": "resolver",
+        "gen_ai.provider.name": "openai",
+        "gen_ai.request.model": "gpt-6-luna",
+        "gen_ai.usage.input_tokens": 900,
+        "gen_ai.usage.output_tokens": 1350,
+        "gen_ai.usage.reasoning.output_tokens": 1184,
+        "som.system": "s2.reasoning",
+        "som.member.id": "resolver",
+        "som.response.id": "resp_s2_7f3a",
+        "som.memory.write": [
+          "mem_ticket_summary_1"
+        ]
+      },
+      "parent_span_id": "00f067aa0ba902b7",
+      "links": [
+        {
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "span_id": "1a2b3c4d5e6f7081",
+          "attributes": {
+            "som.escalation.reason": "low_confidence"
+          }
+        }
+      ]
+    },
+    {
+      "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+      "span_id": "3c4d5e6f708192a3",
+      "name": "invoke_agent refund agent",
+      "kind": "INTERNAL",
+      "start_time_unix_nano": "1791968406800000000",
+      "end_time_unix_nano": "1791968421600000000",
+      "status": {
+        "code": "OK"
+      },
+      "attributes": {
+        "som.swarm.id": "support-swarm-17",
+        "gen_ai.conversation.id": "T-88213",
+        "gen_ai.operation.name": "invoke_agent",
+        "gen_ai.agent.id": "refunder",
+        "som.system": "s4.agentic",
+        "som.member.id": "refunder",
+        "som.response.id": "agt_01JABD",
+        "som.memory.read": [
+          "mem_ticket_summary_1"
+        ]
+      },
+      "parent_span_id": "00f067aa0ba902b7"
+    },
+    {
+      "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+      "span_id": "4d5e6f708192a3b4",
+      "name": "execute_tool get_charges",
+      "kind": "INTERNAL",
+      "start_time_unix_nano": "1791968407000000000",
+      "end_time_unix_nano": "1791968407420000000",
+      "status": {
+        "code": "OK"
+      },
+      "attributes": {
+        "gen_ai.operation.name": "execute_tool",
+        "gen_ai.tool.name": "get_charges",
+        "gen_ai.tool.call.id": "call_1",
+        "gen_ai.tool.type": "extension",
+        "som.member.id": "refunder"
+      },
+      "parent_span_id": "3c4d5e6f708192a3"
+    },
+    {
+      "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+      "span_id": "5e6f708192a3b4c5",
+      "name": "invoke_agent refund gate",
+      "kind": "INTERNAL",
+      "start_time_unix_nano": "1791968407500000000",
+      "end_time_unix_nano": "1791968407790000000",
+      "status": {
+        "code": "OK"
+      },
+      "attributes": {
+        "gen_ai.operation.name": "invoke_agent",
+        "som.system": "s1.decision",
+        "som.response.id": "dec_01JABE",
+        "som.member.id": "refunder"
+      },
+      "parent_span_id": "3c4d5e6f708192a3"
+    },
+    {
+      "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+      "span_id": "6f708192a3b4c5d6",
+      "name": "execute_tool issue_refund",
+      "kind": "INTERNAL",
+      "start_time_unix_nano": "1791968409000000000",
+      "end_time_unix_nano": "1791968410650000000",
+      "status": {
+        "code": "OK"
+      },
+      "attributes": {
+        "gen_ai.operation.name": "execute_tool",
+        "gen_ai.tool.name": "issue_refund",
+        "gen_ai.tool.call.id": "call_2",
+        "gen_ai.tool.type": "extension",
+        "som.member.id": "refunder"
+      },
+      "parent_span_id": "3c4d5e6f708192a3"
+    }
+  ],
+  "memory": {
+    "store_ref": "mem://support-swarm-17",
+    "entries": [
+      {
+        "memory_id": "mem_ticket_summary_1",
+        "kind": "episodic",
+        "uri": "mem://support-swarm-17/episodic/T-88213",
+        "content_hash": "sha256:e75b05bc97f86d1de034ab51852f96b077b73d5260ffae7a319223d43ab45957",
+        "written_by": {
+          "member_id": "resolver",
+          "span_id": "2b3c4d5e6f708192"
+        },
+        "read_by": [
+          {
+            "member_id": "refunder",
+            "span_id": "3c4d5e6f708192a3"
+          }
+        ],
+        "visibility": "members",
+        "allowed_members": [
+          "resolver",
+          "refunder"
+        ],
+        "version": 1
+      }
+    ]
+  }
+}

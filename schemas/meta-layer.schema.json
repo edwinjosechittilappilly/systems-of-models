@@ -1,0 +1,214 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/edwinjosechittilappilly/systems-of-models/main/schemas/meta-layer.schema.json",
+  "title": "Meta-layer records: system proposals and version bumps",
+  "description": "The meta-layer sits above the grid. It reads contracts and traces, versions existing systems (`version_bump`) and proposes new ones (`system_proposal`), in the manner of an RFC/PEP process whose author may be a machine. Semver rules: major = contract break (migration required); minor = backward-compatible additions (optional fields, output types, enum values, adopted systems); patch = model or capability improvement with the contract unchanged.",
+  "oneOf": [{ "$ref": "#/$defs/system_proposal" }, { "$ref": "#/$defs/version_bump" }],
+  "$defs": {
+    "author": {
+      "type": "object",
+      "required": ["kind", "id"],
+      "properties": {
+        "kind": { "enum": ["meta_layer", "s5", "human"] },
+        "id": { "type": "string" }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "properties": {
+        "trace_refs": { "type": "array", "items": { "$ref": "envelope.schema.json#/$defs/trace_ref" } },
+        "metrics": { "type": "object", "additionalProperties": { "type": "number" } },
+        "observation_window": { "type": "string", "description": "ISO 8601 interval." },
+        "notes": { "type": "string" }
+      }
+    },
+    "review": {
+      "type": "object",
+      "required": ["required_approvals"],
+      "properties": {
+        "required_approvals": { "type": "integer", "minimum": 0 },
+        "approvals": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["by", "decision"],
+            "properties": {
+              "by": { "type": "string" },
+              "decision": { "enum": ["approve", "reject", "request_changes"] },
+              "at": { "type": "string", "format": "date-time" }
+            }
+          }
+        }
+      }
+    },
+    "common": {
+      "type": "object",
+      "required": ["record_type", "id", "created_at", "author", "status", "evidence"],
+      "properties": {
+        "id": { "type": "string" },
+        "created_at": { "type": "string", "format": "date-time" },
+        "author": { "$ref": "#/$defs/author" },
+        "status": { "enum": ["draft", "under_review", "accepted", "rejected", "withdrawn"] },
+        "evidence": { "$ref": "#/$defs/evidence" },
+        "review": { "$ref": "#/$defs/review" }
+      }
+    },
+    "system_proposal": {
+      "allOf": [
+        { "$ref": "#/$defs/common" },
+        {
+          "type": "object",
+          "required": ["proposed_system", "motivation", "relations"],
+          "properties": {
+            "record_type": { "const": "system_proposal" },
+            "proposed_system": {
+              "type": "object",
+              "required": ["id", "name", "position", "topology", "defining_property", "contract", "initial_version"],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^x\\.[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$",
+                  "description": "Experimental ID used in envelopes until adoption."
+                },
+                "name": { "type": "string" },
+                "position": {
+                  "type": "object",
+                  "description": "Placement on the topology axis (between two tiers) and the width axis.",
+                  "required": ["after", "width"],
+                  "properties": {
+                    "after": { "$ref": "envelope.schema.json#/$defs/system_id" },
+                    "before": { "oneOf": [{ "$ref": "envelope.schema.json#/$defs/system_id" }, { "type": "null" }] },
+                    "width": { "enum": ["single", "swarm", "any"] }
+                  }
+                },
+                "topology": { "type": "string", "description": "Shape of the computation." },
+                "defining_property": { "type": "string", "description": "The property that separates it from its neighbours." },
+                "contract": {
+                  "type": "object",
+                  "required": ["request_schema", "body_schema"],
+                  "properties": {
+                    "request_schema": { "type": "object", "description": "JSON Schema of the request." },
+                    "body_schema": { "type": "object", "description": "JSON Schema of the envelope body." }
+                  }
+                },
+                "initial_version": {
+                  "allOf": [{ "$ref": "envelope.schema.json#/$defs/semver" }, { "pattern": "^0\\." }],
+                  "description": "Proposed systems start at 0.y.z (unstable)."
+                }
+              }
+            },
+            "motivation": { "type": "string" },
+            "relations": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "required": ["system", "relation"],
+                "properties": {
+                  "system": { "$ref": "envelope.schema.json#/$defs/system_id" },
+                  "relation": { "enum": ["specializes", "composes", "distills_from", "replaces", "extends"] }
+                }
+              }
+            },
+            "adopted_as": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+$",
+              "description": "Stable ID assigned on acceptance; the adopting envelope change is a minor bump."
+            }
+          },
+          "if": { "properties": { "status": { "const": "accepted" } } },
+          "then": { "required": ["adopted_as", "review"] }
+        }
+      ]
+    },
+    "breaking_kinds": {
+      "enum": ["field_added_required", "field_removed", "field_renamed", "type_changed", "enum_value_removed", "semantics_changed"]
+    },
+    "additive_kinds": {
+      "enum": ["field_added_optional", "output_type_added", "enum_value_added", "system_adopted"]
+    },
+    "improvement_kinds": {
+      "enum": ["model_improved", "capability_distilled", "calibration_improved", "bug_fix"]
+    },
+    "change": {
+      "type": "object",
+      "required": ["kind", "description", "breaking"],
+      "properties": {
+        "kind": {
+          "anyOf": [
+            { "$ref": "#/$defs/breaking_kinds" },
+            { "$ref": "#/$defs/additive_kinds" },
+            { "$ref": "#/$defs/improvement_kinds" }
+          ]
+        },
+        "path": { "type": "string", "description": "JSON Pointer into the contract schema." },
+        "description": { "type": "string" },
+        "breaking": { "type": "boolean" }
+      },
+      "if": { "properties": { "kind": { "$ref": "#/$defs/breaking_kinds" } } },
+      "then": { "properties": { "breaking": { "const": true } } },
+      "else": { "properties": { "breaking": { "const": false } } }
+    },
+    "version_bump": {
+      "allOf": [
+        { "$ref": "#/$defs/common" },
+        {
+          "type": "object",
+          "required": ["system", "from_version", "to_version", "bump", "changes"],
+          "properties": {
+            "record_type": { "const": "version_bump" },
+            "system": { "$ref": "envelope.schema.json#/$defs/system_id" },
+            "from_version": { "$ref": "envelope.schema.json#/$defs/semver" },
+            "to_version": { "$ref": "envelope.schema.json#/$defs/semver" },
+            "bump": { "enum": ["major", "minor", "patch"] },
+            "changes": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/change" } },
+            "provenance": {
+              "type": "object",
+              "description": "Where an improvement came from, e.g. distillation from a higher tier.",
+              "properties": {
+                "distilled_from": { "type": "array", "items": { "$ref": "envelope.schema.json#/$defs/system_ref" } },
+                "s5_response_ids": { "type": "array", "items": { "type": "string" } }
+              }
+            },
+            "migration": {
+              "type": "object",
+              "required": ["guide", "deprecation_window"],
+              "properties": {
+                "guide": { "type": "string" },
+                "deprecation_window": { "type": "string", "description": "ISO 8601 duration both majors run side by side." }
+              }
+            }
+          },
+          "allOf": [
+            {
+              "if": { "properties": { "bump": { "const": "major" } } },
+              "then": {
+                "required": ["migration"],
+                "properties": { "changes": { "contains": { "properties": { "breaking": { "const": true } } } } }
+              }
+            },
+            {
+              "if": { "properties": { "bump": { "const": "minor" } } },
+              "then": {
+                "properties": {
+                  "changes": {
+                    "items": { "properties": { "kind": { "anyOf": [{ "$ref": "#/$defs/additive_kinds" }, { "$ref": "#/$defs/improvement_kinds" }] } } },
+                    "contains": { "properties": { "kind": { "$ref": "#/$defs/additive_kinds" } } }
+                  }
+                }
+              }
+            },
+            {
+              "if": { "properties": { "bump": { "const": "patch" } } },
+              "then": {
+                "properties": {
+                  "changes": { "items": { "properties": { "kind": { "$ref": "#/$defs/improvement_kinds" } } } }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

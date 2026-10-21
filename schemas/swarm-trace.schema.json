@@ -1,0 +1,194 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/edwinjosechittilappilly/systems-of-models/main/schemas/swarm-trace.schema.json",
+  "title": "Swarm trace (width axis)",
+  "description": "Shared trace standard for one or many cooperating systems, plus references into swarm memory. Spans follow the OpenTelemetry span model (W3C trace and span IDs, OTLP/JSON nanosecond timestamps, span links) and the OpenTelemetry GenAI semantic conventions (`gen_ai.*` attributes). Attributes this standard adds use the `som.` namespace. Envelope `trace_ref.span_id` values point at spans in this document.",
+  "type": "object",
+  "required": ["schema_version", "swarm", "spans"],
+  "properties": {
+    "schema_version": { "$ref": "envelope.schema.json#/$defs/semver" },
+    "swarm": {
+      "type": "object",
+      "required": ["id", "topology", "members"],
+      "properties": {
+        "id": { "type": "string" },
+        "topology": {
+          "enum": ["single", "pipeline", "hierarchy", "mesh", "blackboard", "market"],
+          "description": "Coordination pattern. Width equals the number of members; `single` has one."
+        },
+        "coordinator": { "type": "string", "description": "member_id of the orchestrator, if any." },
+        "members": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["member_id", "system", "system_version"],
+            "properties": {
+              "member_id": { "type": "string", "description": "Maps to `gen_ai.agent.id`." },
+              "name": { "type": "string", "description": "Maps to `gen_ai.agent.name`." },
+              "system": { "$ref": "envelope.schema.json#/$defs/system_id" },
+              "system_version": { "$ref": "envelope.schema.json#/$defs/semver" },
+              "role": { "type": "string" },
+              "implementation": { "$ref": "envelope.schema.json#/$defs/implementation" }
+            }
+          }
+        }
+      }
+    },
+    "resource": {
+      "type": "object",
+      "description": "OpenTelemetry resource attributes, e.g. `service.name`.",
+      "additionalProperties": { "$ref": "#/$defs/attribute_value" }
+    },
+    "spans": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/span" } },
+    "memory": {
+      "type": "object",
+      "description": "Swarm memory: shared, versioned entries that spans read and write by reference.",
+      "required": ["store_ref", "entries"],
+      "properties": {
+        "store_ref": { "type": "string", "description": "URI of the memory store." },
+        "entries": { "type": "array", "items": { "$ref": "#/$defs/memory_ref" } }
+      }
+    }
+  },
+  "$defs": {
+    "trace_id": { "type": "string", "pattern": "^[0-9a-f]{32}$" },
+    "span_id": { "type": "string", "pattern": "^[0-9a-f]{16}$" },
+    "unix_nano": {
+      "type": "string",
+      "pattern": "^[0-9]{1,20}$",
+      "description": "uint64 nanoseconds since epoch, string-encoded as in OTLP/JSON."
+    },
+    "attribute_value": {
+      "oneOf": [
+        { "type": "string" },
+        { "type": "number" },
+        { "type": "boolean" },
+        { "type": "array", "items": { "type": ["string", "number", "boolean"] } }
+      ]
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "gen_ai.operation.name": {
+          "type": "string",
+          "description": "OTel values include chat, generate_content, text_completion, embeddings, retrieval, execute_tool, create_agent, invoke_agent, invoke_workflow."
+        },
+        "gen_ai.provider.name": { "type": "string" },
+        "gen_ai.request.model": { "type": "string" },
+        "gen_ai.response.model": { "type": "string" },
+        "gen_ai.response.id": { "type": "string" },
+        "gen_ai.agent.id": { "type": "string" },
+        "gen_ai.agent.name": { "type": "string" },
+        "gen_ai.conversation.id": { "type": "string" },
+        "gen_ai.tool.name": { "type": "string" },
+        "gen_ai.tool.call.id": { "type": "string" },
+        "gen_ai.tool.type": { "type": "string" },
+        "gen_ai.usage.input_tokens": { "type": "integer", "minimum": 0 },
+        "gen_ai.usage.output_tokens": { "type": "integer", "minimum": 0 },
+        "gen_ai.usage.reasoning.output_tokens": { "type": "integer", "minimum": 0 },
+        "gen_ai.evaluation.name": { "type": "string" },
+        "gen_ai.evaluation.score.value": { "type": "number" },
+        "som.system": { "$ref": "envelope.schema.json#/$defs/system_id" },
+        "som.system_version": { "$ref": "envelope.schema.json#/$defs/semver" },
+        "som.response.id": { "type": "string", "description": "Envelope `id` produced by this span." },
+        "som.swarm.id": { "type": "string" },
+        "som.member.id": { "type": "string" },
+        "som.member.role": { "type": "string" },
+        "som.confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "som.cost.amount": { "type": "number", "minimum": 0 },
+        "som.cost.currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+        "som.escalation.to": { "type": "string" },
+        "som.escalation.reason": { "type": "string" },
+        "som.memory.read": { "type": "array", "items": { "type": "string" } },
+        "som.memory.write": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": { "$ref": "#/$defs/attribute_value" }
+    },
+    "span": {
+      "type": "object",
+      "required": ["trace_id", "span_id", "name", "start_time_unix_nano", "end_time_unix_nano", "attributes"],
+      "properties": {
+        "trace_id": { "$ref": "#/$defs/trace_id" },
+        "span_id": { "$ref": "#/$defs/span_id" },
+        "parent_span_id": { "$ref": "#/$defs/span_id" },
+        "name": { "type": "string", "description": "OTel GenAI style, e.g. `invoke_agent triage` or `execute_tool refund`." },
+        "kind": { "enum": ["INTERNAL", "SERVER", "CLIENT", "PRODUCER", "CONSUMER"] },
+        "start_time_unix_nano": { "$ref": "#/$defs/unix_nano" },
+        "end_time_unix_nano": { "$ref": "#/$defs/unix_nano" },
+        "status": {
+          "type": "object",
+          "required": ["code"],
+          "properties": {
+            "code": { "enum": ["UNSET", "OK", "ERROR"] },
+            "message": { "type": "string" }
+          }
+        },
+        "attributes": { "$ref": "#/$defs/attributes" },
+        "events": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "time_unix_nano"],
+            "properties": {
+              "name": { "type": "string" },
+              "time_unix_nano": { "$ref": "#/$defs/unix_nano" },
+              "attributes": { "$ref": "#/$defs/attributes" }
+            }
+          }
+        },
+        "links": {
+          "type": "array",
+          "description": "Causal links across members or traces (e.g. a message from another agent, an escalation hand-off).",
+          "items": {
+            "type": "object",
+            "required": ["trace_id", "span_id"],
+            "properties": {
+              "trace_id": { "$ref": "#/$defs/trace_id" },
+              "span_id": { "$ref": "#/$defs/span_id" },
+              "attributes": { "$ref": "#/$defs/attributes" }
+            }
+          }
+        }
+      }
+    },
+    "memory_ref": {
+      "type": "object",
+      "required": ["memory_id", "kind", "uri", "content_hash", "written_by", "visibility", "version"],
+      "properties": {
+        "memory_id": { "type": "string" },
+        "kind": {
+          "enum": ["episodic", "semantic", "procedural", "artifact", "compiled_decision"],
+          "description": "`compiled_decision`: an S1 question set distilled from repeated reasoning, shareable across members."
+        },
+        "uri": { "type": "string" },
+        "content_hash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+        "written_by": {
+          "type": "object",
+          "required": ["member_id", "span_id"],
+          "properties": {
+            "member_id": { "type": "string" },
+            "span_id": { "$ref": "#/$defs/span_id" }
+          }
+        },
+        "read_by": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["member_id", "span_id"],
+            "properties": {
+              "member_id": { "type": "string" },
+              "span_id": { "$ref": "#/$defs/span_id" }
+            }
+          }
+        },
+        "visibility": { "enum": ["swarm", "members", "private"] },
+        "allowed_members": { "type": "array", "items": { "type": "string" } },
+        "version": { "type": "integer", "minimum": 1 },
+        "supersedes": { "type": "string", "description": "memory_id of the previous version." }
+      },
+      "if": { "properties": { "visibility": { "const": "members" } } },
+      "then": { "required": ["allowed_members"] }
+    }
+  }
+}

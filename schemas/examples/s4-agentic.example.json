@@ -1,0 +1,233 @@
+{
+  "request": {
+    "model": "gpt-6-luna",
+    "instructions": "Resolve the ticket. Refunds need supervisor approval.",
+    "input": {
+      "ticket": {
+        "id": "T-88213",
+        "subject": "Duplicate charge",
+        "messages": [
+          {
+            "from": "customer",
+            "text": "I was charged twice for order A-104. Please refund the duplicate."
+          }
+        ]
+      },
+      "order": {
+        "id": "A-104",
+        "charges": [
+          {
+            "charge_id": "ch_1",
+            "amount_usd": 49,
+            "status": "captured"
+          },
+          {
+            "charge_id": "ch_2",
+            "amount_usd": 49,
+            "status": "captured"
+          }
+        ]
+      },
+      "refund_policy": "Duplicate charges are eligible for a refund."
+    },
+    "tools": [
+      {
+        "type": "mcp",
+        "server_label": "billing",
+        "server_url": "https://billing.example.com/mcp",
+        "allowed_tools": [
+          "get_charges",
+          "issue_refund"
+        ],
+        "require_approval": "always"
+      },
+      {
+        "type": "system",
+        "system": "s1.decision",
+        "min_version": "1.0.0"
+      }
+    ],
+    "environment": {
+      "kind": "api",
+      "id": "billing-prod",
+      "snapshot_ref": "snap_2026-10-14T09:00Z"
+    },
+    "planner": {
+      "system": "s2.reasoning"
+    },
+    "limits": {
+      "max_steps": 10,
+      "max_cost": 0.05,
+      "currency": "USD",
+      "max_wall_time_ms": 120000
+    },
+    "memory_ref": "mem://support-swarm-17"
+  },
+  "response": {
+    "id": "agt_01JABD",
+    "object": "system.response",
+    "system": "s4.agentic",
+    "system_version": "1.3.2",
+    "created_at": 1791968408,
+    "status": "completed",
+    "confidence": 0.95,
+    "confidence_basis": "outcome_check",
+    "cost": {
+      "amount": 0.0031,
+      "currency": "USD",
+      "usage": {
+        "input_tokens": 5200,
+        "output_tokens": 4100,
+        "total_tokens": 9300,
+        "output_tokens_details": {
+          "reasoning_tokens": 3300
+        },
+        "tool_calls": 2,
+        "model_calls": 4
+      },
+      "breakdown": [
+        {
+          "system": "s2.reasoning",
+          "amount": 0.00305
+        },
+        {
+          "system": "s1.decision",
+          "amount": 5e-05,
+          "response_id": "dec_01JABE"
+        }
+      ]
+    },
+    "latency_ms": 14800,
+    "trace_ref": {
+      "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+      "span_id": "3c4d5e6f708192a3"
+    },
+    "body": {
+      "steps": [
+        {
+          "index": 0,
+          "reasoning_summary": "Confirm the duplicate charge before refunding.",
+          "action": {
+            "type": "tool_call",
+            "call_id": "call_1",
+            "tool": {
+              "type": "mcp",
+              "server_label": "billing",
+              "name": "get_charges"
+            },
+            "arguments": {
+              "order_id": "A-104"
+            },
+            "approval": {
+              "status": "not_required"
+            }
+          },
+          "observation": {
+            "call_id": "call_1",
+            "content": [
+              {
+                "type": "text",
+                "text": "2 captured charges of 49 USD."
+              }
+            ],
+            "structured_content": {
+              "charges": [
+                {
+                  "charge_id": "ch_1",
+                  "amount_usd": 49
+                },
+                {
+                  "charge_id": "ch_2",
+                  "amount_usd": 49
+                }
+              ]
+            },
+            "is_error": false
+          },
+          "span_id": "4d5e6f708192a3b4",
+          "latency_ms": 420
+        },
+        {
+          "index": 1,
+          "reasoning_summary": "Gate the irreversible refund with an S1 predicate.",
+          "action": {
+            "type": "subcall",
+            "system": "s1.decision",
+            "response_id": "dec_01JABE"
+          },
+          "observation": {
+            "content": [
+              {
+                "type": "text",
+                "text": "refund_eligible: probability 0.98"
+              }
+            ],
+            "structured_content": {
+              "refund_eligible": 0.98
+            }
+          },
+          "span_id": "5e6f708192a3b4c5",
+          "latency_ms": 290
+        },
+        {
+          "index": 2,
+          "action": {
+            "type": "tool_call",
+            "call_id": "call_2",
+            "tool": {
+              "type": "mcp",
+              "server_label": "billing",
+              "name": "issue_refund"
+            },
+            "arguments": {
+              "charge_id": "ch_2",
+              "amount_usd": 49
+            },
+            "approval": {
+              "status": "approved",
+              "approved_by": "supervisor:lena"
+            }
+          },
+          "observation": {
+            "call_id": "call_2",
+            "content": [
+              {
+                "type": "text",
+                "text": "Refund re_88 created."
+              }
+            ],
+            "structured_content": {
+              "refund_id": "re_88",
+              "status": "succeeded"
+            },
+            "is_error": false
+          },
+          "span_id": "6f708192a3b4c5d6",
+          "latency_ms": 1650
+        },
+        {
+          "index": 3,
+          "action": {
+            "type": "finish"
+          }
+        }
+      ],
+      "final_output": "Refunded the duplicate 49 USD charge (re_88) on order A-104.",
+      "outcome": {
+        "status": "succeeded",
+        "verification": {
+          "method": "state_check",
+          "passed": true,
+          "evidence": "get_charges shows ch_2 refunded."
+        }
+      },
+      "side_effects": [
+        {
+          "call_id": "call_2",
+          "description": "Refund re_88 of 49 USD on ch_2.",
+          "reversible": false
+        }
+      ]
+    }
+  }
+}

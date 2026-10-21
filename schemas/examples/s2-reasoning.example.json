@@ -1,0 +1,106 @@
+{
+  "request": {
+    "model": "gpt-6-luna",
+    "instructions": "Route the ticket and decide refund eligibility under `refund_policy`.",
+    "input": "{\"ticket\": {\"id\": \"T-88213\", \"subject\": \"Duplicate charge\", \"messages\": [{\"from\": \"customer\", \"text\": \"I was charged twice for order A-104. Please refund the duplicate.\"}]}, \"order\": {\"id\": \"A-104\", \"charges\": [{\"charge_id\": \"ch_1\", \"amount_usd\": 49, \"status\": \"captured\"}, {\"charge_id\": \"ch_2\", \"amount_usd\": 49, \"status\": \"captured\"}]}, \"refund_policy\": \"Duplicate charges are eligible for a refund.\"}",
+    "reasoning": {
+      "effort": "medium",
+      "summary": "auto",
+      "budget_tokens": 4096
+    },
+    "max_output_tokens": 8000,
+    "output_schema": {
+      "type": "object",
+      "required": [
+        "department",
+        "refund_eligible"
+      ],
+      "properties": {
+        "department": {
+          "enum": [
+            "billing",
+            "technical",
+            "shipping"
+          ]
+        },
+        "refund_eligible": {
+          "type": "boolean"
+        }
+      }
+    },
+    "subcalls": [
+      {
+        "system": "s1.decision",
+        "min_version": "1.0.0"
+      }
+    ]
+  },
+  "response": {
+    "id": "resp_s2_7f3a",
+    "object": "system.response",
+    "system": "s2.reasoning",
+    "system_version": "1.0.2",
+    "created_at": 1791968401,
+    "status": "completed",
+    "confidence": 0.9,
+    "confidence_basis": "self_report",
+    "cost": {
+      "amount": 0.000765,
+      "currency": "USD",
+      "usage": {
+        "input_tokens": 900,
+        "output_tokens": 1350,
+        "total_tokens": 2250,
+        "output_tokens_details": {
+          "reasoning_tokens": 1184
+        }
+      }
+    },
+    "latency_ms": 6400,
+    "trace_ref": {
+      "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+      "span_id": "2b3c4d5e6f708192"
+    },
+    "implementation": {
+      "provider": "openai",
+      "model": "gpt-6-luna",
+      "endpoint": "POST /v1/responses"
+    },
+    "body": {
+      "output": [
+        {
+          "type": "reasoning",
+          "id": "rs_01",
+          "summary": [
+            {
+              "type": "summary_text",
+              "text": "Two captured charges of 49 USD on order A-104 match the duplicate-charge clause, so this is a billing refund."
+            }
+          ]
+        },
+        {
+          "type": "message",
+          "id": "msg_01",
+          "role": "assistant",
+          "content": [
+            {
+              "type": "output_text",
+              "text": "{\"department\":\"billing\",\"refund_eligible\":true}"
+            }
+          ]
+        }
+      ],
+      "output_text": "{\"department\":\"billing\",\"refund_eligible\":true}",
+      "output_parsed": {
+        "department": "billing",
+        "refund_eligible": true
+      },
+      "reasoning": {
+        "effort": "medium",
+        "budget_tokens": 4096,
+        "reasoning_tokens": 1184,
+        "summary": "auto"
+      }
+    }
+  }
+}

@@ -1,0 +1,197 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/edwinjosechittilappilly/systems-of-models/main/schemas/s5-self-evolving.schema.json",
+  "title": "Self-evolving system (S5) contract, major version 1",
+  "description": "Runtime self-modification within the system's own scope: prompts, tool configuration, memory, code, routing, adapters, and compiled S1 decisions. Every modification carries before/after state, evaluation evidence and a rollback plan. S5 may only cause a patch-level version change; contract changes go through the meta-layer.",
+  "type": "object",
+  "properties": {
+    "request": { "$ref": "#/$defs/request" },
+    "response": { "$ref": "#/$defs/response" }
+  },
+  "anyOf": [{ "required": ["request"] }, { "required": ["response"] }],
+  "$defs": {
+    "scope": {
+      "enum": [
+        "prompt",
+        "tool_config",
+        "memory",
+        "code",
+        "retrieval_index",
+        "routing_policy",
+        "compiled_decision",
+        "adapter_weights",
+        "hyperparameters"
+      ],
+      "description": "`compiled_decision`: a repeated reasoning pattern turned into a new S1 question set."
+    },
+    "state_ref": {
+      "type": "object",
+      "description": "A component state. Give the value inline or by reference; `content_hash` pins it.",
+      "required": ["content_hash"],
+      "properties": {
+        "value": {},
+        "uri": { "type": "string" },
+        "content_hash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+      }
+    },
+    "metric_set": {
+      "type": "object",
+      "additionalProperties": { "type": "number" }
+    },
+    "request": {
+      "type": "object",
+      "required": ["target", "objective", "constraints", "mode"],
+      "properties": {
+        "target": {
+          "type": "object",
+          "required": ["system", "allowed_scopes"],
+          "properties": {
+            "system": { "$ref": "envelope.schema.json#/$defs/system_ref" },
+            "component_ref": { "type": "string" },
+            "allowed_scopes": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/scope" } }
+          }
+        },
+        "objective": {
+          "type": "object",
+          "required": ["metric", "direction", "eval_suite"],
+          "properties": {
+            "metric": { "type": "string" },
+            "direction": { "enum": ["maximize", "minimize"] },
+            "eval_suite": { "type": "string", "description": "Held-out evaluation set URI or ID." }
+          }
+        },
+        "evidence": {
+          "type": "array",
+          "description": "Traces the system learns from.",
+          "items": { "$ref": "envelope.schema.json#/$defs/trace_ref" }
+        },
+        "constraints": {
+          "type": "object",
+          "properties": {
+            "max_modifications": { "type": "integer", "minimum": 1 },
+            "protected_components": { "type": "array", "items": { "type": "string" } },
+            "regression_tolerance": {
+              "$ref": "#/$defs/metric_set",
+              "description": "Largest allowed drop per guard metric."
+            },
+            "require_human_approval": { "type": "boolean", "default": true }
+          }
+        },
+        "mode": {
+          "enum": ["propose", "shadow", "apply"],
+          "description": "`propose`: return candidates only. `shadow`: run alongside the live version. `apply`: deploy, subject to approval and rollback rules."
+        }
+      }
+    },
+    "modification": {
+      "type": "object",
+      "required": ["id", "scope", "target_ref", "operation", "before", "after", "evaluation", "rollback", "status"],
+      "properties": {
+        "id": { "type": "string" },
+        "scope": { "$ref": "#/$defs/scope" },
+        "target_ref": { "type": "string" },
+        "operation": { "enum": ["add", "replace", "remove", "tune"] },
+        "before": { "oneOf": [{ "$ref": "#/$defs/state_ref" }, { "type": "null" }] },
+        "after": { "oneOf": [{ "$ref": "#/$defs/state_ref" }, { "type": "null" }] },
+        "rationale": { "type": "string" },
+        "derived_from": {
+          "type": "array",
+          "description": "Traces that motivated the change.",
+          "items": { "$ref": "envelope.schema.json#/$defs/trace_ref" }
+        },
+        "evaluation": {
+          "type": "object",
+          "required": ["eval_suite", "baseline", "candidate", "passed"],
+          "properties": {
+            "eval_suite": { "type": "string" },
+            "n": { "type": "integer", "minimum": 1 },
+            "baseline": { "$ref": "#/$defs/metric_set" },
+            "candidate": { "$ref": "#/$defs/metric_set" },
+            "confidence_interval": {
+              "type": "object",
+              "properties": {
+                "metric": { "type": "string" },
+                "level": { "type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 1 },
+                "low": { "type": "number" },
+                "high": { "type": "number" }
+              }
+            },
+            "evaluator": { "$ref": "envelope.schema.json#/$defs/system_ref" },
+            "passed": { "type": "boolean" }
+          }
+        },
+        "rollback": {
+          "type": "object",
+          "required": ["strategy", "snapshot_ref"],
+          "properties": {
+            "strategy": { "enum": ["restore_snapshot", "feature_flag", "redeploy_previous"] },
+            "snapshot_ref": { "type": "string" },
+            "trigger": {
+              "type": "object",
+              "description": "Automatic rollback condition on live traffic.",
+              "required": ["metric", "operator", "value"],
+              "properties": {
+                "metric": { "type": "string" },
+                "operator": { "enum": ["lt", "le", "gt", "ge"] },
+                "value": { "type": "number" },
+                "window": { "type": "string", "description": "ISO 8601 duration, e.g. `PT24H`." }
+              }
+            }
+          }
+        },
+        "approval": {
+          "type": "object",
+          "required": ["status"],
+          "properties": {
+            "status": { "enum": ["pending", "approved", "rejected", "not_required"] },
+            "approved_by": { "type": "string" }
+          }
+        },
+        "status": { "enum": ["proposed", "shadow", "applied", "rejected", "rolled_back"] }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "status": { "const": "applied" } } },
+          "then": { "properties": { "evaluation": { "properties": { "passed": { "const": true } } } } }
+        }
+      ]
+    },
+    "body": {
+      "type": "object",
+      "required": ["modifications", "version_effect"],
+      "properties": {
+        "modifications": { "type": "array", "items": { "$ref": "#/$defs/modification" } },
+        "version_effect": {
+          "type": "object",
+          "required": ["from", "to", "bump"],
+          "properties": {
+            "system": { "$ref": "envelope.schema.json#/$defs/system_id" },
+            "from": { "$ref": "envelope.schema.json#/$defs/semver" },
+            "to": { "$ref": "envelope.schema.json#/$defs/semver" },
+            "bump": {
+              "enum": ["none", "patch"],
+              "description": "Minor and major bumps are reserved for the meta-layer."
+            }
+          }
+        },
+        "meta_layer_candidates": {
+          "type": "array",
+          "description": "Changes outside S5 scope, forwarded to the meta-layer as proposal IDs.",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "response": {
+      "allOf": [
+        { "$ref": "envelope.schema.json" },
+        {
+          "properties": {
+            "system": { "const": "s5.self_evolving" },
+            "system_version": { "pattern": "^1\\." },
+            "body": { "$ref": "#/$defs/body" }
+          }
+        }
+      ]
+    }
+  }
+}

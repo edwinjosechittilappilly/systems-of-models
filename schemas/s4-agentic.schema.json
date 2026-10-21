@@ -1,0 +1,255 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/edwinjosechittilappilly/systems-of-models/main/schemas/s4-agentic.schema.json",
+  "title": "Agentic system (S4) contract, major version 1",
+  "description": "A loop in which observations from an environment change later computation. Tool declarations reuse the OpenAI Responses API tool shapes (`function`, `mcp`); tool results mirror the Model Context Protocol (MCP) `CallToolResult` (`content`, `structuredContent` -> `structured_content`, `isError` -> `is_error`).",
+  "type": "object",
+  "properties": {
+    "request": { "$ref": "#/$defs/request" },
+    "response": { "$ref": "#/$defs/response" }
+  },
+  "anyOf": [{ "required": ["request"] }, { "required": ["response"] }],
+  "$defs": {
+    "tool_decl": {
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "Remote MCP server, as in the Responses API `mcp` tool.",
+          "required": ["type", "server_label"],
+          "properties": {
+            "type": { "const": "mcp" },
+            "server_label": { "type": "string" },
+            "server_url": { "type": "string", "format": "uri" },
+            "allowed_tools": { "type": "array", "items": { "type": "string" } },
+            "require_approval": { "enum": ["always", "never"] }
+          }
+        },
+        {
+          "type": "object",
+          "description": "Caller-executed function tool.",
+          "required": ["type", "name", "parameters"],
+          "properties": {
+            "type": { "const": "function" },
+            "name": { "type": "string" },
+            "description": { "type": "string" },
+            "parameters": { "type": "object", "description": "JSON Schema for the arguments." },
+            "strict": { "type": "boolean" }
+          }
+        },
+        {
+          "type": "object",
+          "description": "Vendor-hosted tool, e.g. web_search, file_search, code_interpreter, computer_use.",
+          "required": ["type", "name"],
+          "properties": {
+            "type": { "const": "builtin" },
+            "name": { "type": "string" }
+          }
+        },
+        {
+          "type": "object",
+          "description": "Another system exposed as a tool, e.g. an S1 gate before an irreversible action.",
+          "required": ["type", "system"],
+          "properties": {
+            "type": { "const": "system" },
+            "system": { "$ref": "envelope.schema.json#/$defs/system_id" },
+            "min_version": { "$ref": "envelope.schema.json#/$defs/semver" }
+          }
+        }
+      ]
+    },
+    "tool_ref": {
+      "type": "object",
+      "description": "Names the tool a call targets. For MCP, (`server_label`, `name`) maps to a `tools/call` request on that server.",
+      "required": ["type", "name"],
+      "properties": {
+        "type": { "enum": ["mcp", "function", "builtin"] },
+        "server_label": { "type": "string" },
+        "name": { "type": "string" }
+      },
+      "if": { "properties": { "type": { "const": "mcp" } } },
+      "then": { "required": ["server_label"] }
+    },
+    "request": {
+      "type": "object",
+      "required": ["input", "tools", "limits"],
+      "properties": {
+        "model": { "type": "string" },
+        "instructions": { "type": "string" },
+        "input": { "$ref": "envelope.schema.json#/$defs/input" },
+        "tools": { "type": "array", "items": { "$ref": "#/$defs/tool_decl" } },
+        "environment": {
+          "type": "object",
+          "properties": {
+            "kind": { "enum": ["sandbox", "repository", "browser", "computer", "api", "robot", "simulator"] },
+            "id": { "type": "string" },
+            "snapshot_ref": { "type": "string", "description": "State the run starts from, for replay." }
+          }
+        },
+        "planner": { "$ref": "envelope.schema.json#/$defs/system_ref" },
+        "limits": {
+          "type": "object",
+          "properties": {
+            "max_steps": { "type": "integer", "minimum": 1 },
+            "max_cost": { "type": "number", "minimum": 0 },
+            "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+            "max_wall_time_ms": { "type": "number", "minimum": 0 }
+          },
+          "anyOf": [{ "required": ["max_steps"] }, { "required": ["max_cost"] }, { "required": ["max_wall_time_ms"] }]
+        },
+        "memory_ref": { "type": "string", "description": "Swarm or agent memory to read from (see swarm-trace)." },
+        "escalation_policy": {
+          "type": "object",
+          "required": ["threshold", "escalate_to"],
+          "properties": {
+            "threshold": { "$ref": "escalation.schema.json#/properties/threshold" },
+            "escalate_to": { "$ref": "escalation.schema.json#/properties/escalate_to" }
+          }
+        }
+      }
+    },
+    "content_block": {
+      "description": "MCP content block.",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["type", "text"],
+          "properties": { "type": { "const": "text" }, "text": { "type": "string" } }
+        },
+        {
+          "type": "object",
+          "required": ["type", "data", "mime_type"],
+          "properties": {
+            "type": { "enum": ["image", "audio"] },
+            "data": { "type": "string", "contentEncoding": "base64" },
+            "mime_type": { "type": "string" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "uri"],
+          "properties": {
+            "type": { "const": "resource_link" },
+            "uri": { "type": "string" },
+            "name": { "type": "string" },
+            "mime_type": { "type": "string" }
+          }
+        }
+      ]
+    },
+    "action": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["type", "call_id", "tool", "arguments"],
+          "properties": {
+            "type": { "const": "tool_call" },
+            "call_id": { "type": "string" },
+            "tool": { "$ref": "#/$defs/tool_ref" },
+            "arguments": { "type": "object" },
+            "approval": {
+              "type": "object",
+              "required": ["status"],
+              "properties": {
+                "status": { "enum": ["not_required", "approved", "denied", "auto_approved"] },
+                "approved_by": { "type": "string" }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "system", "response_id"],
+          "properties": {
+            "type": { "const": "subcall" },
+            "system": { "$ref": "envelope.schema.json#/$defs/system_id" },
+            "response_id": { "type": "string" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "text"],
+          "properties": {
+            "type": { "const": "message" },
+            "text": { "type": "string" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type"],
+          "properties": { "type": { "const": "finish" } }
+        }
+      ]
+    },
+    "observation": {
+      "type": "object",
+      "required": ["content"],
+      "properties": {
+        "call_id": { "type": "string" },
+        "content": { "type": "array", "items": { "$ref": "#/$defs/content_block" } },
+        "structured_content": { "type": "object" },
+        "is_error": { "type": "boolean", "default": false }
+      }
+    },
+    "step": {
+      "type": "object",
+      "required": ["index", "action"],
+      "properties": {
+        "index": { "type": "integer", "minimum": 0 },
+        "reasoning_summary": { "type": "string" },
+        "action": { "$ref": "#/$defs/action" },
+        "observation": { "$ref": "#/$defs/observation" },
+        "span_id": { "type": "string", "pattern": "^[0-9a-f]{16}$" },
+        "latency_ms": { "type": "number", "minimum": 0 }
+      }
+    },
+    "body": {
+      "type": "object",
+      "required": ["steps", "outcome"],
+      "properties": {
+        "steps": { "type": "array", "items": { "$ref": "#/$defs/step" } },
+        "final_output": { "description": "Text or structured result handed back to the caller." },
+        "outcome": {
+          "type": "object",
+          "required": ["status"],
+          "properties": {
+            "status": { "enum": ["succeeded", "failed", "stopped_by_limit", "escalated"] },
+            "verification": {
+              "type": "object",
+              "required": ["method", "passed"],
+              "properties": {
+                "method": { "type": "string", "description": "How success was checked, e.g. `unit_tests`, `state_check`, `s1_decision`." },
+                "passed": { "type": "boolean" },
+                "evidence": { "type": "string" }
+              }
+            }
+          }
+        },
+        "side_effects": {
+          "type": "array",
+          "description": "Environment changes the run caused; needed for audit and rollback.",
+          "items": {
+            "type": "object",
+            "required": ["call_id", "description", "reversible"],
+            "properties": {
+              "call_id": { "type": "string" },
+              "description": { "type": "string" },
+              "reversible": { "type": "boolean" }
+            }
+          }
+        }
+      }
+    },
+    "response": {
+      "allOf": [
+        { "$ref": "envelope.schema.json" },
+        {
+          "properties": {
+            "system": { "const": "s4.agentic" },
+            "system_version": { "pattern": "^1\\." },
+            "body": { "$ref": "#/$defs/body" }
+          }
+        }
+      ]
+    }
+  }
+}

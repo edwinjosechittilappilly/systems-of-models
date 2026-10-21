@@ -1,0 +1,214 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/edwinjosechittilappilly/systems-of-models/main/schemas/s1-decision.schema.json",
+  "title": "System 1 (Decision) contract, major version 1",
+  "description": "Bounded, typed answers with probabilities over a caller-specified answer space. Field names follow the OpenAI Decisions API (`POST /v1/decisions`); TypeSafe Jev (`POST /v1/systemone`) maps `noul` to `predicate` and `state` to `input`. Reliable only inside a well-specified answer space; anything else is a refusal or an escalation.",
+  "type": "object",
+  "properties": {
+    "request": { "$ref": "#/$defs/request" },
+    "response": { "$ref": "#/$defs/response" }
+  },
+  "anyOf": [{ "required": ["request"] }, { "required": ["response"] }],
+  "$defs": {
+    "name": {
+      "type": "string",
+      "pattern": "^[A-Za-z_][A-Za-z0-9_\\-]{0,63}$",
+      "description": "Caller-chosen question ID, echoed in the answer. Required here (optional in the OpenAI Decisions API, required as a key in Jev)."
+    },
+    "instructions": {
+      "description": "The judgement to make. A string, or structured JSON as Jev allows.",
+      "oneOf": [{ "type": "string", "minLength": 1 }, { "type": "object" }, { "type": "array" }]
+    },
+    "choice_value": {
+      "type": ["string", "boolean"],
+      "description": "Typed value: the string \"true\" and the boolean true are distinct."
+    },
+    "question_predicate": {
+      "type": "object",
+      "required": ["type", "name", "instructions"],
+      "properties": {
+        "type": { "const": "predicate" },
+        "name": { "$ref": "#/$defs/name" },
+        "instructions": { "$ref": "#/$defs/instructions" }
+      }
+    },
+    "question_choice": {
+      "type": "object",
+      "required": ["type", "name", "instructions", "choices"],
+      "properties": {
+        "type": { "const": "choice" },
+        "name": { "$ref": "#/$defs/name" },
+        "instructions": { "$ref": "#/$defs/instructions" },
+        "choices": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 255,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "required": ["value"],
+            "properties": {
+              "value": { "$ref": "#/$defs/choice_value" },
+              "description": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "question_score": {
+      "type": "object",
+      "required": ["type", "name", "instructions", "levels"],
+      "properties": {
+        "type": { "const": "score" },
+        "name": { "$ref": "#/$defs/name" },
+        "instructions": { "$ref": "#/$defs/instructions" },
+        "levels": {
+          "type": "array",
+          "minItems": 2,
+          "description": "Ordered lowest to highest; indices start at 0.",
+          "items": {
+            "type": "object",
+            "required": ["label"],
+            "properties": {
+              "label": { "type": "string" },
+              "description": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "request": {
+      "type": "object",
+      "required": ["input", "questions"],
+      "properties": {
+        "model": { "type": "string", "description": "Optional; the contract is model-agnostic." },
+        "input": { "$ref": "envelope.schema.json#/$defs/input" },
+        "questions": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 200,
+          "description": "Independent questions evaluated against the same input. Dependent decisions need separate requests.",
+          "items": {
+            "oneOf": [
+              { "$ref": "#/$defs/question_predicate" },
+              { "$ref": "#/$defs/question_choice" },
+              { "$ref": "#/$defs/question_score" }
+            ]
+          }
+        },
+        "escalation_policy": {
+          "type": "object",
+          "description": "Gate rule. When it fires, the response carries an `escalation` object.",
+          "required": ["threshold", "escalate_to"],
+          "properties": {
+            "threshold": { "$ref": "escalation.schema.json#/properties/threshold" },
+            "escalate_to": { "$ref": "escalation.schema.json#/properties/escalate_to" },
+            "perform": {
+              "type": "boolean",
+              "default": false,
+              "description": "If true the system invokes the target itself; otherwise it only recommends."
+            }
+          }
+        },
+        "safety_identifier": { "type": "string" }
+      }
+    },
+    "answer_predicate": {
+      "type": "object",
+      "required": ["type", "name", "probability"],
+      "properties": {
+        "type": { "const": "predicate" },
+        "name": { "$ref": "#/$defs/name" },
+        "probability": { "type": "number", "minimum": 0, "maximum": 1, "description": "Estimated probability that the condition is true." }
+      }
+    },
+    "answer_choice": {
+      "type": "object",
+      "required": ["type", "name", "choice", "probabilities", "confidence"],
+      "properties": {
+        "type": { "const": "choice" },
+        "name": { "$ref": "#/$defs/name" },
+        "choice": { "$ref": "#/$defs/choice_value" },
+        "probabilities": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "required": ["value", "probability"],
+            "properties": {
+              "value": { "$ref": "#/$defs/choice_value" },
+              "probability": { "type": "number", "minimum": 0, "maximum": 1 }
+            }
+          }
+        },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "answer_score": {
+      "type": "object",
+      "required": ["type", "name", "score", "probabilities", "confidence"],
+      "properties": {
+        "type": { "const": "score" },
+        "name": { "$ref": "#/$defs/name" },
+        "score": { "type": "number", "minimum": 0, "description": "Probability-weighted average of level indices." },
+        "probabilities": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "required": ["value", "label", "probability"],
+            "properties": {
+              "value": { "type": "integer", "minimum": 0 },
+              "label": { "type": "string" },
+              "probability": { "type": "number", "minimum": 0, "maximum": 1 }
+            }
+          }
+        },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "answer_refusal": {
+      "type": "object",
+      "required": ["type", "name"],
+      "properties": {
+        "type": { "const": "refusal" },
+        "name": { "$ref": "#/$defs/name" },
+        "reason": {
+          "enum": ["policy", "out_of_answer_space", "insufficient_input", "unspecified"],
+          "description": "Extension over the vendor shape, which carries no reason."
+        }
+      }
+    },
+    "body": {
+      "type": "object",
+      "required": ["answers"],
+      "properties": {
+        "answers": {
+          "type": "array",
+          "minItems": 1,
+          "description": "Answers in question order. Any answer may be a refusal; the others still succeed.",
+          "items": {
+            "oneOf": [
+              { "$ref": "#/$defs/answer_predicate" },
+              { "$ref": "#/$defs/answer_choice" },
+              { "$ref": "#/$defs/answer_score" },
+              { "$ref": "#/$defs/answer_refusal" }
+            ]
+          }
+        }
+      }
+    },
+    "response": {
+      "allOf": [
+        { "$ref": "envelope.schema.json" },
+        {
+          "properties": {
+            "system": { "const": "s1.decision" },
+            "system_version": { "pattern": "^1\\." },
+            "body": { "$ref": "#/$defs/body" }
+          }
+        }
+      ]
+    }
+  }
+}

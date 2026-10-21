@@ -1,0 +1,43 @@
+{
+  "escalation_id": "esc_01JAB7",
+  "escalate_to": {
+    "system": "s2.reasoning",
+    "min_version": "1.0.0"
+  },
+  "reason": {
+    "code": "low_confidence",
+    "detail": "Department choice below the routing threshold.",
+    "question_names": [
+      "department"
+    ]
+  },
+  "threshold": {
+    "metric": "answers.department.confidence",
+    "operator": "lt",
+    "value": 0.8,
+    "observed": 0.62,
+    "source": "caller"
+  },
+  "context_handoff": {
+    "mode": "reference",
+    "input_ref": "tickets/T-88213",
+    "trace_ref": {
+      "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+      "span_id": "1a2b3c4d5e6f7081"
+    },
+    "prior_answers": [
+      {
+        "type": "predicate",
+        "name": "refund_requested",
+        "probability": 0.97
+      }
+    ],
+    "budget": {
+      "max_cost": 0.01,
+      "currency": "USD",
+      "max_latency_ms": 20000
+    }
+  },
+  "mode": "performed",
+  "downstream_response_id": "resp_s2_7f3a"
+}

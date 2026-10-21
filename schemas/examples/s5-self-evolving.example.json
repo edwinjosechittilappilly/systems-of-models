@@ -1,0 +1,140 @@
+{
+  "request": {
+    "target": {
+      "system": {
+        "system": "s4.agentic",
+        "min_version": "1.3.0"
+      },
+      "component_ref": "support-agent/routing",
+      "allowed_scopes": [
+        "compiled_decision",
+        "prompt"
+      ]
+    },
+    "objective": {
+      "metric": "cost_per_ticket_usd",
+      "direction": "minimize",
+      "eval_suite": "evals/support-routing-v3"
+    },
+    "evidence": [
+      {
+        "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+        "span_id": "2b3c4d5e6f708192"
+      }
+    ],
+    "constraints": {
+      "max_modifications": 3,
+      "protected_components": [
+        "billing.issue_refund"
+      ],
+      "regression_tolerance": {
+        "accuracy": 0.005
+      },
+      "require_human_approval": true
+    },
+    "mode": "apply"
+  },
+  "response": {
+    "id": "evo_01JAC0",
+    "object": "system.response",
+    "system": "s5.self_evolving",
+    "system_version": "1.0.0",
+    "created_at": 1792054800,
+    "status": "completed",
+    "confidence": 0.88,
+    "confidence_basis": "outcome_check",
+    "cost": {
+      "amount": 0.41,
+      "currency": "USD",
+      "usage": {
+        "model_calls": 2400
+      }
+    },
+    "latency_ms": 5400000,
+    "trace_ref": {
+      "trace_id": "7a1d3f0c9e2b4a6c8d0e1f2a3b4c5d6e",
+      "span_id": "708192a3b4c5d6e7"
+    },
+    "body": {
+      "modifications": [
+        {
+          "id": "mod_1",
+          "scope": "compiled_decision",
+          "target_ref": "support-agent/routing",
+          "operation": "add",
+          "before": {
+            "value": {
+              "routing_policy": "v7",
+              "compiled_decisions": []
+            },
+            "content_hash": "sha256:ac3319a2c9775dd2a72714916f74f8f7588f4a39994578a0b3abbefc3ee8c1c4"
+          },
+          "after": {
+            "value": {
+              "type": "predicate",
+              "name": "duplicate_charge_refund",
+              "instructions": "Does the ticket report two or more captured charges of the same amount for one order, and does `refund_policy` make duplicate charges refundable?"
+            },
+            "uri": "mem://support-swarm-17/compiled/duplicate_charge_refund",
+            "content_hash": "sha256:d9fa176126903e8a7671919508040297b3fc19e2e97261e3c9b6881ec404f0ee"
+          },
+          "rationale": "31% of S2 escalations in the window re-derived the same duplicate-charge judgement; compile it into one S1 predicate.",
+          "derived_from": [
+            {
+              "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+              "span_id": "2b3c4d5e6f708192"
+            }
+          ],
+          "evaluation": {
+            "eval_suite": "evals/support-routing-v3",
+            "n": 1200,
+            "baseline": {
+              "accuracy": 0.94,
+              "escalation_rate": 0.31,
+              "cost_per_ticket_usd": 0.0021
+            },
+            "candidate": {
+              "accuracy": 0.945,
+              "escalation_rate": 0.12,
+              "cost_per_ticket_usd": 0.0009
+            },
+            "confidence_interval": {
+              "metric": "accuracy",
+              "level": 0.95,
+              "low": -0.008,
+              "high": 0.018
+            },
+            "evaluator": {
+              "system": "s1.decision"
+            },
+            "passed": true
+          },
+          "rollback": {
+            "strategy": "feature_flag",
+            "snapshot_ref": "snap_routing_v7",
+            "trigger": {
+              "metric": "accuracy",
+              "operator": "lt",
+              "value": 0.93,
+              "window": "PT24H"
+            }
+          },
+          "approval": {
+            "status": "approved",
+            "approved_by": "owner:support-platform"
+          },
+          "status": "applied"
+        }
+      ],
+      "version_effect": {
+        "system": "s4.agentic",
+        "from": "1.3.2",
+        "to": "1.3.3",
+        "bump": "patch"
+      },
+      "meta_layer_candidates": [
+        "prop_x_decision_loop"
+      ]
+    }
+  }
+}

@@ -1,0 +1,78 @@
+{
+  "record_type": "system_proposal",
+  "id": "prop_x_decision_loop",
+  "created_at": "2026-10-15T09:00:00Z",
+  "author": {
+    "kind": "meta_layer",
+    "id": "meta-01"
+  },
+  "status": "under_review",
+  "evidence": {
+    "trace_refs": [
+      {
+        "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+        "span_id": "2b3c4d5e6f708192"
+      }
+    ],
+    "metrics": {
+      "share_of_s2_calls_reducible_to_typed_subdecisions": 0.27
+    },
+    "observation_window": "2026-10-01T00:00:00Z/2026-10-14T00:00:00Z"
+  },
+  "review": {
+    "required_approvals": 2
+  },
+  "proposed_system": {
+    "id": "x.decision_loop",
+    "name": "Looped decision system",
+    "position": {
+      "after": "s1.decision",
+      "before": "s2.reasoning",
+      "width": "single"
+    },
+    "topology": "A bounded loop of S1 calls where each answer selects the next question set.",
+    "defining_property": "Typed answers only, but with data-dependent sequencing of decisions.",
+    "contract": {
+      "request_schema": {
+        "type": "object",
+        "required": [
+          "input",
+          "graph"
+        ],
+        "properties": {
+          "input": {},
+          "graph": {
+            "type": "object"
+          }
+        }
+      },
+      "body_schema": {
+        "type": "object",
+        "required": [
+          "path",
+          "answers"
+        ],
+        "properties": {
+          "path": {
+            "type": "array"
+          },
+          "answers": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    "initial_version": "0.1.0"
+  },
+  "motivation": "Many S2 calls only chain dependent S1 decisions; a typed loop would keep S1 latency and auditability.",
+  "relations": [
+    {
+      "system": "s1.decision",
+      "relation": "composes"
+    },
+    {
+      "system": "s2.reasoning",
+      "relation": "distills_from"
+    }
+  ]
+}

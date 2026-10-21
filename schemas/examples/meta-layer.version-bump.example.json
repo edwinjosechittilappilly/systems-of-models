@@ -1,0 +1,38 @@
+{
+  "record_type": "version_bump",
+  "id": "vb_s1_1_2_0",
+  "created_at": "2026-10-14T12:00:00Z",
+  "author": {
+    "kind": "meta_layer",
+    "id": "meta-01"
+  },
+  "status": "accepted",
+  "evidence": {
+    "metrics": {
+      "share_of_requests_needing_localisation": 0.08
+    },
+    "notes": "Vendors began shipping a typed bounding-box answer (TypeSafe `box`, Jev 1.14)."
+  },
+  "review": {
+    "required_approvals": 1,
+    "approvals": [
+      {
+        "by": "maintainer:edwin",
+        "decision": "approve",
+        "at": "2026-10-14T13:00:00Z"
+      }
+    ]
+  },
+  "system": "s1.decision",
+  "from_version": "1.1.0",
+  "to_version": "1.2.0",
+  "bump": "minor",
+  "changes": [
+    {
+      "kind": "output_type_added",
+      "path": "/$defs/question_box",
+      "description": "New optional `box` question type returning four image-relative edges.",
+      "breaking": false
+    }
+  ]
+}

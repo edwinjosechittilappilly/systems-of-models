@@ -1,0 +1,226 @@
+{
+  "request": {
+    "model": "gpt-6-luna",
+    "input": {
+      "ticket": {
+        "id": "T-88213",
+        "subject": "Duplicate charge",
+        "messages": [
+          {
+            "from": "customer",
+            "text": "I was charged twice for order A-104. Please refund the duplicate."
+          }
+        ]
+      },
+      "order": {
+        "id": "A-104",
+        "charges": [
+          {
+            "charge_id": "ch_1",
+            "amount_usd": 49,
+            "status": "captured"
+          },
+          {
+            "charge_id": "ch_2",
+            "amount_usd": 49,
+            "status": "captured"
+          }
+        ]
+      },
+      "refund_policy": "Duplicate charges are eligible for a refund."
+    },
+    "questions": [
+      {
+        "type": "predicate",
+        "name": "refund_requested",
+        "instructions": "Does `ticket.messages[0].text` request a refund?"
+      },
+      {
+        "type": "choice",
+        "name": "department",
+        "instructions": "Which department should handle this ticket?",
+        "choices": [
+          {
+            "value": "billing",
+            "description": "Payments, invoices, and refunds."
+          },
+          {
+            "value": "technical",
+            "description": "Problems using the product."
+          },
+          {
+            "value": "shipping",
+            "description": "Delivery and tracking."
+          }
+        ]
+      },
+      {
+        "type": "score",
+        "name": "frustration",
+        "instructions": "How frustrated is the customer?",
+        "levels": [
+          {
+            "label": "Calm"
+          },
+          {
+            "label": "Annoyed"
+          },
+          {
+            "label": "Angry",
+            "description": "Threatens to leave or complain publicly."
+          }
+        ]
+      },
+      {
+        "type": "predicate",
+        "name": "customer_is_minor",
+        "instructions": "Is the customer under 18?"
+      }
+    ],
+    "escalation_policy": {
+      "threshold": {
+        "metric": "answers.department.confidence",
+        "operator": "lt",
+        "value": 0.8,
+        "source": "caller"
+      },
+      "escalate_to": {
+        "system": "s2.reasoning",
+        "min_version": "1.0.0"
+      },
+      "perform": true
+    }
+  },
+  "response": {
+    "id": "dec_01JAB6",
+    "object": "system.response",
+    "system": "s1.decision",
+    "system_version": "1.1.0",
+    "created_at": 1791968400,
+    "status": "escalated",
+    "confidence": 0.62,
+    "confidence_basis": "distribution_peakedness",
+    "cost": {
+      "amount": 4.12e-05,
+      "currency": "USD",
+      "usage": {
+        "input_tokens": 412,
+        "output_tokens": 0,
+        "total_tokens": 412,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      }
+    },
+    "latency_ms": 310,
+    "trace_ref": {
+      "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+      "span_id": "1a2b3c4d5e6f7081"
+    },
+    "escalation": {
+      "escalation_id": "esc_01JAB7",
+      "escalate_to": {
+        "system": "s2.reasoning",
+        "min_version": "1.0.0"
+      },
+      "reason": {
+        "code": "low_confidence",
+        "detail": "Department choice below the routing threshold.",
+        "question_names": [
+          "department"
+        ]
+      },
+      "threshold": {
+        "metric": "answers.department.confidence",
+        "operator": "lt",
+        "value": 0.8,
+        "observed": 0.62,
+        "source": "caller"
+      },
+      "context_handoff": {
+        "mode": "reference",
+        "input_ref": "tickets/T-88213",
+        "trace_ref": {
+          "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "span_id": "1a2b3c4d5e6f7081"
+        },
+        "prior_answers": [
+          {
+            "type": "predicate",
+            "name": "refund_requested",
+            "probability": 0.97
+          }
+        ],
+        "budget": {
+          "max_cost": 0.01,
+          "currency": "USD",
+          "max_latency_ms": 20000
+        }
+      },
+      "mode": "performed",
+      "downstream_response_id": "resp_s2_7f3a"
+    },
+    "implementation": {
+      "provider": "openai",
+      "model": "gpt-6-luna",
+      "endpoint": "POST /v1/decisions"
+    },
+    "body": {
+      "answers": [
+        {
+          "type": "predicate",
+          "name": "refund_requested",
+          "probability": 0.97
+        },
+        {
+          "type": "choice",
+          "name": "department",
+          "choice": "billing",
+          "probabilities": [
+            {
+              "value": "billing",
+              "probability": 0.7
+            },
+            {
+              "value": "technical",
+              "probability": 0.05
+            },
+            {
+              "value": "shipping",
+              "probability": 0.25
+            }
+          ],
+          "confidence": 0.62
+        },
+        {
+          "type": "score",
+          "name": "frustration",
+          "score": 1.1,
+          "probabilities": [
+            {
+              "value": 0,
+              "label": "Calm",
+              "probability": 0.1
+            },
+            {
+              "value": 1,
+              "label": "Annoyed",
+              "probability": 0.7
+            },
+            {
+              "value": 2,
+              "label": "Angry",
+              "probability": 0.2
+            }
+          ],
+          "confidence": 0.55
+        },
+        {
+          "type": "refusal",
+          "name": "customer_is_minor",
+          "reason": "insufficient_input"
+        }
+      ]
+    }
+  }
+}

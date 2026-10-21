@@ -1,0 +1,466 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/edwinjosechittilappilly/systems-of-models/main/schemas/envelope.schema.json",
+  "title": "Common response envelope",
+  "description": "Fields shared by every system response. Each system schema composes this envelope with allOf and constrains `system`, `system_version` and `body`. Consumers MUST ignore unknown fields, because a minor version may add optional fields.",
+  "type": "object",
+  "required": [
+    "id",
+    "system",
+    "system_version",
+    "confidence",
+    "cost",
+    "latency_ms",
+    "trace_ref",
+    "body"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Unique response identifier, e.g. `dec_\u2026` or `resp_\u2026`, as in vendor APIs."
+    },
+    "object": {
+      "const": "system.response",
+      "description": "Object discriminator, following the vendor `object` field convention."
+    },
+    "system": {
+      "$ref": "#/$defs/system_id"
+    },
+    "system_version": {
+      "$ref": "#/$defs/semver",
+      "description": "Semantic version of the system contract plus implementation. Major = contract break; minor = new optional fields or output types; patch = model or capability improvement with an unchanged contract."
+    },
+    "created_at": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Unix timestamp in seconds."
+    },
+    "status": {
+      "enum": [
+        "completed",
+        "incomplete",
+        "escalated",
+        "failed"
+      ],
+      "default": "completed",
+      "description": "`escalated` means the system handed the request to `escalation.escalate_to` and its own body is partial or advisory."
+    },
+    "confidence": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 1,
+      "description": "System-level confidence in the body. `null` when the system has no meaningful confidence signal. Calibration is NOT implied; see `confidence_basis`."
+    },
+    "confidence_basis": {
+      "enum": [
+        "model_probability",
+        "distribution_peakedness",
+        "verifier_score",
+        "ensemble_agreement",
+        "outcome_check",
+        "self_report",
+        "none"
+      ],
+      "description": "Where `confidence` comes from. Lets consumers discount uncalibrated signals."
+    },
+    "cost": {
+      "$ref": "#/$defs/cost"
+    },
+    "latency_ms": {
+      "type": "number",
+      "minimum": 0,
+      "description": "End-to-end wall-clock latency of this system call, including nested calls."
+    },
+    "trace_ref": {
+      "$ref": "#/$defs/trace_ref"
+    },
+    "escalation": {
+      "$ref": "escalation.schema.json"
+    },
+    "implementation": {
+      "$ref": "#/$defs/implementation"
+    },
+    "error": {
+      "type": "object",
+      "required": [
+        "code",
+        "message"
+      ],
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "maxProperties": 16,
+      "additionalProperties": {
+        "type": "string",
+        "maxLength": 512
+      },
+      "description": "Caller-supplied key-value tags, as in vendor `metadata` fields."
+    },
+    "body": {
+      "type": "object",
+      "description": "System-specific payload. Constrained by each system schema."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "escalated"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "escalation"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "failed"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "error"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "confidence": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "confidence"
+        ]
+      },
+      "then": {
+        "required": [
+          "confidence_basis"
+        ]
+      }
+    }
+  ],
+  "$defs": {
+    "system_id": {
+      "description": "Tier identifier. Adopted systems use the enum; systems proposed by the meta-layer use the `x.` prefix until a version bump adopts them.",
+      "anyOf": [
+        {
+          "enum": [
+            "s1.decision",
+            "s2.reasoning",
+            "s3.search",
+            "s4.agentic",
+            "s5.self_evolving"
+          ]
+        },
+        {
+          "type": "string",
+          "pattern": "^x\\.[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$"
+        }
+      ]
+    },
+    "semver": {
+      "type": "string",
+      "description": "Semantic Versioning 2.0.0 string.",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$"
+    },
+    "system_ref": {
+      "type": "object",
+      "description": "Reference to a system contract, optionally pinned to a version range.",
+      "required": [
+        "system"
+      ],
+      "properties": {
+        "system": {
+          "$ref": "#/$defs/system_id"
+        },
+        "min_version": {
+          "$ref": "#/$defs/semver"
+        },
+        "max_version_exclusive": {
+          "$ref": "#/$defs/semver"
+        }
+      }
+    },
+    "trace_ref": {
+      "type": "object",
+      "description": "Pointer into the shared trace. IDs follow W3C Trace Context and OpenTelemetry encodings.",
+      "required": [
+        "trace_id"
+      ],
+      "properties": {
+        "trace_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{32}$"
+        },
+        "span_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{16}$"
+        },
+        "uri": {
+          "type": "string",
+          "format": "uri",
+          "description": "Optional location of the stored trace."
+        }
+      }
+    },
+    "usage": {
+      "type": "object",
+      "description": "Token accounting. Field names follow the OpenAI Responses/Decisions `usage` object.",
+      "properties": {
+        "input_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "output_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "input_tokens_details": {
+          "type": "object",
+          "properties": {
+            "cached_tokens": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cache_write_tokens": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "output_tokens_details": {
+          "type": "object",
+          "properties": {
+            "reasoning_tokens": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "tool_calls": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of tool invocations (S4 and above)."
+        },
+        "model_calls": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of nested model calls (S3 and above)."
+        }
+      }
+    },
+    "cost": {
+      "type": "object",
+      "required": [
+        "amount",
+        "currency"
+      ],
+      "properties": {
+        "amount": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Total billed cost of this call, including nested calls."
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$",
+          "description": "ISO 4217 code."
+        },
+        "usage": {
+          "$ref": "#/$defs/usage"
+        },
+        "breakdown": {
+          "type": "array",
+          "description": "Per-subsystem cost when the call composes other systems.",
+          "items": {
+            "type": "object",
+            "required": [
+              "system",
+              "amount"
+            ],
+            "properties": {
+              "system": {
+                "$ref": "#/$defs/system_id"
+              },
+              "amount": {
+                "type": "number",
+                "minimum": 0
+              },
+              "response_id": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "implementation": {
+      "type": "object",
+      "description": "Vendor backend that served the contract. Vendor APIs are the baseline implementations.",
+      "properties": {
+        "provider": {
+          "type": "string",
+          "description": "Matches OpenTelemetry `gen_ai.provider.name`, e.g. `openai`."
+        },
+        "model": {
+          "type": "string",
+          "description": "Matches OpenTelemetry `gen_ai.response.model`."
+        },
+        "endpoint": {
+          "type": "string",
+          "description": "Vendor endpoint, e.g. `POST /v1/decisions`."
+        }
+      }
+    },
+    "input": {
+      "description": "Shared evidence. A string; a list of messages in vendor format; or a structured state object (TypeSafe `state`).",
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/message"
+          }
+        },
+        {
+          "type": "object"
+        }
+      ]
+    },
+    "message": {
+      "type": "object",
+      "required": [
+        "role",
+        "content"
+      ],
+      "properties": {
+        "type": {
+          "const": "message"
+        },
+        "role": {
+          "enum": [
+            "user",
+            "assistant",
+            "system",
+            "developer"
+          ]
+        },
+        "content": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array",
+              "items": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "required": [
+                      "type",
+                      "text"
+                    ],
+                    "properties": {
+                      "type": {
+                        "const": "input_text"
+                      },
+                      "text": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "type",
+                      "image_url"
+                    ],
+                    "properties": {
+                      "type": {
+                        "const": "input_image"
+                      },
+                      "image_url": {
+                        "type": "string"
+                      },
+                      "detail": {
+                        "enum": [
+                          "low",
+                          "high",
+                          "auto",
+                          "original"
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "type"
+                    ],
+                    "properties": {
+                      "type": {
+                        "const": "input_file"
+                      },
+                      "file_id": {
+                        "type": "string"
+                      },
+                      "file_url": {
+                        "type": "string"
+                      }
+                    },
+                    "anyOf": [
+                      {
+                        "required": [
+                          "file_id"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "file_url"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

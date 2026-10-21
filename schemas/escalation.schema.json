@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/edwinjosechittilappilly/systems-of-models/main/schemas/escalation.schema.json",
+  "title": "Escalation protocol",
+  "description": "Hands a request from one system to another (usually a higher tier) or to a person. Appears as `escalation` in the envelope. A system MAY escalate downward, e.g. S2 delegating a sub-question to S1.",
+  "type": "object",
+  "required": ["escalate_to", "reason", "threshold", "context_handoff"],
+  "properties": {
+    "escalation_id": { "type": "string" },
+    "escalate_to": {
+      "description": "Target system (optionally version-pinned) or a human reviewer.",
+      "oneOf": [
+        { "$ref": "envelope.schema.json#/$defs/system_ref" },
+        {
+          "type": "object",
+          "required": ["human"],
+          "properties": {
+            "human": {
+              "type": "object",
+              "properties": {
+                "queue": { "type": "string" },
+                "role": { "type": "string" }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "reason": {
+      "type": "object",
+      "required": ["code"],
+      "properties": {
+        "code": {
+          "enum": [
+            "low_confidence",
+            "refusal",
+            "out_of_answer_space",
+            "budget_exhausted",
+            "verifier_disagreement",
+            "tool_failure",
+            "policy",
+            "requires_environment",
+            "requires_approval"
+          ]
+        },
+        "detail": { "type": "string" },
+        "question_names": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "For S1: the questions whose answers triggered the escalation."
+        }
+      }
+    },
+    "threshold": {
+      "type": "object",
+      "description": "The rule that fired. `observed` is the value that was compared against `value`.",
+      "required": ["metric", "operator", "value"],
+      "properties": {
+        "metric": {
+          "type": "string",
+          "description": "E.g. `confidence`, `answers.refund_eligible.probability`, `cost.amount`, `verifier_score`."
+        },
+        "operator": { "enum": ["lt", "le", "gt", "ge", "eq", "ne", "outside"] },
+        "value": {
+          "oneOf": [
+            { "type": "number" },
+            { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 }
+          ],
+          "description": "Scalar, or a [low, high] band for `outside`."
+        },
+        "observed": { "type": ["number", "null"] },
+        "source": {
+          "enum": ["caller", "system_default", "meta_layer"],
+          "description": "Who set the threshold. Vendors advise setting it from labelled data and error costs."
+        }
+      }
+    },
+    "context_handoff": {
+      "type": "object",
+      "description": "What the receiving system gets. `reference` passes only pointers; `summary` passes a digest; `full` passes the original input.",
+      "required": ["mode"],
+      "properties": {
+        "mode": { "enum": ["full", "summary", "reference"] },
+        "input_ref": { "type": "string", "description": "URI or ID of the original input." },
+        "trace_ref": { "$ref": "envelope.schema.json#/$defs/trace_ref" },
+        "summary": { "type": "string" },
+        "prior_answers": {
+          "type": "array",
+          "description": "Partial results the receiver may reuse, e.g. S1 answers that did not trigger escalation.",
+          "items": { "type": "object" }
+        },
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["uri"],
+            "properties": {
+              "uri": { "type": "string" },
+              "kind": { "type": "string" },
+              "content_hash": { "type": "string" }
+            }
+          }
+        },
+        "budget": {
+          "type": "object",
+          "description": "Remaining budget granted to the receiver.",
+          "properties": {
+            "max_cost": { "type": "number", "minimum": 0 },
+            "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+            "max_latency_ms": { "type": "number", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "mode": {
+      "enum": ["recommended", "performed"],
+      "default": "recommended",
+      "description": "`recommended`: the caller decides. `performed`: the system already invoked the target."
+    },
+    "downstream_response_id": {
+      "type": "string",
+      "description": "ID of the target's response envelope when `mode` is `performed`."
+    }
+  },
+  "if": { "properties": { "mode": { "const": "performed" } }, "required": ["mode"] },
+  "then": { "required": ["downstream_response_id"] }
+}

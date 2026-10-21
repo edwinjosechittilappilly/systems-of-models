@@ -1,0 +1,176 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/edwinjosechittilappilly/systems-of-models/main/schemas/s2-reasoning.schema.json",
+  "title": "System 2 (Reasoning) contract, major version 1",
+  "description": "One sequential trajectory of test-time compute before an answer. Field names follow the OpenAI Responses API (`reasoning.effort`, `reasoning.summary`, `max_output_tokens`, `reasoning` output items, `usage.output_tokens_details.reasoning_tokens`). `budget_tokens` covers token-budget controls such as Anthropic `thinking.budget_tokens` and Gemini `thinkingBudget`.",
+  "type": "object",
+  "properties": {
+    "request": { "$ref": "#/$defs/request" },
+    "response": { "$ref": "#/$defs/response" }
+  },
+  "anyOf": [{ "required": ["request"] }, { "required": ["response"] }],
+  "$defs": {
+    "effort": {
+      "enum": ["none", "minimal", "low", "medium", "high", "xhigh", "max"],
+      "description": "Responses API `reasoning.effort` values; supported values are model-dependent."
+    },
+    "reasoning_config": {
+      "type": "object",
+      "properties": {
+        "effort": { "$ref": "#/$defs/effort" },
+        "mode": { "enum": ["standard", "pro"], "description": "Responses API `reasoning.mode`." },
+        "budget_tokens": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Hard cap on reasoning tokens (Anthropic `budget_tokens`, Gemini `thinkingBudget`)."
+        },
+        "summary": {
+          "enum": ["auto", "concise", "detailed", "none"],
+          "description": "Responses API `reasoning.summary`. Raw reasoning tokens are not part of the contract."
+        }
+      }
+    },
+    "request": {
+      "type": "object",
+      "required": ["input"],
+      "properties": {
+        "model": { "type": "string" },
+        "instructions": { "type": "string" },
+        "input": { "$ref": "envelope.schema.json#/$defs/input" },
+        "reasoning": { "$ref": "#/$defs/reasoning_config" },
+        "max_output_tokens": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Cap on visible plus reasoning tokens, as in the Responses API."
+        },
+        "output_schema": {
+          "type": "object",
+          "description": "Optional JSON Schema for the final answer (Structured Outputs)."
+        },
+        "previous_response_id": { "type": "string" },
+        "subcalls": {
+          "type": "array",
+          "description": "Lower-tier systems the reasoner may call, e.g. S1 for sub-decisions.",
+          "items": { "$ref": "envelope.schema.json#/$defs/system_ref" }
+        },
+        "escalation_policy": {
+          "type": "object",
+          "required": ["threshold", "escalate_to"],
+          "properties": {
+            "threshold": { "$ref": "escalation.schema.json#/properties/threshold" },
+            "escalate_to": { "$ref": "escalation.schema.json#/properties/escalate_to" }
+          }
+        }
+      }
+    },
+    "reasoning_item": {
+      "type": "object",
+      "required": ["type", "id", "summary"],
+      "properties": {
+        "type": { "const": "reasoning" },
+        "id": { "type": "string" },
+        "summary": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["type", "text"],
+            "properties": {
+              "type": { "const": "summary_text" },
+              "text": { "type": "string" }
+            }
+          }
+        },
+        "encrypted_content": {
+          "type": "string",
+          "description": "Opaque reasoning state for stateless continuation."
+        }
+      }
+    },
+    "message_item": {
+      "type": "object",
+      "required": ["type", "role", "content"],
+      "properties": {
+        "type": { "const": "message" },
+        "id": { "type": "string" },
+        "role": { "const": "assistant" },
+        "content": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "required": ["type", "text"],
+                "properties": { "type": { "const": "output_text" }, "text": { "type": "string" } }
+              },
+              {
+                "type": "object",
+                "required": ["type", "refusal"],
+                "properties": { "type": { "const": "refusal" }, "refusal": { "type": "string" } }
+              }
+            ]
+          }
+        }
+      }
+    },
+    "subcall_item": {
+      "type": "object",
+      "required": ["type", "system", "response_id"],
+      "description": "A nested call to another system, recorded in order.",
+      "properties": {
+        "type": { "const": "subcall" },
+        "system": { "$ref": "envelope.schema.json#/$defs/system_id" },
+        "response_id": { "type": "string" }
+      }
+    },
+    "body": {
+      "type": "object",
+      "required": ["output", "reasoning"],
+      "properties": {
+        "output": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "oneOf": [
+              { "$ref": "#/$defs/reasoning_item" },
+              { "$ref": "#/$defs/message_item" },
+              { "$ref": "#/$defs/subcall_item" }
+            ]
+          }
+        },
+        "output_text": { "type": "string", "description": "Convenience concatenation of `output_text` parts." },
+        "output_parsed": { "description": "Final answer parsed against `output_schema`, if given." },
+        "reasoning": {
+          "type": "object",
+          "description": "Echo of the applied settings plus what was spent.",
+          "required": ["reasoning_tokens"],
+          "properties": {
+            "effort": { "$ref": "#/$defs/effort" },
+            "mode": { "enum": ["standard", "pro"] },
+            "budget_tokens": { "type": "integer", "minimum": 0 },
+            "reasoning_tokens": { "type": "integer", "minimum": 0 },
+            "summary": { "enum": ["auto", "concise", "detailed", "none"] }
+          }
+        },
+        "incomplete_details": {
+          "type": "object",
+          "required": ["reason"],
+          "properties": {
+            "reason": { "enum": ["max_output_tokens", "budget_exhausted", "content_filter"] }
+          }
+        }
+      }
+    },
+    "response": {
+      "allOf": [
+        { "$ref": "envelope.schema.json" },
+        {
+          "properties": {
+            "system": { "const": "s2.reasoning" },
+            "system_version": { "pattern": "^1\\." },
+            "body": { "$ref": "#/$defs/body" }
+          }
+        }
+      ]
+    }
+  }
+}

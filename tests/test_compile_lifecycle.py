@@ -119,17 +119,20 @@ def test_shift_demotes_and_counts_detection_in_all_routed_requests():
 
 
 def test_audit_e_process_false_demotion_is_controlled_under_null():
+    alpha = epsilon = 0.05
+    streams = 500
     false_alarms = 0
-    for seed in range(300):
+    for seed in range(streams):
         rng = random.Random(seed)
-        decision = promoted()
-        for _ in range(400):
+        decision = promoted(epsilon=epsilon, alpha=alpha)
+        for _ in range(2000):
             decision.route(answer())
-            reference = answer("b") if rng.random() < 0.1 else answer()
+            reference = answer("b") if rng.random() < epsilon else answer()
             if decision.record_audit(answer(), reference):
                 false_alarms += 1
                 break
-    assert false_alarms / 300 <= 0.1  # alpha 0.05 plus finite Monte Carlo slack
+    mc_standard_error = math.sqrt(alpha * (1 - alpha) / streams)
+    assert false_alarms / streams <= alpha + 3 * mc_standard_error
 
 
 def test_audit_sampling_and_invalid_references():

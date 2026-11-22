@@ -16,7 +16,7 @@ from typing import Any
 import httpx
 
 from som.adapters._common import render_input
-from som.envelope import Cost, Envelope, Implementation
+from som.envelope import Cost, Envelope, Implementation, SystemId
 from som.questions import Choice, ChoiceAnswer, Question
 from som.systems import Decision, Input
 from som.trace import span
@@ -94,7 +94,7 @@ class EmbeddingSurrogate:
     measure a separate embedding server or establish a dollar cost.
     """
 
-    system = "s1.decision"
+    system: SystemId = "s1.decision"
 
     def __init__(self, embed: Embedder, classes: Sequence[str], *, name: str = "local/embedding-logistic") -> None:
         if (

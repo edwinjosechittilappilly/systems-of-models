@@ -1,0 +1,25 @@
+{
+  "cache": {},
+  "config": {
+    "iterations": 500
+  },
+  "contract_version": "2.0.0",
+  "cost_usd": {},
+  "counts": {
+    "envelopes": 54385,
+    "invalid": 0,
+    "valid": 54385
+  },
+  "data": {},
+  "experiment": "e4",
+  "finished_at": "2026-11-22T22:39:25Z",
+  "git_dirty": false,
+  "git_sha": "acc4980e9b1349b13b0c5a648a63c2766f3ce7ea",
+  "models": {},
+  "new_spend_usd": {},
+  "notes": [],
+  "python": "3.12.9",
+  "run_id": "contracts-v2-dev",
+  "som_version": "0.1.0.dev0",
+  "started_at": "2026-11-22T22:37:50Z"
+}

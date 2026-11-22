@@ -1,0 +1,5 @@
+adapter,native_leaves,recovered,recovered_share,dropped_examples
+TypeSafe /v1/systemone,15,15,1.0,
+OpenAI /v1/decisions,23,23,1.0,
+OpenAI /v1/responses,20,6,0.3,access_programs.cyber; billing.payer; completed_at; created_at; image.context_compression; instructions; output[0].id; output[0].phase; prompt_cache_retention; service_tier; temperature; tool_choice
+OpenAI /v1/chat/completions,10,7,0.7,choices[0].finish_reason; created; service_tier

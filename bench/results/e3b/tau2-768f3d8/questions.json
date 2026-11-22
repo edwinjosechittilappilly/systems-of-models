@@ -1,0 +1,588 @@
+[
+  {
+    "domain": "retail",
+    "candidate": "cancel_pending_order.branch",
+    "question": {
+      "type": "predicate",
+      "name": "lost_order_tracking_request",
+      "instructions": "Does the user say they lost an ordered item and ask for its tracking number? (true means: The user reports a lost ordered item and requests its tracking number.; false means: The user does not make both statements.)"
+    },
+    "provenance": {
+      "candidate": "cancel_pending_order.branch",
+      "kind": "branch",
+      "seed": 0,
+      "n_samples": 20,
+      "sample_trace_ids": [
+        "gpt-4.1/retail/21/2",
+        "gpt-4.1/retail/67/2",
+        "gpt-4.1/retail/41/0",
+        "gpt-4.1/retail/105/0",
+        "gpt-4.1/retail/112/2",
+        "gpt-4.1/retail/11/3",
+        "gpt-4.1/retail/27/2",
+        "gpt-4.1/retail/13/2",
+        "gpt-4.1/retail/63/2",
+        "gpt-4.1/retail/106/1",
+        "gpt-4.1/retail/58/3",
+        "gpt-4.1/retail/103/0",
+        "gpt-4.1/retail/3/3",
+        "gpt-4.1/retail/89/0",
+        "gpt-4.1/retail/58/1",
+        "gpt-4.1/retail/94/0",
+        "gpt-4.1/retail/31/3",
+        "gpt-4.1/retail/18/1",
+        "gpt-4.1/retail/6/3",
+        "gpt-4.1/retail/29/3"
+      ],
+      "writer": "gpt-6.1-terra"
+    }
+  },
+  {
+    "domain": "retail",
+    "candidate": "exchange_delivered_order_items.branch",
+    "question": {
+      "type": "predicate",
+      "name": "exchange_delivered_order_items",
+      "instructions": "Does the user want to exchange or change items from a received or recently purchased order? Distinguish this from requests only to return, cancel, or modify a pending order. (true means: The user requests an exchange or changes to purchased items, possibly alongside a return.; false means: The user does not request an exchange or changes to purchased items, or the request concerns a pending order.)"
+    },
+    "provenance": {
+      "candidate": "exchange_delivered_order_items.branch",
+      "kind": "branch",
+      "seed": 0,
+      "n_samples": 20,
+      "sample_trace_ids": [
+        "gpt-4.1/retail/21/2",
+        "gpt-4.1/retail/67/2",
+        "gpt-4.1/retail/41/0",
+        "gpt-4.1/retail/105/0",
+        "gpt-4.1/retail/112/2",
+        "gpt-4.1/retail/11/3",
+        "gpt-4.1/retail/27/2",
+        "gpt-4.1/retail/13/2",
+        "gpt-4.1/retail/63/2",
+        "gpt-4.1/retail/106/1",
+        "gpt-4.1/retail/58/3",
+        "gpt-4.1/retail/103/0",
+        "gpt-4.1/retail/3/3",
+        "gpt-4.1/retail/89/0",
+        "gpt-4.1/retail/58/1",
+        "gpt-4.1/retail/94/0",
+        "gpt-4.1/retail/31/3",
+        "gpt-4.1/retail/18/1",
+        "gpt-4.1/retail/6/3",
+        "gpt-4.1/retail/29/3"
+      ],
+      "writer": "gpt-6.1-terra"
+    }
+  },
+  {
+    "domain": "retail",
+    "candidate": "modify_pending_order_address.branch",
+    "question": {
+      "type": "predicate",
+      "name": "pending_order_address_change",
+      "instructions": "Does the user request an order address check or correction, or a change involving a jigsaw puzzle order? (true means: The request involves an order address or a jigsaw puzzle order change.; false means: The request involves neither an order address nor a jigsaw puzzle order change.)"
+    },
+    "provenance": {
+      "candidate": "modify_pending_order_address.branch",
+      "kind": "branch",
+      "seed": 0,
+      "n_samples": 20,
+      "sample_trace_ids": [
+        "gpt-4.1/retail/21/2",
+        "gpt-4.1/retail/67/2",
+        "gpt-4.1/retail/41/0",
+        "gpt-4.1/retail/105/0",
+        "gpt-4.1/retail/112/2",
+        "gpt-4.1/retail/11/3",
+        "gpt-4.1/retail/27/2",
+        "gpt-4.1/retail/13/2",
+        "gpt-4.1/retail/63/2",
+        "gpt-4.1/retail/106/1",
+        "gpt-4.1/retail/58/3",
+        "gpt-4.1/retail/103/0",
+        "gpt-4.1/retail/3/3",
+        "gpt-4.1/retail/89/0",
+        "gpt-4.1/retail/58/1",
+        "gpt-4.1/retail/94/0",
+        "gpt-4.1/retail/31/3",
+        "gpt-4.1/retail/18/1",
+        "gpt-4.1/retail/6/3",
+        "gpt-4.1/retail/29/3"
+      ],
+      "writer": "gpt-6.1-terra"
+    }
+  },
+  {
+    "domain": "retail",
+    "candidate": "modify_pending_order_items.branch",
+    "question": {
+      "type": "predicate",
+      "name": "modify_pending_order_items",
+      "instructions": "Will the assistant use modify_pending_order_items in response to the user's request? Consider whether the request involves changing items in an order that may still be pending. (true means: The assistant uses modify_pending_order_items.; false means: The assistant does not use modify_pending_order_items.)"
+    },
+    "provenance": {
+      "candidate": "modify_pending_order_items.branch",
+      "kind": "branch",
+      "seed": 0,
+      "n_samples": 20,
+      "sample_trace_ids": [
+        "gpt-4.1/retail/21/2",
+        "gpt-4.1/retail/67/2",
+        "gpt-4.1/retail/41/0",
+        "gpt-4.1/retail/105/0",
+        "gpt-4.1/retail/112/2",
+        "gpt-4.1/retail/11/3",
+        "gpt-4.1/retail/27/2",
+        "gpt-4.1/retail/13/2",
+        "gpt-4.1/retail/63/2",
+        "gpt-4.1/retail/106/1",
+        "gpt-4.1/retail/58/3",
+        "gpt-4.1/retail/103/0",
+        "gpt-4.1/retail/3/3",
+        "gpt-4.1/retail/89/0",
+        "gpt-4.1/retail/58/1",
+        "gpt-4.1/retail/94/0",
+        "gpt-4.1/retail/31/3",
+        "gpt-4.1/retail/18/1",
+        "gpt-4.1/retail/6/3",
+        "gpt-4.1/retail/29/3"
+      ],
+      "writer": "gpt-6.1-terra"
+    }
+  },
+  {
+    "domain": "retail",
+    "candidate": "modify_user_address.branch",
+    "question": {
+      "type": "predicate",
+      "name": "modify_user_address",
+      "instructions": "Does the user request a change or correction to their account address? (true means: The user wants their account address updated or corrected.; false means: The user does not request a change to their account address.)"
+    },
+    "provenance": {
+      "candidate": "modify_user_address.branch",
+      "kind": "branch",
+      "seed": 0,
+      "n_samples": 20,
+      "sample_trace_ids": [
+        "gpt-4.1/retail/21/2",
+        "gpt-4.1/retail/67/2",
+        "gpt-4.1/retail/41/0",
+        "gpt-4.1/retail/105/0",
+        "gpt-4.1/retail/112/2",
+        "gpt-4.1/retail/11/3",
+        "gpt-4.1/retail/27/2",
+        "gpt-4.1/retail/13/2",
+        "gpt-4.1/retail/63/2",
+        "gpt-4.1/retail/106/1",
+        "gpt-4.1/retail/58/3",
+        "gpt-4.1/retail/103/0",
+        "gpt-4.1/retail/3/3",
+        "gpt-4.1/retail/89/0",
+        "gpt-4.1/retail/58/1",
+        "gpt-4.1/retail/94/0",
+        "gpt-4.1/retail/31/3",
+        "gpt-4.1/retail/18/1",
+        "gpt-4.1/retail/6/3",
+        "gpt-4.1/retail/29/3"
+      ],
+      "writer": "gpt-6.1-terra"
+    }
+  },
+  {
+    "domain": "retail",
+    "candidate": "return_delivered_order_items.branch",
+    "question": {
+      "type": "predicate",
+      "name": "return_delivered_order_items",
+      "instructions": "Does the user ask to return items from an order, suggesting use of the return_delivered_order_items tool? Distinguish returns from exchanges, cancellations, and unspecified changes. (true means: The request is likely to involve returning ordered items.; false means: The request does not clearly involve returning ordered items.)"
+    },
+    "provenance": {
+      "candidate": "return_delivered_order_items.branch",
+      "kind": "branch",
+      "seed": 0,
+      "n_samples": 20,
+      "sample_trace_ids": [
+        "gpt-4.1/retail/21/2",
+        "gpt-4.1/retail/67/2",
+        "gpt-4.1/retail/41/0",
+        "gpt-4.1/retail/105/0",
+        "gpt-4.1/retail/112/2",
+        "gpt-4.1/retail/11/3",
+        "gpt-4.1/retail/27/2",
+        "gpt-4.1/retail/13/2",
+        "gpt-4.1/retail/63/2",
+        "gpt-4.1/retail/106/1",
+        "gpt-4.1/retail/58/3",
+        "gpt-4.1/retail/103/0",
+        "gpt-4.1/retail/3/3",
+        "gpt-4.1/retail/89/0",
+        "gpt-4.1/retail/58/1",
+        "gpt-4.1/retail/94/0",
+        "gpt-4.1/retail/31/3",
+        "gpt-4.1/retail/18/1",
+        "gpt-4.1/retail/6/3",
+        "gpt-4.1/retail/29/3"
+      ],
+      "writer": "gpt-6.1-terra"
+    }
+  },
+  {
+    "domain": "retail",
+    "candidate": "transfer_to_human_agents.branch",
+    "question": {
+      "type": "predicate",
+      "name": "transfer_to_human_agents",
+      "instructions": "Determine whether the user's request calls for a transfer to a human support agent. (true means: Transfer to a human agent is called for.; false means: Transfer to a human agent is not called for.)"
+    },
+    "provenance": {
+      "candidate": "transfer_to_human_agents.branch",
+      "kind": "branch",
+      "seed": 0,
+      "n_samples": 20,
+      "sample_trace_ids": [
+        "gpt-4.1/retail/21/2",
+        "gpt-4.1/retail/67/2",
+        "gpt-4.1/retail/41/0",
+        "gpt-4.1/retail/105/0",
+        "gpt-4.1/retail/112/2",
+        "gpt-4.1/retail/11/3",
+        "gpt-4.1/retail/27/2",
+        "gpt-4.1/retail/13/2",
+        "gpt-4.1/retail/63/2",
+        "gpt-4.1/retail/106/1",
+        "gpt-4.1/retail/58/3",
+        "gpt-4.1/retail/103/0",
+        "gpt-4.1/retail/3/3",
+        "gpt-4.1/retail/89/0",
+        "gpt-4.1/retail/58/1",
+        "gpt-4.1/retail/94/0",
+        "gpt-4.1/retail/31/3",
+        "gpt-4.1/retail/18/1",
+        "gpt-4.1/retail/6/3",
+        "gpt-4.1/retail/29/3"
+      ],
+      "writer": "gpt-6.1-terra"
+    }
+  },
+  {
+    "domain": "retail",
+    "candidate": "cancel_pending_order.reason",
+    "question": {
+      "type": "choice",
+      "name": "cancellation_ordered_by_mistake",
+      "instructions": "Identify the reason for the requested cancellation from the conversation. Use the customer's stated or confirmed reason; if none is stated, predict based on context.",
+      "choices": [
+        {
+          "value": "no longer needed"
+        },
+        {
+          "value": "ordered by mistake"
+        }
+      ]
+    },
+    "provenance": {
+      "candidate": "cancel_pending_order.reason",
+      "kind": "tool_argument",
+      "seed": 0,
+      "n_samples": 20,
+      "sample_trace_ids": [
+        "gpt-4.1/retail/54/2",
+        "gpt-4.1/retail/113/2",
+        "gpt-4.1/retail/54/0",
+        "gpt-4.1/retail/59/1",
+        "gpt-4.1/retail/32/3",
+        "gpt-4.1/retail/54/3",
+        "gpt-4.1/retail/78/2",
+        "gpt-4.1/retail/30/1",
+        "gpt-4.1/retail/28/3",
+        "gpt-4.1/retail/81/2",
+        "gpt-4.1/retail/54/1",
+        "gpt-4.1/retail/32/3",
+        "gpt-4.1/retail/113/0",
+        "gpt-4.1/retail/98/1",
+        "gpt-4.1/retail/55/3",
+        "gpt-4.1/retail/55/0",
+        "gpt-4.1/retail/90/1",
+        "gpt-4.1/retail/113/0",
+        "gpt-4.1/retail/78/0",
+        "gpt-4.1/retail/99/0"
+      ],
+      "writer": "gpt-6.1-terra"
+    }
+  },
+  {
+    "domain": "airline",
+    "candidate": "book_reservation.branch",
+    "question": {
+      "type": "predicate",
+      "name": "book_reservation",
+      "instructions": "Does the user request a new flight booking in connection with an existing reservation or a specific flight they previously took? (true means: The user wants a new booking and also references an existing reservation or a specific prior flight to match.; false means: The user does not request such a new booking.)"
+    },
+    "provenance": {
+      "candidate": "book_reservation.branch",
+      "kind": "branch",
+      "seed": 0,
+      "n_samples": 20,
+      "sample_trace_ids": [
+        "gpt-4.1/airline/15/2",
+        "gpt-4.1/airline/47/2",
+        "gpt-4.1/airline/40/0",
+        "gpt-4.1/airline/24/0",
+        "gpt-4.1/airline/34/3",
+        "gpt-4.1/airline/38/3",
+        "gpt-4.1/airline/4/3",
+        "gpt-4.1/airline/48/2",
+        "gpt-4.1/airline/34/2",
+        "gpt-4.1/airline/43/2",
+        "gpt-4.1/airline/24/1",
+        "gpt-4.1/airline/29/3",
+        "gpt-4.1/airline/8/0",
+        "gpt-4.1/airline/9/0",
+        "gpt-4.1/airline/18/0",
+        "gpt-4.1/airline/4/0",
+        "gpt-4.1/airline/32/3",
+        "gpt-4.1/airline/2/0",
+        "gpt-4.1/airline/38/1",
+        "gpt-4.1/airline/15/1"
+      ],
+      "writer": "gpt-6.1-terra"
+    }
+  },
+  {
+    "domain": "airline",
+    "candidate": "cancel_reservation.branch",
+    "question": {
+      "type": "predicate",
+      "name": "cancel_reservation",
+      "instructions": "Does the user request cancellation of a recently booked flight, cancellation of multiple reservations, or passenger removal alongside a specified new flight search? (true means: The request matches one of these cancellation or passenger-removal scenarios.; false means: The request does not match these scenarios.)"
+    },
+    "provenance": {
+      "candidate": "cancel_reservation.branch",
+      "kind": "branch",
+      "seed": 0,
+      "n_samples": 20,
+      "sample_trace_ids": [
+        "gpt-4.1/airline/15/2",
+        "gpt-4.1/airline/47/2",
+        "gpt-4.1/airline/40/0",
+        "gpt-4.1/airline/24/0",
+        "gpt-4.1/airline/34/3",
+        "gpt-4.1/airline/38/3",
+        "gpt-4.1/airline/4/3",
+        "gpt-4.1/airline/48/2",
+        "gpt-4.1/airline/34/2",
+        "gpt-4.1/airline/43/2",
+        "gpt-4.1/airline/24/1",
+        "gpt-4.1/airline/29/3",
+        "gpt-4.1/airline/8/0",
+        "gpt-4.1/airline/9/0",
+        "gpt-4.1/airline/18/0",
+        "gpt-4.1/airline/4/0",
+        "gpt-4.1/airline/32/3",
+        "gpt-4.1/airline/2/0",
+        "gpt-4.1/airline/38/1",
+        "gpt-4.1/airline/15/1"
+      ],
+      "writer": "gpt-6.1-terra"
+    }
+  },
+  {
+    "domain": "airline",
+    "candidate": "send_certificate.branch",
+    "question": {
+      "type": "predicate",
+      "name": "send_certificate",
+      "instructions": "Does the user either want to discuss frustration about a previous delayed flight, or ask to book a flight from San Francisco to New York for three people? (true means: The request matches one of those scenarios.; false means: The request does not match either scenario.)"
+    },
+    "provenance": {
+      "candidate": "send_certificate.branch",
+      "kind": "branch",
+      "seed": 0,
+      "n_samples": 20,
+      "sample_trace_ids": [
+        "gpt-4.1/airline/15/2",
+        "gpt-4.1/airline/47/2",
+        "gpt-4.1/airline/40/0",
+        "gpt-4.1/airline/24/0",
+        "gpt-4.1/airline/34/3",
+        "gpt-4.1/airline/38/3",
+        "gpt-4.1/airline/4/3",
+        "gpt-4.1/airline/48/2",
+        "gpt-4.1/airline/34/2",
+        "gpt-4.1/airline/43/2",
+        "gpt-4.1/airline/24/1",
+        "gpt-4.1/airline/29/3",
+        "gpt-4.1/airline/8/0",
+        "gpt-4.1/airline/9/0",
+        "gpt-4.1/airline/18/0",
+        "gpt-4.1/airline/4/0",
+        "gpt-4.1/airline/32/3",
+        "gpt-4.1/airline/2/0",
+        "gpt-4.1/airline/38/1",
+        "gpt-4.1/airline/15/1"
+      ],
+      "writer": "gpt-6.1-terra"
+    }
+  },
+  {
+    "domain": "airline",
+    "candidate": "transfer_to_human_agents.branch",
+    "question": {
+      "type": "predicate",
+      "name": "Human agent transfer",
+      "instructions": "Does the user's request suggest a need for transfer to a human agent rather than routine reservation assistance? Consider requests for compensation after a disruption, urgent exceptional circumstances, or help resolving an unclear booking problem. Routine booking and reservation changes generally do not indicate a transfer. (true means: The request suggests a human agent transfer.; false means: The request appears suitable for routine assistance without a human transfer.)"
+    },
+    "provenance": {
+      "candidate": "transfer_to_human_agents.branch",
+      "kind": "branch",
+      "seed": 0,
+      "n_samples": 20,
+      "sample_trace_ids": [
+        "gpt-4.1/airline/15/2",
+        "gpt-4.1/airline/47/2",
+        "gpt-4.1/airline/40/0",
+        "gpt-4.1/airline/24/0",
+        "gpt-4.1/airline/34/3",
+        "gpt-4.1/airline/38/3",
+        "gpt-4.1/airline/4/3",
+        "gpt-4.1/airline/48/2",
+        "gpt-4.1/airline/34/2",
+        "gpt-4.1/airline/43/2",
+        "gpt-4.1/airline/24/1",
+        "gpt-4.1/airline/29/3",
+        "gpt-4.1/airline/8/0",
+        "gpt-4.1/airline/9/0",
+        "gpt-4.1/airline/18/0",
+        "gpt-4.1/airline/4/0",
+        "gpt-4.1/airline/32/3",
+        "gpt-4.1/airline/2/0",
+        "gpt-4.1/airline/38/1",
+        "gpt-4.1/airline/15/1"
+      ],
+      "writer": "gpt-6.1-terra"
+    }
+  },
+  {
+    "domain": "airline",
+    "candidate": "update_reservation_baggages.branch",
+    "question": {
+      "type": "predicate",
+      "name": "unspecified_roundtrip_changes",
+      "instructions": "Does the user request changes to upcoming round-trip flights without specifying the changes? (true means: The user makes an unspecified request to change upcoming round-trip flights.; false means: The user does not make that request.)"
+    },
+    "provenance": {
+      "candidate": "update_reservation_baggages.branch",
+      "kind": "branch",
+      "seed": 0,
+      "n_samples": 20,
+      "sample_trace_ids": [
+        "gpt-4.1/airline/15/2",
+        "gpt-4.1/airline/47/2",
+        "gpt-4.1/airline/40/0",
+        "gpt-4.1/airline/24/0",
+        "gpt-4.1/airline/34/3",
+        "gpt-4.1/airline/38/3",
+        "gpt-4.1/airline/4/3",
+        "gpt-4.1/airline/48/2",
+        "gpt-4.1/airline/34/2",
+        "gpt-4.1/airline/43/2",
+        "gpt-4.1/airline/24/1",
+        "gpt-4.1/airline/29/3",
+        "gpt-4.1/airline/8/0",
+        "gpt-4.1/airline/9/0",
+        "gpt-4.1/airline/18/0",
+        "gpt-4.1/airline/4/0",
+        "gpt-4.1/airline/32/3",
+        "gpt-4.1/airline/2/0",
+        "gpt-4.1/airline/38/1",
+        "gpt-4.1/airline/15/1"
+      ],
+      "writer": "gpt-6.1-terra"
+    }
+  },
+  {
+    "domain": "airline",
+    "candidate": "update_reservation_flights.branch",
+    "question": {
+      "type": "predicate",
+      "name": "update_reservation_flights",
+      "instructions": "Does the user want to change the flights or cabin class on an existing reservation? Distinguish this from canceling, booking a new flight, changing passenger details, or an unspecified reservation change. (true means: The user requests a change to existing flights or their cabin class.; false means: The user does not request a specific change to existing flights or their cabin class.)"
+    },
+    "provenance": {
+      "candidate": "update_reservation_flights.branch",
+      "kind": "branch",
+      "seed": 0,
+      "n_samples": 20,
+      "sample_trace_ids": [
+        "gpt-4.1/airline/15/2",
+        "gpt-4.1/airline/47/2",
+        "gpt-4.1/airline/40/0",
+        "gpt-4.1/airline/24/0",
+        "gpt-4.1/airline/34/3",
+        "gpt-4.1/airline/38/3",
+        "gpt-4.1/airline/4/3",
+        "gpt-4.1/airline/48/2",
+        "gpt-4.1/airline/34/2",
+        "gpt-4.1/airline/43/2",
+        "gpt-4.1/airline/24/1",
+        "gpt-4.1/airline/29/3",
+        "gpt-4.1/airline/8/0",
+        "gpt-4.1/airline/9/0",
+        "gpt-4.1/airline/18/0",
+        "gpt-4.1/airline/4/0",
+        "gpt-4.1/airline/32/3",
+        "gpt-4.1/airline/2/0",
+        "gpt-4.1/airline/38/1",
+        "gpt-4.1/airline/15/1"
+      ],
+      "writer": "gpt-6.1-terra"
+    }
+  },
+  {
+    "domain": "airline",
+    "candidate": "book_reservation.flight_type",
+    "question": {
+      "type": "choice",
+      "name": "trip_type",
+      "instructions": "Classify the flight itinerary relevant to the current request as \"round_trip\" if it includes outbound and return travel, or \"one_way\" if it travels in one direction without a return. Connecting flights do not by themselves make a trip round-trip.",
+      "choices": [
+        {
+          "value": "one_way"
+        },
+        {
+          "value": "round_trip"
+        }
+      ]
+    },
+    "provenance": {
+      "candidate": "book_reservation.flight_type",
+      "kind": "tool_argument",
+      "seed": 0,
+      "n_samples": 20,
+      "sample_trace_ids": [
+        "gpt-4.1/airline/24/2",
+        "gpt-4.1/airline/23/0",
+        "gpt-4.1/airline/8/1",
+        "gpt-4.1/airline/23/1",
+        "gpt-4.1/airline/8/3",
+        "gpt-4.1/airline/20/3",
+        "gpt-4.1/airline/20/0",
+        "gpt-4.1/airline/23/3",
+        "gpt-4.1/airline/20/1",
+        "gpt-4.1/airline/8/2",
+        "gpt-4.1/airline/20/1",
+        "gpt-4.1/airline/23/1",
+        "gpt-4.1/airline/24/0",
+        "gpt-4.1/airline/24/1",
+        "gpt-4.1/airline/20/2",
+        "gpt-4.1/airline/23/3",
+        "gpt-4.1/airline/8/0",
+        "gpt-4.1/airline/24/3",
+        "gpt-4.1/airline/23/2",
+        "gpt-4.1/airline/23/3"
+      ],
+      "writer": "gpt-6.1-terra"
+    }
+  }
+]

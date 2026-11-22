@@ -252,6 +252,7 @@ def run(mode: str) -> None:
         discovery_rows.append(
             {"domain": domain, "candidates": len(candidates), **discovery_metrics(predicted, expected)}
         )
+        discovery_rows[-1]["ambiguous_retrieval_count"] = report.ambiguous_retrieval_count
         discovery_rows[-1]["precision_ci"] = wilson(
             discovery_rows[-1]["tp"], discovery_rows[-1]["tp"] + discovery_rows[-1]["fp"]
         )
@@ -528,10 +529,28 @@ def run(mode: str) -> None:
         "",
         f"- Held-out API failures/refusals: {dict(errors)}; these are not scored as correct.",
         *[f"- {failure}" for failure in failures],
+        "- After the first results were observed, an independent compiler review corrected the miner; "
+        "this run uses the corrected compiler and is not a fully pre-registered implementation. "
+        "The initial miner yielded 15 TP, 38 FP and 5 FN (precision 0.283, recall 0.750); "
+        "the labels and protocol remained frozen.",
+        "- Offline replay requires the pinned τ²-bench data files to have been downloaded into bench/data; "
+        "the recorded provider-call cache is archived beside these results.",
         "- The preceding assistant text can already communicate the tool argument before the call. "
         "These scores measure recovery at the tool-call boundary, not anticipation before the agent decided.",
-        "- Some branch questions are visibly off target: the cancellation-branch draft asks about a tracking number "
-        "and the address-modification branch draft asks about jigsaw returns. They are not validated questions.",
+        *[
+            f"- The {q['candidate']} draft asks about a tracking number, apparently off target."
+            for q in questions
+            if q["domain"] == "retail"
+            and q["candidate"] == "cancel_pending_order.branch"
+            and "tracking number" in q.get("question", {}).get("instructions", "").lower()
+        ],
+        *[
+            f"- The {q['candidate']} draft asks about jigsaw returns, apparently off target."
+            for q in questions
+            if q["domain"] == "retail"
+            and q["candidate"] == "modify_pending_order_address.branch"
+            and "jigsaw" in q.get("question", {}).get("instructions", "").lower()
+        ],
         "- All rewards included; reward filtering would bias results. Published trajectories use a user simulator, "
         "not real customers. Teacher choices and gold actions can be ambiguous; "
         "missing/conflicting gold is not scored.",

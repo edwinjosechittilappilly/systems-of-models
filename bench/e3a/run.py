@@ -27,7 +27,9 @@ from bench.e3a.variance import teacher_variance
 
 ROOT = Path(__file__).resolve().parents[1]
 EVAL_STREAMS = tuple(
-    f"seed_{seed}_{kind}" for seed in (11, 23, 37) for kind in ("control", "restructure_15", "restructure_30", "clinc")
+    f"seed_{seed}_{kind}"
+    for seed in (11, 23, 37)
+    for kind in ("control", "restructure_05", "restructure_15", "restructure_30", "clinc", "visible")
 )
 
 
@@ -211,11 +213,16 @@ def main() -> None:
             "meta_records": meta_records,
             "timing_cache": mining_timing,
         }
-        for arm, arm_rows in run_lifecycle(items, providers, settings).items():
-            for row in arm_rows:
-                row.update(stream=name, shift_at=shift_at, arm=arm)
-            rows.extend(arm_rows)
-        for arm in ("fixed_gate", "fixed_gate_config_hash", "knn_cache"):
+        visible = name.endswith("_visible")
+        if not visible:
+            for arm, arm_rows in run_lifecycle(items, providers, settings).items():
+                for row in arm_rows:
+                    row.update(stream=name, shift_at=shift_at, arm=arm)
+                rows.extend(arm_rows)
+        baseline_arms = (
+            ("fixed_gate_config_hash",) if visible else ("fixed_gate", "fixed_gate_config_hash", "knn_cache")
+        )
+        for arm in baseline_arms:
             rows.extend(
                 run_baseline(
                     items,
@@ -292,7 +299,14 @@ def main() -> None:
         all_rows.extend(rows)
         manifest.counts[name] = len(items)
     if discovery:
-        pd.DataFrame(discovery).to_csv(directory / "discovery.csv", index=False)
+        summaries = []
+        candidates = []
+        for report in discovery:
+            info = {key: value for key, value in report.items() if key != "candidates"}
+            summaries.append(info)
+            candidates.extend({**info, **candidate} for candidate in report.get("candidates", []))
+        pd.DataFrame(summaries).to_csv(directory / "discovery_summary.csv", index=False)
+        pd.DataFrame(candidates).to_csv(directory / "discovery.csv", index=False)
     for filename, records in (("s5-records.jsonl", s5_records), ("meta-records.jsonl", meta_records)):
         with (directory / filename).open("w") as handle:
             for record in records:

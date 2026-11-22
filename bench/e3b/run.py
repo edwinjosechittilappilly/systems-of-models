@@ -40,6 +40,79 @@ RUN_ID = "tau2-768f3d8"
 TRAIN = "gpt-4.1"
 HELD_OUT = tuple(model for model in MODELS if model != TRAIN)
 
+# Archived false positives from the two prior committed reports (reviewed and
+# final-before-context). The initial run differed as noted in miner_history().
+_PRIOR_BRANCH_FP = [
+    "retail/calculate.branch",
+    "retail/find_user_id_by_email.branch",
+    "retail/find_user_id_by_name_zip.branch",
+    "retail/get_product_details.branch",
+    "retail/get_user_details.branch",
+    "retail/list_all_product_types.branch",
+    "airline/calculate.branch",
+    "airline/get_flight_status.branch",
+    "airline/get_reservation_details.branch",
+    "airline/get_user_details.branch",
+    "airline/search_direct_flight.branch",
+    "airline/search_onestop_flight.branch",
+]
+_PRIOR_ARGUMENT_FP = [
+    "retail/calculate.expression",
+    "retail/exchange_delivered_order_items.item_ids",
+    "retail/exchange_delivered_order_items.new_item_ids",
+    "retail/exchange_delivered_order_items.order_id",
+    "retail/exchange_delivered_order_items.payment_method_id",
+    "retail/get_order_details.order_id",
+    "retail/get_product_details.product_id",
+    "retail/get_user_details.user_id",
+    "retail/modify_pending_order_items.item_ids",
+    "retail/modify_pending_order_items.new_item_ids",
+    "retail/modify_pending_order_items.order_id",
+    "retail/modify_pending_order_items.payment_method_id",
+    "retail/return_delivered_order_items.item_ids",
+    "retail/return_delivered_order_items.payment_method_id",
+    "airline/book_reservation.flights",
+    "airline/book_reservation.passengers",
+    "airline/book_reservation.payment_methods",
+    "airline/calculate.expression",
+    "airline/get_flight_status.date",
+    "airline/get_flight_status.flight_number",
+    "airline/get_reservation_details.reservation_id",
+    "airline/search_direct_flight.date",
+    "airline/search_onestop_flight.date",
+    "airline/update_reservation_flights.flights",
+    "airline/update_reservation_flights.payment_id",
+]
+
+
+def miner_history(rows: list[dict[str, Any]], pooled: dict[str, Any]) -> list[str]:
+    """List each revision's false positives, including historical pre-context outputs."""
+    third = sorted(_PRIOR_BRANCH_FP + _PRIOR_ARGUMENT_FP)
+    first = sorted(
+        (set(third) - {"airline/book_reservation.passengers"})
+        | {"retail/get_order_details.branch", "airline/update_reservation_baggages.payment_id"}
+    )
+    second = sorted(_PRIOR_BRANCH_FP)
+    fourth = sorted(f"{row['domain']}/{row['name']}" for row in rows if row["accepted"] and not row["judgement"])
+    history = [
+        ("1 initial", 0.283, 0.750, first),
+        ("2 reviewed", 0.556, 0.750, second),
+        ("3 non-majority support", 0.288, 0.750, third),
+        ("4 earlier-tool-result context", pooled["precision"], pooled["recall"], fourth),
+    ]
+    lines = [
+        "## Miner revision history",
+        "",
+        "All revisions follow frozen labels; revisions 2-4 occurred after results were observed. "
+        "Revision 1 candidates are reconstructed from its mining log; revisions 2 and 3 from archived CSVs.",
+        "",
+        "| Revision | Precision | Recall | False-positive candidates |",
+        "|---|---:|---:|---|",
+    ]
+    for name, precision, recall, candidates in history:
+        lines.append(f"| {name} | {precision:.3f} | {recall:.3f} | {', '.join(candidates) or 'none'} |")
+    return lines
+
 
 def calibration(domain: str, task_id: str) -> bool:
     key = f"e3b-calibration:{domain}:{task_id}".encode()
@@ -581,6 +654,22 @@ def run(mode: str) -> None:
     manifest.notes = failures
     manifest.write()
     errors = Counter(row["error"] for row in all_rows if row["error"])
+    fp_groups: dict[str, list[str]] = {}
+    for row in mining_rows:
+        if not row["accepted"] or row["judgement"]:
+            continue
+        arg = row["argument"] or ""
+        if row["kind"] == "branch":
+            group = "Incidental lookup or calculation branches"
+        elif row["kind"] == "retrieval_choice":
+            group = "Retrieval identifiers"
+        elif arg == "expression":
+            group = "Calculation expressions"
+        elif arg.endswith(("_id", "_ids")):
+            group = "Identifiers and identifier lists"
+        else:
+            group = "Other supplied data or lists"
+        fp_groups.setdefault(group, []).append(f"{row['domain']}/{row['name']}")
     lines = [
         "# E3b analysis",
         "",
@@ -591,6 +680,24 @@ def run(mode: str) -> None:
             f"precision {r['precision']:.3f} (Wilson {r['precision_ci']}), "
             f"recall {r['recall']:.3f} (Wilson {r['recall_ci']})."
             for r in discovery_rows
+        ],
+        "",
+        *miner_history(mining_rows, discovery_rows[-1]),
+        "",
+        "## Revision 4 false positives by distractor category",
+        "",
+        *[f"- **{group}**: {', '.join(sorted(names))}" for group, names in sorted(fp_groups.items())],
+        "",
+        "These are label-based categories, not proven causal explanations of miner failures.",
+        "",
+        "## Revision 4 rejected candidates",
+        "",
+        "| Domain / candidate | Kind | Support | Rejection reason | Determinant |",
+        "|---|---|---:|---|---|",
+        *[
+            f"| {r['domain']}/{r['name']} | {r['kind']} | {r['support']} | {r['reason']} | {r['determinant'] or ''} |"
+            for r in mining_rows
+            if not r["accepted"]
         ],
         "",
         "## Evaluation",
@@ -628,11 +735,10 @@ def run(mode: str) -> None:
         "",
         f"- Held-out API failures/refusals: {dict(errors)}; these are not scored as correct.",
         *[f"- {failure}" for failure in failures],
-        "- The miner was revised twice after initial results were observed, so this is not a fully "
-        "pre-registered implementation. The initial miner yielded 15 TP, 38 FP and 5 FN "
-        "(precision 0.283, recall 0.750); the first independently reviewed miner yielded "
-        "15 TP, 12 FP and 5 FN (precision 0.556, recall 0.750). This run uses the final "
-        "reviewer-approved miner; its P/R is reported above. Labels and protocol remained frozen.",
+        "- Three miner revisions followed the initial observed results, so this is not a fully "
+        "pre-registered implementation. Revision 4 counts non-majority observations as support, "
+        "checks values against the input and uniquely pointed-to earlier tool results, and follows "
+        "retrieved IDs only via `id`, `*_id`, or `*_ids` arguments. Labels and protocol remained frozen.",
         "- Offline replay requires the pinned τ²-bench data files to have been downloaded into bench/data; "
         "the recorded provider-call cache is archived beside these results.",
         "- The preceding assistant text can already communicate the tool argument before the call. "

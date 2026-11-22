@@ -1,11 +1,11 @@
 {
   "cache": {
     "jev": {
-      "hits": 960,
+      "hits": 254,
       "misses": 0
     },
     "writer": {
-      "hits": 15,
+      "hits": 14,
       "misses": 0
     }
   },
@@ -23,21 +23,21 @@
       "decision_labels.yaml": "6bfbb19192bb0c1d4b4c02e8c76a89bfa99a87f7677775188c46981dd9dbd4a3",
       "extract.py": "88f058a86405d6a1a73b0466a5f889d3bd5cda1945773a6bf85c90d8a189a497",
       "metrics.py": "4ffef225c5f0702a6df698ee3c4ef6169e31a2f9be23df152b572ffad1f6c271",
-      "run.py": "9fb10d4bca3737be7e6821b190c5ee21c9eaa5572145d0e437b4c0e99a8f9749"
+      "run.py": "a78457da9f7f96ab77ee425e4006e953207724176fa3e70652176e7012e57338"
     },
     "tau2_commit": "768f3d8fe8528b4f32a5096f9ed008ae50f48ead"
   },
   "contract_version": "2.0.0",
   "cost_usd": {
-    "openai": 0.06969100000000002,
-    "typesafe": 0.17566059000000012
+    "openai": 0.054452,
+    "typesafe": 0.04348155
   },
   "counts": {
-    "ablation_instances": 435,
+    "ablation_instances": 119,
     "candidates": 103,
     "failures": 13,
-    "instances": 435,
-    "questions": 15
+    "instances": 119,
+    "questions": 14
   },
   "data": {
     "e3b_jev.jsonl": "97e5c305922d2e445c141f3e4b602bfa5a7bf1dec7e469f555ac76970c5d39b0",
@@ -52,9 +52,9 @@
     "tau2/o4-mini-2025-04-16_retail_default_gpt-4.1-2025-04-14_4trials.json": "7135f38bbbbd46d6babe830574c8623bb276d8fd6da316580b905cf513853f98"
   },
   "experiment": "e3b",
-  "finished_at": "2026-11-22T22:08:20Z",
+  "finished_at": "2026-11-22T22:24:48Z",
   "git_dirty": true,
-  "git_sha": "a258144c1a98a34cf3ff082aacd0bb65236fbd1b",
+  "git_sha": "68a62b2ff1426ac47559254059d2f03234b6fe67",
   "models": {
     "s1": "jev-1.14.0",
     "writer": "gpt-6.1-terra"
@@ -78,5 +78,5 @@
   "python": "3.12.9",
   "run_id": "tau2-768f3d8",
   "som_version": "0.1.0.dev0",
-  "started_at": "2026-11-22T22:08:15Z"
+  "started_at": "2026-11-22T22:24:44Z"
 }

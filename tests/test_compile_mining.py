@@ -53,7 +53,9 @@ def test_miner_finds_choices_and_records_all_distractor_reasons():
     assert accepted["search.retrieval_choice"].values == ["p0", "p1", "p2"]
     assert accepted["search.retrieval_choice"].examples[0].title == "Policy 0"
     assert set(accepted["verify.branch"].values) == {True, False}
-    assert rejected["route.department"].reason == "copied_from_context"  # read off the chosen entry
+    # All three departments were listed by the search, so the department follows the retrieval choice.
+    assert rejected["route.department"].reason == "functional_dependency"
+    assert rejected["route.department"].determinant == "search.retrieval_choice"
     assert rejected["route.queue"].reason == "functional_dependency"
     assert rejected["route.queue"].determinant == "search.retrieval_choice"
     assert rejected["route.note"].reason == "free_text"
@@ -215,18 +217,18 @@ def test_near_constant_argument_with_three_values_is_rare():
 def test_ids_read_from_earlier_tool_results_are_copied_not_decided():
     traces = []
     for i in range(40):
-        orders = [f"#W{i}0", f"#W{i}1"]
         traces.append(
             AgentTrace(
                 str(i),
                 "I want to return something",
                 [
-                    AgentStep("get_user", {"user": "u"}, {"orders": orders, "payment": f"card_{i}"}),
+                    AgentStep("get_user", {"user": "u"}, {"order": f"#W{i}", "payment": f"card_{i}"}),
+                    AgentStep("get_order", {"order_id": f"#W{i}"}, {"items": [{"item_id": f"it{i}"}]}),
                     AgentStep(
                         "return_items",
                         {
-                            "order_id": orders[i % 2],
-                            "items": [f"#W{i}0"],
+                            "order_id": f"#W{i}",
+                            "item_ids": [f"it{i}"],
                             "payment_method_id": f"card_{i}",
                             "reason": ("damaged", "wrong size", "late")[i % 3],
                         },
@@ -237,12 +239,45 @@ def test_ids_read_from_earlier_tool_results_are_copied_not_decided():
         )
     report = mine(traces, min_support=5)
     rejected = {item.name: item for item in report.rejected}
-    for name in ("return_items.order_id", "return_items.items", "return_items.payment_method_id"):
+    for name in ("return_items.order_id", "return_items.item_ids", "return_items.payment_method_id"):
         assert rejected[name].reason == "copied_from_context"
     assert "return_items.reason" in {item.name for item in report.accepted}
 
 
-def test_a_call_that_passes_a_retrieved_id_under_another_name_is_a_retrieval_choice():
+def _probe(arguments, context, n=400):
+    """Runs whose decision depends on the input, after an earlier tool result ``context(i)``."""
+    return [
+        AgentTrace(
+            str(i),
+            f"case {i % 3}",
+            [AgentStep("lookup", {}, context(i)), AgentStep("act", arguments(i), None)],
+        )
+        for i in range(n)
+    ]
+
+
+@pytest.mark.parametrize(
+    ("argument", "values", "context"),
+    [
+        ("escalate", (True, False, False), lambda i: {"active": True, "verified": False}),
+        ("priority", (1, 2, 3), lambda i: {"opened": "2021-03-14", "tier": 2}),
+        ("resolution", ("refund", "replace", "deny"), lambda i: {"text": "We refund, replace or deny claims."}),
+    ],
+)
+def test_judgements_whose_labels_appear_in_earlier_results_are_not_copied(argument, values, context):
+    traces = _probe(lambda i: {argument: values[i % 3]}, context)
+    assert f"act.{argument}" in {item.name for item in mine(traces, min_support=10).accepted}
+
+
+def test_an_id_shaped_value_in_a_non_id_argument_does_not_follow_a_retrieved_item():
+    faq = [{"id": 1, "title": "Refunds"}, {"id": 2, "title": "Cards"}, {"id": 3, "title": "Fraud"}]
+    report = mine(_probe(lambda i: {"priority": i % 3 + 1}, lambda i: faq), min_support=10)
+    names = {item.name for item in report.accepted}
+    assert "act.priority" in names
+    assert "lookup.retrieval_choice" not in names
+
+
+def test_a_call_that_passes_a_retrieved_id_as_an_id_argument_is_a_retrieval_choice():
     traces = []
     for i in range(60):
         entries = [{"id": f"p{j}", "title": f"Policy {j}"} for j in range(5)]
@@ -262,7 +297,9 @@ def test_a_call_that_passes_a_retrieved_id_under_another_name_is_a_retrieval_cho
     rejected = {item.name: item for item in report.rejected}
     assert set(accepted["search_policy.retrieval_choice"].values) == {"p0", "p1", "p2", "p3", "p4"}
     assert accepted["search_policy.retrieval_choice"].examples[0].title == "Policy 0"
-    assert rejected["get_policy.entry_id"].reason == "copied_from_context"
+    # The search listed all five ids, so entry_id is a choice among options, explained by the retrieval choice.
+    assert rejected["get_policy.entry_id"].reason == "functional_dependency"
+    assert rejected["get_policy.entry_id"].determinant == "search_policy.retrieval_choice"
     assert report.ambiguous_retrieval_count == 0
 
 

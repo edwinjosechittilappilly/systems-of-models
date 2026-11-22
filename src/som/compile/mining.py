@@ -1,11 +1,12 @@
 """Mine recurring trace decisions with explicit, empirical rejection rules.
 
 Support is the number of observations that differ from the most common value (the minority count for binary
-candidates). A value is *copied* when every scalar in it appears verbatim in the run's input or in the result of an
-earlier tool call in the same run: the agent looked it up rather than decided it; 80% of observations must be
-copied to reject. The default free-text rule rejects a distinct/occurrence ratio of at least 0.8 with ten or more
-observations, or cardinality above the limit. Functional dependencies use leave-one-out prediction on overlapping
-traces; all are heuristics.
+candidates). A value is *copied* when every scalar in it appears verbatim in the run's input, or when it was looked
+up: its scalars equal whole field values in earlier tool results of the same run and no other observed value of the
+candidate is there too (a list of options to choose from is not a lookup; booleans and None never count). 80% of
+observations must be copied to reject. The default free-text rule rejects a distinct/occurrence ratio of at least
+0.8 with ten or more observations, or cardinality above the limit. Functional dependencies use leave-one-out
+prediction on overlapping traces; all are heuristics.
 """
 
 from __future__ import annotations
@@ -97,6 +98,41 @@ def _copied(value: Any, source: Any) -> bool:
     return type(value) is type(source) and value == source
 
 
+def _fields(value: Any) -> set[str]:
+    """Keys of the whole scalar field values in JSON-like data; booleans and None never identify a lookup."""
+    if isinstance(value, dict):
+        return set().union(*(_fields(item) for item in value.values()))
+    if isinstance(value, list):
+        return set().union(*(_fields(item) for item in value))
+    if value is None or isinstance(value, bool) or value == "":
+        return set()
+    return {_key(value)}
+
+
+def _scalars(value: Any) -> set[str] | None:
+    """Keys of the scalars a value is built from, or None when it contains a boolean or None."""
+    if isinstance(value, (dict, list)):
+        parts = [_scalars(item) for item in (value.values() if isinstance(value, dict) else value)]
+        if not parts or any(part is None for part in parts):
+            return None
+        return set().union(*(part for part in parts if part is not None))
+    return _fields(value) or None
+
+
+def _looked_up(example: Example, others: list[set[str]]) -> bool:
+    """The value is in an earlier tool result as whole field values, and no other observed value is: the results
+    point to this one value (a lookup) rather than list options to choose from."""
+    mine = _scalars(example.value)
+    if not mine or not example.context:
+        return False
+    fields = _fields(example.context)
+    return mine <= fields and not any(other <= fields for other in others if other != mine)
+
+
+def _id_argument(name: str) -> bool:
+    return name == "id" or name.endswith(("_id", "_ids"))
+
+
 def _retrieved(trace: AgentTrace, index: int) -> tuple[tuple[Any, str | None] | None, bool]:
     result = trace.steps[index].result
     if (
@@ -107,11 +143,11 @@ def _retrieved(trace: AgentTrace, index: int) -> tuple[tuple[Any, str | None] | 
         return None, False
     ambiguous = False
     for later in trace.steps[index + 1 :]:
-        later_values = {_key(value) for value in later.arguments.values()}
+        # A later call that passes the item's id as an id argument (get_policy(entry_id=...)) follows that item.
+        later_ids = {_key(value) for name, value in later.arguments.items() if _id_argument(name)}
         scores = [
             sum(key in later.arguments and _key(value) == _key(later.arguments[key]) for key, value in item.items())
-            # A later call that passes the item's id under any argument name (get_policy(entry_id=...)) follows it.
-            + int(_key(item["id"]) in later_values)
+            + int(_key(item["id"]) in later_ids)
             for item in result
         ]
         best = max(scores)
@@ -221,11 +257,12 @@ def mine(
         # Support = observations that differ from the most common value. For two values this is the minority count;
         # for many values it keeps singleton classes of a real judgement while rejecting near-constant arguments.
         candidate.support = len(candidate.examples) - max(counts.values())
-        if (
-            candidate.kind == "tool_argument"
-            and sum(_copied(e.value, [e.input, *e.context]) for e in candidate.examples) / len(candidate.examples)
-            >= copied_ratio
-        ):
+        copied = 0.0
+        if candidate.kind == "tool_argument":
+            others = [scalars for scalars in map(_scalars, candidate.values) if scalars]
+            copied = sum(_copied(e.value, e.input) or _looked_up(e, others) for e in candidate.examples)
+            copied /= len(candidate.examples)
+        if copied >= copied_ratio:
             candidate.reason = "copied_from_context"
         elif len(distinct) > max_cardinality or (
             len(candidate.examples) >= 10 and len(distinct) / len(candidate.examples) >= max_distinct_ratio

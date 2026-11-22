@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/edwinjosechittilappilly/systems-of-models/main/schemas/s4-agentic.schema.json",
-  "title": "Agentic system (S4) contract, major version 1",
+  "title": "Agentic system (S4) contract, major version 2",
   "description": "A loop in which observations from an environment change later computation. Tool declarations reuse the OpenAI Responses API tool shapes (`function`, `mcp`); tool results mirror the Model Context Protocol (MCP) `CallToolResult` (`content`, `structuredContent` -> `structured_content`, `isError` -> `is_error`).",
   "type": "object",
   "properties": {
@@ -245,7 +245,7 @@
         {
           "properties": {
             "system": { "const": "s4.agentic" },
-            "system_version": { "pattern": "^1\\." },
+            "system_version": { "pattern": "^2\\." },
             "body": { "$ref": "#/$defs/body" }
           }
         }

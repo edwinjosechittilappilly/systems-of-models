@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/edwinjosechittilappilly/systems-of-models/main/schemas/s3-search.schema.json",
-  "title": "Search system (S3) contract, major version 1",
+  "title": "Search system (S3) contract, major version 2",
   "description": "Several candidate trajectories, an external verifier that scores them, and an explicit selection rule. Covers best-of-N with a reward model, self-consistency voting, beam search, Tree of Thoughts and Monte Carlo tree search over model outputs.",
   "type": "object",
   "properties": {
@@ -145,7 +145,7 @@
         {
           "properties": {
             "system": { "const": "s3.search" },
-            "system_version": { "pattern": "^1\\." },
+            "system_version": { "pattern": "^2\\." },
             "body": { "$ref": "#/$defs/body" }
           }
         }

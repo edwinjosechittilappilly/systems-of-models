@@ -98,6 +98,7 @@
         "som.confidence": { "type": "number", "minimum": 0, "maximum": 1 },
         "som.cost.amount": { "type": "number", "minimum": 0 },
         "som.cost.currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+        "som.cost.basis": { "$ref": "envelope.schema.json#/$defs/cost_basis" },
         "som.escalation.to": { "type": "string" },
         "som.escalation.reason": { "type": "string" },
         "som.memory.read": { "type": "array", "items": { "type": "string" } },

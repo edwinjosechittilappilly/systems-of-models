@@ -66,8 +66,9 @@
   "response": {
     "id": "agt_01JABD",
     "object": "system.response",
+    "contract_version": "2.0.0",
     "system": "s4.agentic",
-    "system_version": "1.3.2",
+    "system_version": "2.3.2",
     "created_at": 1791968408,
     "status": "completed",
     "confidence": 0.95,
@@ -75,6 +76,7 @@
     "cost": {
       "amount": 0.0031,
       "currency": "USD",
+      "basis": "list_price",
       "usage": {
         "input_tokens": 5200,
         "output_tokens": 4100,
@@ -88,11 +90,13 @@
       "breakdown": [
         {
           "system": "s2.reasoning",
-          "amount": 0.00305
+          "amount": 0.00305,
+          "basis": "list_price"
         },
         {
           "system": "s1.decision",
           "amount": 5e-05,
+          "basis": "list_price",
           "response_id": "dec_01JABE"
         }
       ]

@@ -1,6 +1,8 @@
-# Systems of Models: contract schemas (draft v1)
+# Systems of Models: contract schemas (contract 2.0.0)
 
-JSON Schema (draft 2020-12) contracts for the taxonomy. Each system schema defines `$defs/request` and `$defs/response`. The response composes `envelope.schema.json` through `allOf` and fixes `system`, the major version (`system_version` matches `^1\.`), and `body`. A top-level document holds a `request`, a `response`, or both. `examples/` has one valid instance per schema, plus a second one for the meta-layer. Example values are illustrative.
+JSON Schema (draft 2020-12) contracts for the taxonomy. Each system schema defines `$defs/request` and `$defs/response`. The response composes `envelope.schema.json` through `allOf` and fixes `system`, the major version (`system_version` matches `^2\.`), and `body`. Every response states `contract_version`. A top-level document holds a `request`, a `response`, or both. `examples/` has one valid instance per schema, plus extra meta-layer examples (one records the 1.x → 2.0.0 change). Example values are illustrative.
+
+**2.0.0 (2026-11-22), breaking:** `cost.basis` is required (`provider_reported`, `list_price`, `local_measured`, `unknown`), `cost.amount` is null exactly when the basis is `unknown`, `cost.rate_card` is `{source, retrieved_at}`, each `breakdown` item has a `basis`, and envelopes carry `contract_version`. 1.x labelled every amount as billed, although almost no provider returns a per-call charge.
 
 | File | Contents |
 |---|---|
@@ -28,6 +30,7 @@ Conventions:
 | `system`, `system_version` | State which contract and which semver release answered | [SemVer 2.0.0](https://semver.org); API versioning practice |
 | `confidence`, `confidence_basis` | Give one gate signal across tiers (estimated probability that the response is correct), and record where it comes from so uncalibrated signals can be discounted. `confidence_basis` is required whenever `confidence` is a number | Decisions `confidence`; [TypeSafe confidence](https://docs.typesafe.ai/confidence.md); calibration disputes in the lit review |
 | `cost.amount`, `cost.usage`, `cost.breakdown` | Price composed calls; `usage` keeps vendor token names | OpenAI `usage` (`input_tokens`, `output_tokens_details.reasoning_tokens`) |
+| `contract_version`, `cost.basis`, `cost.rate_card`, `breakdown[].basis` (2.0.0) | Say which contract a producer follows and how each amount was obtained: `provider_reported` by the provider, `list_price` from usage times a dated rate card, `local_measured` for self-hosted calls, or `unknown` with a null amount. A total takes the weakest basis of its parts | Most APIs report usage, not charges; OpenRouter reports `usage.cost`; Ollama/vLLM have no invoice |
 | `latency_ms` | Latency is part of the S1 definition, and it is what tiers trade against | Decisions "about 10x faster than the Responses API" claim |
 | `trace_ref.trace_id/span_id` | Join a response to the shared trace | [W3C Trace Context](https://www.w3.org/TR/trace-context/); OpenTelemetry |
 | `implementation.provider/model/endpoint` | Record which vendor API served the contract | OTel `gen_ai.provider.name`, `gen_ai.response.model` |

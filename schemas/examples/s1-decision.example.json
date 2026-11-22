@@ -94,8 +94,9 @@
   "response": {
     "id": "dec_01JAB6",
     "object": "system.response",
+    "contract_version": "2.0.0",
     "system": "s1.decision",
-    "system_version": "1.1.0",
+    "system_version": "2.1.0",
     "created_at": 1791968400,
     "status": "escalated",
     "confidence": 0.62,
@@ -103,6 +104,11 @@
     "cost": {
       "amount": 4.12e-05,
       "currency": "USD",
+      "basis": "list_price",
+      "rate_card": {
+        "source": "https://developers.openai.com/api/docs/guides/decisions",
+        "retrieved_at": "2026-11-22"
+      },
       "usage": {
         "input_tokens": 412,
         "output_tokens": 0,

@@ -28,6 +28,7 @@ Conventions:
 | `system`, `system_version` | State which contract and which semver release answered | [SemVer 2.0.0](https://semver.org); API versioning practice |
 | `confidence`, `confidence_basis` | Give one gate signal across tiers (estimated probability that the response is correct), and record where it comes from so uncalibrated signals can be discounted. `confidence_basis` is required whenever `confidence` is a number | Decisions `confidence`; [TypeSafe confidence](https://docs.typesafe.ai/confidence.md); calibration disputes in the lit review |
 | `cost.amount`, `cost.usage`, `cost.breakdown` | Price composed calls; `usage` keeps vendor token names | OpenAI `usage` (`input_tokens`, `output_tokens_details.reasoning_tokens`) |
+| `cost.basis`, `cost.rate_card` (1.1.0) | Say how the amount was obtained: `billed` by the provider, `list_price` from usage times a dated rate card, or `local` (self-hosted, no API charge). Absent means `billed`, the 1.0 meaning, so 1.0 documents stay valid | Most APIs report usage, not charges; OpenRouter reports `usage.cost`; Ollama/vLLM have no invoice |
 | `latency_ms` | Latency is part of the S1 definition, and it is what tiers trade against | Decisions "about 10x faster than the Responses API" claim |
 | `trace_ref.trace_id/span_id` | Join a response to the shared trace | [W3C Trace Context](https://www.w3.org/TR/trace-context/); OpenTelemetry |
 | `implementation.provider/model/endpoint` | Record which vendor API served the contract | OTel `gen_ai.provider.name`, `gen_ai.response.model` |

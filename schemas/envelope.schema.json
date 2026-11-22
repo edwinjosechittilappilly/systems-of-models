@@ -290,12 +290,25 @@
         "amount": {
           "type": "number",
           "minimum": 0,
-          "description": "Total billed cost of this call, including nested calls."
+          "description": "Total cost of this call, including nested calls, under `basis`."
         },
         "currency": {
           "type": "string",
           "pattern": "^[A-Z]{3}$",
           "description": "ISO 4217 code."
+        },
+        "basis": {
+          "enum": [
+            "billed",
+            "list_price",
+            "local"
+          ],
+          "default": "billed",
+          "description": "How `amount` was obtained. `billed`: the provider reported the charge. `list_price`: token usage times a published rate card (see `rate_card`). `local`: no API charge (self-hosted); compute is not counted. Added in 1.1.0; absent means `billed`, the 1.0 meaning."
+        },
+        "rate_card": {
+          "type": "string",
+          "description": "Source of the prices behind a `list_price` amount, e.g. `openai:2026-11-22`."
         },
         "usage": {
           "$ref": "#/$defs/usage"

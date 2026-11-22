@@ -541,22 +541,25 @@
   },
   {
     "domain": "airline",
-    "candidate": "book_reservation.flight_type",
+    "candidate": "book_reservation.cabin",
     "question": {
       "type": "choice",
-      "name": "trip_type",
-      "instructions": "Classify the flight itinerary relevant to the current request as \"round_trip\" if it includes outbound and return travel, or \"one_way\" if it travels in one direction without a return. Connecting flights do not by themselves make a trip round-trip.",
+      "name": "cabin_class",
+      "instructions": "What cabin class is specified for the flight booking or reservation change the user wants to proceed with? Return one of: basic_economy, economy, or business. Use the selected itinerary’s class, not the class of an earlier reservation.",
       "choices": [
         {
-          "value": "one_way"
+          "value": "economy"
         },
         {
-          "value": "round_trip"
+          "value": "basic_economy"
+        },
+        {
+          "value": "business"
         }
       ]
     },
     "provenance": {
-      "candidate": "book_reservation.flight_type",
+      "candidate": "book_reservation.cabin",
       "kind": "tool_argument",
       "seed": 0,
       "n_samples": 20,

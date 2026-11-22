@@ -13,8 +13,8 @@
     "min_support": 10,
     "mode": "replay",
     "recorded_unique_call_cost_usd": {
-      "openai": 0.140833,
-      "typesafe": 0.251878158
+      "openai": 0.164969,
+      "typesafe": 0.29046612
     },
     "seed": 0,
     "source_sha256": {
@@ -23,14 +23,14 @@
       "decision_labels.yaml": "6bfbb19192bb0c1d4b4c02e8c76a89bfa99a87f7677775188c46981dd9dbd4a3",
       "extract.py": "88f058a86405d6a1a73b0466a5f889d3bd5cda1945773a6bf85c90d8a189a497",
       "metrics.py": "4ffef225c5f0702a6df698ee3c4ef6169e31a2f9be23df152b572ffad1f6c271",
-      "run.py": "3de9bdc0be0f8d19305d423e7885a0fe25b3a58570e06fdb84e5261a1b71cb55"
+      "run.py": "9fb10d4bca3737be7e6821b190c5ee21c9eaa5572145d0e437b4c0e99a8f9749"
     },
     "tau2_commit": "768f3d8fe8528b4f32a5096f9ed008ae50f48ead"
   },
   "contract_version": "2.0.0",
   "cost_usd": {
-    "openai": 0.06975,
-    "typesafe": 0.17551123799999996
+    "openai": 0.06969100000000002,
+    "typesafe": 0.17566059000000012
   },
   "counts": {
     "ablation_instances": 435,
@@ -40,8 +40,8 @@
     "questions": 15
   },
   "data": {
-    "e3b_jev.jsonl": "a7c17a7ebb5f8d849222b18410a39999e43cb904d3ead41952cbedab49cfa1e6",
-    "e3b_writer.jsonl": "c08aedfc9e47e71673d0b265c0040bfa18ed737c1d3bef1632db0e37c02e4f39",
+    "e3b_jev.jsonl": "97e5c305922d2e445c141f3e4b602bfa5a7bf1dec7e469f555ac76970c5d39b0",
+    "e3b_writer.jsonl": "4675f4be0f82a90e79895089913421db6939eab2d2235d627647152a23ad54e9",
     "tau2/claude-3-7-sonnet-20250219_airline_default_gpt-4.1-2025-04-14_4trials.json": "40a2c6a246eab27db5cdefda895fbe7f44be78a23d300817248534aa606d66de",
     "tau2/claude-3-7-sonnet-20250219_retail_default_gpt-4.1-2025-04-14_4trials.json": "ed41dbd18c080154156484e3a0122c095e324a11367a640d88e15956daed7b9d",
     "tau2/gpt-4.1-2025-04-14_airline_default_gpt-4.1-2025-04-14_4trials.json": "31d19e79b8ddc5934a60701f913ff5fefb41dee5e68f7b813c26254ab2e2d5c8",
@@ -52,9 +52,9 @@
     "tau2/o4-mini-2025-04-16_retail_default_gpt-4.1-2025-04-14_4trials.json": "7135f38bbbbd46d6babe830574c8623bb276d8fd6da316580b905cf513853f98"
   },
   "experiment": "e3b",
-  "finished_at": "2026-11-22T22:05:36Z",
+  "finished_at": "2026-11-22T22:08:20Z",
   "git_dirty": true,
-  "git_sha": "e6d112af3b9944278c82af5f5bd55eefc7102f1c",
+  "git_sha": "a258144c1a98a34cf3ff082aacd0bb65236fbd1b",
   "models": {
     "s1": "jev-1.14.0",
     "writer": "gpt-6.1-terra"
@@ -78,5 +78,5 @@
   "python": "3.12.9",
   "run_id": "tau2-768f3d8",
   "som_version": "0.1.0.dev0",
-  "started_at": "2026-11-22T22:05:32Z"
+  "started_at": "2026-11-22T22:08:15Z"
 }

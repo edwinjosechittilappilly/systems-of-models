@@ -628,10 +628,11 @@ def run(mode: str) -> None:
         "",
         f"- Held-out API failures/refusals: {dict(errors)}; these are not scored as correct.",
         *[f"- {failure}" for failure in failures],
-        "- After the first results were observed, an independent compiler review corrected the miner; "
-        "this run uses the corrected compiler and is not a fully pre-registered implementation. "
-        "The initial miner yielded 15 TP, 38 FP and 5 FN (precision 0.283, recall 0.750); "
-        "the labels and protocol remained frozen.",
+        "- The miner was revised twice after initial results were observed, so this is not a fully "
+        "pre-registered implementation. The initial miner yielded 15 TP, 38 FP and 5 FN "
+        "(precision 0.283, recall 0.750); the first independently reviewed miner yielded "
+        "15 TP, 12 FP and 5 FN (precision 0.556, recall 0.750). This run uses the final "
+        "reviewer-approved miner; its P/R is reported above. Labels and protocol remained frozen.",
         "- Offline replay requires the pinned τ²-bench data files to have been downloaded into bench/data; "
         "the recorded provider-call cache is archived beside these results.",
         "- The preceding assistant text can already communicate the tool argument before the call. "

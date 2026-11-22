@@ -1,0 +1,5 @@
+warmup_tickets,gold_intents,distinct_intent_fraction
+200,75,0.375
+300,77,0.2567
+500,77,0.154
+1000,77,0.077

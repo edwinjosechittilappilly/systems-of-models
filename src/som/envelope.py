@@ -96,10 +96,14 @@ class Usage:
 
 @dataclass
 class CostItem:
-    system: str
+    system: SystemId
     amount: float | None
     basis: CostBasis
     response_id: str | None = None
+
+    def __post_init__(self) -> None:
+        if (self.amount is None) != (self.basis == "unknown"):
+            raise ValueError("cost.amount must be None exactly when basis is 'unknown'")
 
     def to_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {"system": self.system, "amount": self.amount, "basis": self.basis}
@@ -130,11 +134,14 @@ class Cost:
         return cls(amount=None, basis="unknown", usage=usage)
 
     @classmethod
-    def total(cls, parts: Sequence[tuple[str, Cost, str | None]]) -> Cost:
+    def total(cls, parts: Sequence[tuple[SystemId, Cost, str | None]]) -> Cost:
         """Sum ``(system, cost, response_id)`` parts. The total takes the weakest basis; any unknown part makes the
-        total unknown."""
+        total unknown. Parts must share one currency."""
         if not parts:
             raise ValueError("no cost parts")
+        currencies = {cost.currency for _, cost, _ in parts}
+        if len(currencies) > 1:
+            raise ValueError(f"cannot total costs in different currencies: {sorted(currencies)}")
         basis = min((cost.basis for _, cost, _ in parts), key=lambda b: _BASIS_STRENGTH[b])
         amounts = [cost.amount for _, cost, _ in parts]
         amount = None if basis == "unknown" else sum(a for a in amounts if a is not None)
@@ -143,7 +150,7 @@ class Cost:
             if cost.usage is not None:
                 usage = cost.usage if usage is None else usage + cost.usage
         items = [CostItem(system, cost.amount, cost.basis, rid) for system, cost, rid in parts]
-        return cls(amount=amount, basis=basis, usage=usage, breakdown=items)
+        return cls(amount=amount, basis=basis, currency=currencies.pop(), usage=usage, breakdown=items)
 
     def to_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {"amount": self.amount, "currency": self.currency, "basis": self.basis}
@@ -203,7 +210,7 @@ class Threshold:
 class Escalation:
     """A handoff from one system to another, matching ``schemas/escalation.schema.json``."""
 
-    escalate_to: str
+    escalate_to: SystemId
     reason: str
     threshold: Threshold
     question_names: list[str] = field(default_factory=list)

@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 from typing import Any
 
-from som.envelope import Cost, Envelope, Implementation, Usage
+from som.envelope import Cost, Envelope, Implementation, SystemId, Usage
 from som.questions import Answer, Question
 from som.systems import Decision, Input
 from som.trace import span
@@ -20,7 +20,7 @@ class FunctionDecider:
         self,
         answer: AnswerFn,
         *,
-        system: str = "s1.decision",
+        system: SystemId = "s1.decision",
         name: str = "local/function",
         cost_per_call: float = 0.0,
         latency_ms: float = 0.0,
@@ -51,12 +51,12 @@ class FunctionDecider:
                 }
             provider, _, model = self.name.partition("/")
             envelope = Envelope(
-                system=self.system,  # type: ignore[arg-type]
+                system=self.system,
                 body=body,
                 cost=Cost(
                     amount=self.cost_per_call,
                     basis="list_price",
-                    rate_card={"source": "fixed cost per call (som.testing.FunctionDecider)", "retrieved_at": "n/a"},
+                    rate_card={"source": "fixed cost per call (som.testing.FunctionDecider)"},
                     usage=Usage(),
                 ),
                 latency_ms=self.latency_ms,

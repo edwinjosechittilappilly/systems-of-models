@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Literal
 
 
 @dataclass(frozen=True)
@@ -29,7 +29,16 @@ class Predicate:
     false_means: str | None = None
 
     def to_contract(self) -> dict[str, Any]:
-        return {"type": "predicate", "name": self.name, "instructions": self.instructions}
+        """S1 contract form. The contract has no criteria field, so outcome descriptions travel in the
+        instructions; every vendor then sees the same question."""
+        instructions = self.instructions
+        if self.true_means or self.false_means:
+            parts = [
+                f"true means: {self.true_means}" if self.true_means else "",
+                f"false means: {self.false_means}" if self.false_means else "",
+            ]
+            instructions = f"{instructions} ({'; '.join(p for p in parts if p)})"
+        return {"type": "predicate", "name": self.name, "instructions": instructions}
 
 
 @dataclass(frozen=True)
@@ -108,6 +117,11 @@ class PredicateAnswer:
     def confidence(self) -> float | None:
         return self.top_probability
 
+    @property
+    def margin(self) -> float | None:
+        """``|p - (1 - p)|``: the gap between the two outcomes."""
+        return None if self.probability is None else abs(2 * self.probability - 1)
+
     def to_contract(self) -> dict[str, Any]:
         return {"type": "predicate", "name": self.name, "probability": self.probability}
 
@@ -147,6 +161,9 @@ class ChoiceAnswer:
 
 @dataclass(frozen=True)
 class ScoreAnswer:
+    """``score`` is the probability-weighted mean level (may fall between levels). ``value`` is the most likely
+    level, the one ``top_probability`` describes, so gating and agreement refer to the same answer."""
+
     name: str
     score: float
     probabilities: tuple[float, ...] = ()
@@ -154,12 +171,21 @@ class ScoreAnswer:
     confidence: float | None = None
 
     @property
-    def value(self) -> float:
-        return self.score
+    def value(self) -> int:
+        if self.probabilities:
+            return max(range(len(self.probabilities)), key=self.probabilities.__getitem__)
+        return round(self.score)
 
     @property
     def top_probability(self) -> float | None:
         return max(self.probabilities) if self.probabilities else None
+
+    @property
+    def margin(self) -> float | None:
+        if len(self.probabilities) < 2:
+            return None
+        first, second = sorted(self.probabilities, reverse=True)[:2]
+        return first - second
 
     def to_contract(self) -> dict[str, Any]:
         return {
@@ -176,14 +202,18 @@ class ScoreAnswer:
         }
 
 
+RefusalReason = Literal["policy", "out_of_answer_space", "insufficient_input", "unspecified"]
+
+
 @dataclass(frozen=True)
 class Refusal:
     name: str
-    reason: str = "unspecified"
+    reason: RefusalReason = "unspecified"
 
     value = None
     top_probability = None
     confidence = None
+    margin = None
 
     def to_contract(self) -> dict[str, Any]:
         return {"type": "refusal", "name": self.name, "reason": self.reason}

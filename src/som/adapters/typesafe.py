@@ -8,15 +8,17 @@ statistic, not P(correct)).
 
 from __future__ import annotations
 
+import email.utils
 import os
 import time
 from collections.abc import Mapping, Sequence
+from datetime import datetime, timezone
 from typing import Any
 
 import httpx
 
 from som.adapters._common import envelope, price, s1_confidence, timed
-from som.envelope import Usage
+from som.envelope import SystemId, Usage
 from som.pricing import RateCard
 from som.questions import (
     Answer,
@@ -39,7 +41,10 @@ def _question(question: Question) -> dict[str, Any]:
     if isinstance(question, Predicate):
         payload: dict[str, Any] = {"type": "noul", "instructions": question.instructions}
         if question.true_means or question.false_means:
-            payload["criteria"] = {"true": question.true_means, "false": question.false_means}
+            # TypeSafe takes both sides; name the missing side by negating the given one.
+            true_means = question.true_means or f"not: {question.false_means}"
+            false_means = question.false_means or f"not: {question.true_means}"
+            payload["criteria"] = {"true": true_means, "false": false_means}
         return payload
     if isinstance(question, Choice):
         return {
@@ -80,10 +85,25 @@ def _answer(question: Question, raw: Mapping[str, Any]) -> Answer:
     return Refusal(question.name, "unspecified")
 
 
+def _retry_delay(header: str | None, attempt: int, *, cap: float = 60.0) -> float:
+    """Seconds to wait: ``Retry-After`` as delta-seconds or HTTP date (RFC 9110), else exponential backoff; capped."""
+    if header:
+        try:
+            return min(max(float(header), 0.0), cap)
+        except ValueError:
+            try:
+                when = email.utils.parsedate_to_datetime(header)
+            except (TypeError, ValueError):
+                pass
+            else:
+                return min(max((when - datetime.now(timezone.utc)).total_seconds(), 0.0), cap)
+    return min(2.0**attempt, 30.0)
+
+
 class TypeSafe:
     """System 1 adapter for TypeSafe Jev. ``model`` may be an alias (``jev-preview``) or a version (``jev-1.14.0``)."""
 
-    system = "s1.decision"
+    system: SystemId = "s1.decision"
 
     def __init__(
         self,
@@ -119,8 +139,7 @@ class TypeSafe:
                 response.raise_for_status()
                 data: dict[str, Any] = response.json()
                 return data
-            delay = float(response.headers.get("retry-after", 0) or 0) or min(2.0**attempt, 30.0)
-            time.sleep(delay)
+            time.sleep(_retry_delay(response.headers.get("retry-after"), attempt))
         raise AssertionError("unreachable")
 
     def decide(self, input: Input, questions: Sequence[Question], *, trace_id: str | None = None) -> Decision:

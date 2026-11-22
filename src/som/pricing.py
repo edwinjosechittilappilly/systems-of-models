@@ -8,6 +8,7 @@ register one with :func:`register`, rather than trusting a stale table.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 
 from som.envelope import Cost, Usage
@@ -80,12 +81,15 @@ def register(provider: str, model: str, card: RateCard) -> None:
 
 
 def lookup(provider: str, model: str) -> RateCard:
-    """Return the rate card for a model, also matching dated snapshots such as ``gpt-6.1-terra-2026-09-30``."""
+    """Return the rate card for a model or one of its dated snapshots (``gpt-6.1-terra-2026-09-30``).
+
+    Other suffixes (``-pro``, ``-search-preview``) are different products with different prices and do not match.
+    """
     card = _CARDS.get((provider, model))
     if card is not None:
         return card
     for (known_provider, known_model), known_card in _CARDS.items():
-        if known_provider == provider and model.startswith(known_model + "-"):
+        if known_provider == provider and re.fullmatch(re.escape(known_model) + r"-\d{4}-\d{2}-\d{2}", model):
             return known_card
     raise UnknownPriceError(f"no rate card for {provider}/{model}; pass rate_card= or call som.pricing.register")
 

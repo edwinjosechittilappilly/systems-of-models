@@ -6,7 +6,6 @@ covers OpenAI-compatible servers: Ollama, vLLM, OpenRouter and a LiteLLM proxy (
 
 from __future__ import annotations
 
-import json
 import os
 from collections.abc import Mapping, Sequence
 from typing import Any
@@ -17,13 +16,14 @@ from som.adapters._common import (
     answers_schema,
     envelope,
     parse_answers,
+    parse_json_object,
     price,
     s1_confidence,
     s2_body,
     timed,
     user_prompt,
 )
-from som.envelope import Cost, Usage
+from som.envelope import Cost, SystemId, Usage
 from som.questions import Answer, ChoiceAnswer, PredicateAnswer, Question, Refusal, ScoreAnswer
 from som.systems import Decision, Input
 from som.trace import annotate, span
@@ -77,7 +77,7 @@ def _decision_answer(question: Question, raw: Any) -> Answer:
 class OpenAIDecisions:
     """System 1 adapter for ``POST /v1/decisions`` (``gpt-6-luna``)."""
 
-    system = "s1.decision"
+    system: SystemId = "s1.decision"
 
     def __init__(
         self, model: str = "gpt-6-luna", *, client: Any = None, rate_card: pricing.RateCard | None = None
@@ -122,7 +122,7 @@ class OpenAIDecisions:
 class OpenAIResponses:
     """System 2 adapter: a reasoning model answers typed questions through the Responses API's structured output."""
 
-    system = "s2.reasoning"
+    system: SystemId = "s2.reasoning"
 
     def __init__(
         self,
@@ -157,7 +157,12 @@ class OpenAIResponses:
             with timed() as clock:
                 response = self.client.responses.create(**kwargs)
             text = str(_get(response, "output_text") or "")
-            parsed = json.loads(text) if text else {}
+            parsed = parse_json_object(text)
+            refused = any(
+                _get(part, "type") == "refusal"
+                for item in (_get(response, "output") or [])
+                for part in (_get(item, "content") or [])
+            )
             usage = Usage(
                 input_tokens=int(_get(response, "usage", "input_tokens") or 0),
                 output_tokens=int(_get(response, "usage", "output_tokens") or 0),
@@ -165,30 +170,35 @@ class OpenAIResponses:
                 reasoning_tokens=_get(response, "usage", "output_tokens_details", "reasoning_tokens"),
             )
             returned = str(_get(response, "model") or self.model)
+            incomplete = _get(response, "status") == "incomplete"
+            body = s2_body(text, parsed, reasoning_tokens=usage.reasoning_tokens, effort=self.reasoning_effort)
+            if incomplete:
+                body["incomplete_details"] = {"reason": str(_get(response, "incomplete_details", "reason") or "")}
             result = envelope(
                 system="s2.reasoning",
-                body=s2_body(text, parsed, reasoning_tokens=usage.reasoning_tokens, effort=self.reasoning_effort),
+                body=body,
                 cost=price("openai", returned, usage, rate_card=self.rate_card, fallback_model=self.model),
                 latency_ms=clock.ms,
                 trace_ref=ref,
                 provider="openai",
                 model=returned,
                 endpoint="POST /v1/responses",
-                status="incomplete" if _get(response, "status") == "incomplete" else "completed",
+                status="incomplete" if incomplete else "completed",
                 response_id=_get(response, "id"),
             )
             annotate(result, "chat")
-        return Decision(result, parse_answers(questions, parsed))
+        return Decision(result, parse_answers(questions, parsed, refused=refused))
 
 
 class OpenAIChat:
     """System 2 adapter over Chat Completions with a JSON Schema response format.
 
     Works with any OpenAI-compatible server. ``provider`` names it in envelopes and selects pricing: ``local=True``
-    records ``cost.basis = local``; ``openrouter`` uses the provider-reported ``usage.cost`` (basis ``billed``).
+    records ``cost.basis = local_measured``; ``openrouter`` uses the provider-reported ``usage.cost`` (basis
+    ``provider_reported``).
     """
 
-    system = "s2.reasoning"
+    system: SystemId = "s2.reasoning"
 
     def __init__(
         self,
@@ -253,11 +263,11 @@ class OpenAIChat:
                     },
                     **({"extra_body": self.extra_body} if self.extra_body else {}),
                 )
-            text = str(_get(_get(response, "choices")[0], "message", "content") or "")
-            try:
-                parsed = json.loads(text) if text else {}
-            except json.JSONDecodeError:
-                parsed = {}
+            choice = _get(response, "choices")[0]
+            text = str(_get(choice, "message", "content") or "")
+            parsed = parse_json_object(text)
+            refused = bool(_get(choice, "message", "refusal"))
+            truncated = _get(choice, "finish_reason") == "length"
             usage = Usage(
                 input_tokens=int(_get(response, "usage", "prompt_tokens") or 0),
                 output_tokens=int(_get(response, "usage", "completion_tokens") or 0),
@@ -274,7 +284,8 @@ class OpenAIChat:
                 provider=self.provider,
                 model=returned,
                 endpoint="POST /v1/chat/completions",
+                status="incomplete" if truncated else "completed",
                 response_id=_get(response, "id"),
             )
             annotate(result, "chat")
-        return Decision(result, parse_answers(questions, parsed))
+        return Decision(result, parse_answers(questions, parsed, refused=refused))

@@ -124,16 +124,35 @@ def answers_schema(questions: Sequence[Question]) -> dict[str, Any]:
     }
 
 
-def parse_answers(questions: Sequence[Question], data: Mapping[str, Any]) -> dict[str, Answer]:
-    """Typed answers from a generative model's JSON. Missing or out-of-space values become refusals."""
+def parse_json_object(text: str) -> dict[str, Any]:
+    """The JSON object a model returned, or ``{}`` for empty, truncated or non-object output."""
+    try:
+        parsed = json.loads(text) if text else {}
+    except json.JSONDecodeError:
+        return {}
+    return parsed if isinstance(parsed, dict) else {}
+
+
+def parse_answers(
+    questions: Sequence[Question], data: Mapping[str, Any], *, refused: bool = False
+) -> dict[str, Answer]:
+    """Typed answers from a generative model's JSON. A model refusal maps to ``Refusal(reason="policy")``; missing
+    or out-of-space values to ``Refusal(reason="out_of_answer_space")``."""
     answers: dict[str, Answer] = {}
     for question in questions:
         value = data.get(question.name)
-        if isinstance(question, Predicate) and isinstance(value, bool):
+        if refused:
+            answers[question.name] = Refusal(question.name, "policy")
+        elif isinstance(question, Predicate) and isinstance(value, bool):
             answers[question.name] = PredicateAnswer(question.name, None, raw_value=value)
         elif isinstance(question, Choice) and value in question.values:
             answers[question.name] = ChoiceAnswer(question.name, str(value))
-        elif isinstance(question, Score) and isinstance(value, int) and 0 <= value < len(question.levels):
+        elif (
+            isinstance(question, Score)
+            and isinstance(value, int)
+            and not isinstance(value, bool)
+            and 0 <= value < len(question.levels)
+        ):
             answers[question.name] = ScoreAnswer(question.name, float(value), labels=question.levels)
         else:
             answers[question.name] = Refusal(question.name, "out_of_answer_space")

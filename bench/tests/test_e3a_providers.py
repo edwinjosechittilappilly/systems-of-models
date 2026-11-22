@@ -149,3 +149,19 @@ def test_token_reservations_enforce_rolling_minute(monkeypatch):
     assert now[0] == 0
     window.acquire(request)
     assert now[0] >= 60
+
+
+def test_teacher_model_change_aborts_across_tickets(tmp_path):
+    class ChangingClient(OpenAIStub):
+        def create(self, **request):
+            response = super().create(**request)
+            if len(self.calls) > 1:
+                response.data["model"] = "gpt-6.1-terra-other"
+            return response
+
+    providers = E3aProviders(
+        "record", Budget({"openai": 55, "typesafe": 5}), cache_dir=tmp_path, openai_client=ChangingClient()
+    )
+    providers.teacher("first", "acct", PolicyKB())
+    with pytest.raises(RuntimeError, match="teacher model changed"):
+        providers.teacher("second", "acct", PolicyKB())

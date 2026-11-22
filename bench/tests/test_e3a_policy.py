@@ -26,6 +26,7 @@ def test_policy_search_exact_id_and_top_five_are_deterministic():
     first = kb.search_policy("card payment")
     assert len(first) == 5
     assert first == kb.search_policy("card payment")
+    assert all(set(entry) == {"id", "title"} for entry in first)
     assert kb.search_policy("reverted_card_payment?")[0]["id"] == "reverted_card_payment?"
     first[0]["title"] = "mutated"
     assert kb.search_policy("card payment")[0]["title"] != "mutated"
@@ -42,7 +43,7 @@ def test_custom_entries_support_new_and_split_governing_entries():
         },
     ]
     kb = PolicyKB(entries=entries)
-    assert kb.search_policy("split-new") == entries
+    assert kb.search_policy("split-new") == [{"id": "split-new", "title": "Split card issue"}]
     entries[0]["priority"] = "normal"
     assert kb.get_entry("split-new")["priority"] == "high"
     with pytest.raises(KeyError):
@@ -97,7 +98,9 @@ def test_substitution_follows_explicit_d2_not_policy_gold(verify):
     assert env.routes == [route]
     assert ("account" in env.verified_accounts) is verify
     assert [event["tool"] for event in env.events] == (
-        ["search_policy", "verify_identity", "route_ticket"] if verify else ["search_policy", "route_ticket"]
+        ["search_policy", "get_policy", "verify_identity", "route_ticket"]
+        if verify
+        else ["search_policy", "get_policy", "route_ticket"]
     )
     assert env.agent_calls == 0
     assert env.agent_cost == 0.0

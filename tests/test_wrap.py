@@ -369,6 +369,35 @@ def test_real_openai_copy_stream_lifecycle_and_weak_cache():
     native.close()
 
 
+def test_collecting_an_unfinished_stream_while_holding_the_cache_lock_does_not_deadlock():
+    import threading
+
+    from som import wrap as wrap_module
+
+    native = openai.OpenAI(
+        api_key="unused", http_client=httpx.Client(transport=httpx.MockTransport(_chat_http_response))
+    )
+    store = TraceStore()
+    stream = wrap(native, store=store).chat.completions.create(
+        model="gpt-6.1-terra", messages=[], stream=True, stream_options={"include_usage": True}
+    )
+    next(stream)
+    cycle: dict[str, object] = {"stream": stream}
+    cycle["self"] = cycle  # only the cyclic collector can free the stream now
+    del stream, cycle
+
+    def collect_under_lock() -> None:
+        with wrap_module._lock:
+            gc.collect()
+
+    worker = threading.Thread(target=collect_under_lock, daemon=True)
+    worker.start()
+    worker.join(timeout=5)
+    assert not worker.is_alive()
+    assert store.records[-1]["envelope"]["status"] == "incomplete"
+    native.close()
+
+
 def test_real_async_openai_stream_and_early_collection():
     async def exercise():
         store = TraceStore()

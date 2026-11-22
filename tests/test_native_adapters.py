@@ -62,6 +62,20 @@ def test_anthropic_cache_creation_is_not_mispriced_and_truncation_refuses():
     assert decision.envelope.status == "incomplete"
     assert decision.envelope.cost.basis == "unknown" and decision.envelope.cost.usage.input_tokens == 15
     assert all(isinstance(answer, Refusal) for answer in decision.answers.values())
+    assert all(answer.reason == "out_of_answer_space" for answer in decision.answers.values())
+    decision.envelope.validate()
+
+
+def test_anthropic_policy_refusal_overrides_returned_answers():
+    response = {
+        "content": [{"type": "text", "text": TEXT}],
+        "stop_reason": "refusal",
+        "usage": {},
+    }
+    adapter = Anthropic("claude", client=NS(messages=NS(create=lambda **_: response)), rate_card=CARD)
+    decision = adapter.decide("input", QUESTIONS)
+    assert decision.envelope.status == "incomplete"
+    assert all(isinstance(answer, Refusal) and answer.reason == "policy" for answer in decision.answers.values())
     decision.envelope.validate()
 
 
@@ -103,4 +117,32 @@ def test_gemini_blocked_response_refuses_without_inventing_output():
     decision = adapter.decide("input", QUESTIONS)
     assert decision.envelope.status == "incomplete"
     assert all(isinstance(answer, Refusal) for answer in decision.answers.values())
+    assert all(answer.reason == "policy" for answer in decision.answers.values())
+    decision.envelope.validate()
+
+
+@pytest.mark.parametrize("finish_reason", ["SAFETY", "RECITATION", "BLOCKLIST", "PROHIBITED_CONTENT", "SPII"])
+def test_gemini_candidate_policy_refusal_overrides_returned_answers(finish_reason):
+    response = {
+        "candidates": [{"content": {"parts": [{"text": TEXT}]}, "finish_reason": NS(value=finish_reason)}],
+        "usage_metadata": {},
+    }
+    adapter = Gemini("gemini", client=NS(models=NS(generate_content=lambda **_: response)), rate_card=CARD)
+    decision = adapter.decide("input", QUESTIONS)
+    assert decision.envelope.status == "incomplete"
+    assert all(isinstance(answer, Refusal) and answer.reason == "policy" for answer in decision.answers.values())
+    decision.envelope.validate()
+
+
+def test_gemini_truncation_is_incomplete_not_policy_refusal():
+    response = {
+        "candidates": [{"content": {"parts": [{"text": '{"team":'}]}, "finish_reason": "MAX_TOKENS"}],
+        "usage_metadata": {},
+    }
+    adapter = Gemini("gemini", client=NS(models=NS(generate_content=lambda **_: response)), rate_card=CARD)
+    decision = adapter.decide("input", QUESTIONS)
+    assert decision.envelope.status == "incomplete"
+    assert all(
+        isinstance(answer, Refusal) and answer.reason == "out_of_answer_space" for answer in decision.answers.values()
+    )
     decision.envelope.validate()

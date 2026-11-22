@@ -83,7 +83,7 @@ def _cmd_demo(_: argparse.Namespace) -> int:
     when S1 served, to measure the paired baseline; costs are model list-price estimates, not provider invoices.
     Dataset: https://huggingface.co/datasets/PolyAI/banking77
     """
-    data = files("som").joinpath("demo", "gate.jsonl")
+    data = files("som").joinpath("demo").joinpath("gate.jsonl")
     try:
         lines = data.read_text(encoding="utf-8").splitlines()
     except FileNotFoundError:
@@ -96,8 +96,8 @@ def _cmd_demo(_: argparse.Namespace) -> int:
         row = json.loads(line)
         savings = 1 - row["gate_cost"] / row["s2_cost"]
         print(
-            f'{row["served_by"]:9}  ${row["gate_cost"]:.6f}  ${row["s2_cost"]:.6f}  '
-            f'{row["latency_ms"]:10.1f}  {savings:7.1%}'
+            f"{row['served_by']:9}  ${row['gate_cost']:.6f}  ${row['s2_cost']:.6f}  "
+            f"{row['latency_ms']:10.1f}  {savings:7.1%}"
         )
     return 0
 

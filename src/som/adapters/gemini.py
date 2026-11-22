@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from collections.abc import Mapping, Sequence
 from typing import Any
 
@@ -12,12 +11,13 @@ from som.adapters._common import (
     answers_schema,
     envelope,
     parse_answers,
+    parse_json_object,
     price,
     s2_body,
     timed,
     user_prompt,
 )
-from som.envelope import Usage
+from som.envelope import SystemId, Usage
 from som.questions import Question
 from som.systems import Decision, Input
 from som.trace import annotate, span
@@ -30,7 +30,7 @@ def _get(obj: Any, key: str, default: Any = None) -> Any:
 class Gemini:
     """Answer typed questions with the Google Gen AI SDK's JSON Schema output."""
 
-    system = "s2.reasoning"
+    system: SystemId = "s2.reasoning"
 
     def __init__(
         self,
@@ -65,15 +65,8 @@ class Gemini:
             candidate = candidates[0] if candidates else None
             content = _get(candidate, "content")
             parts = _get(content, "parts") or []
-            text = "".join(
-                _get(part, "text") or "" for part in parts if not _get(part, "thought", False)
-            )
-            try:
-                parsed = json.loads(text) if text else {}
-            except json.JSONDecodeError:
-                parsed = {}
-            if not isinstance(parsed, Mapping):
-                parsed = {}
+            text = "".join(_get(part, "text") or "" for part in parts if not _get(part, "thought", False))
+            parsed = parse_json_object(text)
             raw_usage = _get(response, "usage_metadata")
             thoughts = _get(raw_usage, "thoughts_token_count")
             usage = Usage(
@@ -85,6 +78,17 @@ class Gemini:
             returned = str(_get(response, "model_version") or self.model)
             finish = _get(candidate, "finish_reason")
             finish = _get(finish, "value", finish)
+            block_reason = _get(_get(response, "prompt_feedback"), "block_reason")
+            block_reason = _get(block_reason, "value", block_reason)
+            refused = finish in {
+                "SAFETY",
+                "RECITATION",
+                "BLOCKLIST",
+                "PROHIBITED_CONTENT",
+                "SPII",
+                "IMAGE_SAFETY",
+                "IMAGE_PROHIBITED_CONTENT",
+            } or block_reason in {"SAFETY", "BLOCKLIST", "PROHIBITED_CONTENT", "IMAGE_SAFETY"}
             result = envelope(
                 system="s2.reasoning",
                 body=s2_body(text, parsed, reasoning_tokens=thoughts, effort=None),
@@ -94,8 +98,8 @@ class Gemini:
                 provider="gemini",
                 model=returned,
                 endpoint="generateContent",
-                status="completed" if finish == "STOP" else "incomplete",
+                status="completed" if finish == "STOP" and not refused else "incomplete",
                 response_id=_get(response, "response_id"),
             )
             annotate(result, "chat")
-        return Decision(result, parse_answers(questions, parsed))
+        return Decision(result, parse_answers(questions, parsed, refused=refused))

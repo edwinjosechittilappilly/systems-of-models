@@ -13,10 +13,11 @@ import time
 import warnings
 from collections import OrderedDict
 from collections.abc import Mapping
+from contextlib import suppress
 from typing import Any
 
 from som.adapters._common import envelope, price, s2_body
-from som.envelope import Cost, Envelope, TraceRef, Usage
+from som.envelope import Cost, Envelope, SystemId, TraceRef, Usage
 from som.trace import TraceStore, annotate, span
 
 _CACHE_SIZE = 1024
@@ -49,8 +50,15 @@ def envelope_of(response: object) -> Envelope | None:
     return None
 
 
-def _record(target: object, response: Any, request: Mapping[str, Any], endpoint: str,
-            started: float, store: TraceStore | None, incomplete: bool) -> None:
+def _record(
+    target: object,
+    response: Any,
+    request: Mapping[str, Any],
+    endpoint: str,
+    started: float,
+    store: TraceStore | None,
+    incomplete: bool,
+) -> None:
     """Instrumentation must not change a provider call's result or exception."""
     try:
         raw_usage = _get(response, "usage")
@@ -77,10 +85,15 @@ def _record(target: object, response: Any, request: Mapping[str, Any], endpoint:
         status = _get(response, "status")
 
         def build(ref: TraceRef) -> Envelope:
+            system: SystemId = "s2.reasoning"
             return envelope(
-                system="s2.reasoning", body=s2_body("", None, reasoning_tokens=None, effort=None),
-                cost=cost, latency_ms=(time.perf_counter() - started) * 1000, trace_ref=ref,
-                provider="openai", model=model,
+                system=system,
+                body=s2_body("", None, reasoning_tokens=None, effort=None),
+                cost=cost,
+                latency_ms=(time.perf_counter() - started) * 1000,
+                trace_ref=ref,
+                provider="openai",
+                model=model,
                 endpoint="POST /v1/chat/completions" if endpoint == "chat" else "POST /v1/responses",
                 status="incomplete" if incomplete or status in ("incomplete", "failed", "cancelled") else "completed",
                 response_id=response_id if isinstance(response_id, str) else None,
@@ -90,10 +103,8 @@ def _record(target: object, response: Any, request: Mapping[str, Any], endpoint:
         try:
             with span(f"chat openai/{model}") as ref:
                 result = build(ref)
-                try:
+                with suppress(Exception):
                     annotate(result, "chat")
-                except Exception:
-                    pass
         except Exception:
             pass
         if result is None:
@@ -105,14 +116,10 @@ def _record(target: object, response: Any, request: Mapping[str, Any], endpoint:
             while len(_cache) > _CACHE_SIZE:
                 _cache.popitem(last=False)
         if store is not None:
-            try:
+            with suppress(Exception):
                 store.add_envelope(result)
-            except Exception:
-                pass
-        try:
+        with suppress(Exception):
             annotate(result, "chat")
-        except Exception:
-            pass
     except Exception:
         # A telemetry backend, malformed provider object or warning-as-error must
         # never affect the application using the wrapped SDK.
@@ -120,8 +127,9 @@ def _record(target: object, response: Any, request: Mapping[str, Any], endpoint:
 
 
 class _Stream:
-    def __init__(self, stream: Any, request: Mapping[str, Any], endpoint: str,
-                 started: float, store: TraceStore | None) -> None:
+    def __init__(
+        self, stream: Any, request: Mapping[str, Any], endpoint: str, started: float, store: TraceStore | None
+    ) -> None:
         self._stream = stream
         self._request = request
         self._endpoint = endpoint
@@ -241,9 +249,11 @@ class _Resource:
         started = time.perf_counter()
         result = self._resource.create(*args, **kwargs)
         if inspect.isawaitable(result):
+
             async def observe() -> Any:
                 response = await result
                 return self._after(response, kwargs, started, asynchronous=True)
+
             return observe()
         return self._after(result, kwargs, started, asynchronous=False)
 
@@ -251,11 +261,10 @@ class _Resource:
         try:
             if request.get("stream"):
                 if self._endpoint == "chat" and not _get(request, "stream_options", "include_usage"):
-                    try:
-                        warnings.warn("Chat streams need stream_options={'include_usage': True} to report usage.",
-                                      stacklevel=3)
-                    except Exception:
-                        pass
+                    with suppress(Exception):
+                        warnings.warn(
+                            "Chat streams need stream_options={'include_usage': True} to report usage.", stacklevel=3
+                        )
                 cls = _AsyncStream if asynchronous else _Stream
                 return cls(response, request, self._endpoint, started, self._store)
             _record(response, response, request, self._endpoint, started, self._store, False)

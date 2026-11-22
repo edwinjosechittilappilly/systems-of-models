@@ -67,7 +67,7 @@ def create_server(decider: Decider) -> Any:
 
     server = FastMCP("systems-of-models")
 
-    @server.tool(name="decide")
+    @server.tool(name="decide")  # type: ignore[untyped-decorator]
     def decide_tool(
         input: str | dict[str, Any] | list[dict[str, Any]], questions: list[dict[str, Any]]
     ) -> dict[str, Any]:

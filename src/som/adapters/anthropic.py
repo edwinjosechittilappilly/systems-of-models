@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import warnings
 from collections.abc import Mapping, Sequence
 from typing import Any
@@ -13,12 +12,13 @@ from som.adapters._common import (
     answers_schema,
     envelope,
     parse_answers,
+    parse_json_object,
     price,
     s2_body,
     timed,
     user_prompt,
 )
-from som.envelope import Cost, Usage
+from som.envelope import Cost, SystemId, Usage
 from som.questions import Question
 from som.systems import Decision, Input
 from som.trace import annotate, span
@@ -31,7 +31,7 @@ def _get(obj: Any, key: str, default: Any = None) -> Any:
 class Anthropic:
     """Answer typed questions using the Anthropic Messages API's JSON output format."""
 
-    system = "s2.reasoning"
+    system: SystemId = "s2.reasoning"
 
     def __init__(
         self,
@@ -64,12 +64,8 @@ class Anthropic:
             text = "".join(
                 _get(block, "text", "") for block in (_get(response, "content") or []) if _get(block, "type") == "text"
             )
-            try:
-                parsed = json.loads(text) if text else {}
-            except json.JSONDecodeError:
-                parsed = {}
-            if not isinstance(parsed, Mapping):
-                parsed = {}
+            parsed = parse_json_object(text)
+            refused = _get(response, "stop_reason") == "refusal"
             raw_usage = _get(response, "usage")
             cached = _get(raw_usage, "cache_read_input_tokens")
             cache_creation = int(_get(raw_usage, "cache_creation_input_tokens", 0) or 0)
@@ -100,4 +96,4 @@ class Anthropic:
                 response_id=_get(response, "id"),
             )
             annotate(result, "chat")
-        return Decision(result, parse_answers(questions, parsed))
+        return Decision(result, parse_answers(questions, parsed, refused=refused))

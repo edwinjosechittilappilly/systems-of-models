@@ -9,7 +9,6 @@ from som.questions import Choice, ChoiceAnswer
 from som.testing import FunctionDecider
 from som.trace import TraceStore
 
-
 QUESTION = Choice("team", "Which team?", ["billing", "cards"])
 
 
@@ -28,7 +27,7 @@ def test_async_gate_preserves_escalation_and_metadata():
     assert (result.value, result.served_by) == ("cards", "s2")
     assert result.escalation.reason == "low_confidence"
     assert result.s2.envelope.trace_ref.trace_id == result.s1.envelope.trace_ref.trace_id
-    assert store.of_kind("gate")[0]["source"] == "test"
+    assert store.of_kind("gate")[0]["metadata"]["source"] == "test"
 
 
 def test_async_gate_preserves_shadow_mode():

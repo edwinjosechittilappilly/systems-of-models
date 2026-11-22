@@ -1,0 +1,17 @@
+{
+  "stream": "dev_control",
+  "attempted_tickets": 2000,
+  "successful_tickets": 1999,
+  "failed_tickets": 1,
+  "failure": "initial_failure.csv",
+  "model": "gpt-6.1-terra",
+  "mode": "record",
+  "workers": 8,
+  "phase_limit": 1000,
+  "new_spend_usd": 5.5443303,
+  "spend_basis": "usage-weighted list price; excludes unsuccessful 429",
+  "cache_hits": 289,
+  "cache_misses": 7437,
+  "started_at": "2026-11-22T22:15:00Z",
+  "finished_at": "2026-11-22T22:48:16Z"
+}

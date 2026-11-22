@@ -6,7 +6,10 @@ original call costs; the shared budget tracks only new provider spend.
 
 from __future__ import annotations
 
+import json
+import threading
 import time
+from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
 from types import SimpleNamespace
@@ -26,6 +29,35 @@ from som.trace import TraceStore
 MODEL = "gpt-6.1-terra"
 
 
+class _TokenWindow:
+    """Conservatively reserve UTF-8 bytes plus maximum output in a rolling minute."""
+
+    def __init__(self, limit: int = 400_000) -> None:
+        self.limit = limit
+        self.events: deque[tuple[float, int]] = deque()
+        self.lock = threading.Lock()
+
+    def acquire(self, request: dict[str, Any]) -> None:
+        estimate = len(json.dumps(request, ensure_ascii=False, default=str).encode()) + int(
+            request.get("max_output_tokens", 8000)
+        )
+        if estimate > self.limit:
+            raise ValueError("request exceeds E3a per-minute token reservation")
+        while True:
+            with self.lock:
+                now = time.monotonic()
+                while self.events and self.events[0][0] <= now - 60:
+                    self.events.popleft()
+                if sum(amount for _, amount in self.events) + estimate <= self.limit:
+                    self.events.append((now, estimate))
+                    return
+                delay = max(0.001, self.events[0][0] + 60 - now)
+            time.sleep(delay)
+
+
+_OPENAI_WINDOW = _TokenWindow()
+
+
 class _OpenAIClient:
     """Defer credentials and client creation until a cache miss."""
 
@@ -34,6 +66,7 @@ class _OpenAIClient:
         self.responses = self
 
     def create(self, **kwargs: Any) -> Any:
+        _OPENAI_WINDOW.acquire(kwargs)
         if self.client is None:
             from openai import OpenAI
 
@@ -114,6 +147,7 @@ class _Writer:
 
         class Responses:
             def create(self, **request: Any) -> Any:
+                request.setdefault("max_output_tokens", 8000)
                 recorded = owner.cache.get_or_call(request, lambda: call(request))
                 data = recorded["response"]
                 u = data.get("usage")

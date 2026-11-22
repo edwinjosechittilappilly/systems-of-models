@@ -1,0 +1,84 @@
+{
+  "cache": {
+    "jev": {
+      "hits": 960,
+      "misses": 0
+    },
+    "writer": {
+      "hits": 15,
+      "misses": 0
+    }
+  },
+  "config": {
+    "min_support": 10,
+    "mode": "replay",
+    "recorded_unique_call_cost_usd": {
+      "openai": 0.164969,
+      "typesafe": 0.29046612
+    },
+    "seed": 0,
+    "source_sha256": {
+      "PROTOCOL.md": "17b1ec567f646d854e17e1ac9c84c0f7d10e0a848bdfc6c79fa293a84b27613a",
+      "data.py": "c7731b754d513763943fdac256a11a4d6cebf2858883918a74fbef888721bd28",
+      "decision_labels.yaml": "6bfbb19192bb0c1d4b4c02e8c76a89bfa99a87f7677775188c46981dd9dbd4a3",
+      "discovery.py": "223bb7c11c5c6ba49601e48ebdb8ce803fe41c510e94384b48499e2e664d07ac",
+      "extract.py": "670223748a502aa31f8662dd5b8e30a95a1763457d6637a975c7178713e481aa",
+      "metrics.py": "4ffef225c5f0702a6df698ee3c4ef6169e31a2f9be23df152b572ffad1f6c271",
+      "run.py": "ec29ede72e4c7e0bc75ac7d756b0f7eb41fb2a1f353f15fc86f6db0f93d29715",
+      "sensitivity.py": "630df215ab961c112b923e0da5bbd8bd2ff8f9de7b8bd003efe45175f6054d69"
+    },
+    "tau2_commit": "768f3d8fe8528b4f32a5096f9ed008ae50f48ead"
+  },
+  "contract_version": "2.1.0",
+  "cost_usd": {
+    "openai": 0.06975,
+    "typesafe": 0.17551123799999996
+  },
+  "counts": {
+    "ablation_instances": 435,
+    "candidates": 103,
+    "failures": 13,
+    "instances": 435,
+    "questions": 15
+  },
+  "data": {
+    "e3b_jev.jsonl": "97e5c305922d2e445c141f3e4b602bfa5a7bf1dec7e469f555ac76970c5d39b0",
+    "e3b_writer.jsonl": "4675f4be0f82a90e79895089913421db6939eab2d2235d627647152a23ad54e9",
+    "tau2/claude-3-7-sonnet-20250219_airline_default_gpt-4.1-2025-04-14_4trials.json": "40a2c6a246eab27db5cdefda895fbe7f44be78a23d300817248534aa606d66de",
+    "tau2/claude-3-7-sonnet-20250219_retail_default_gpt-4.1-2025-04-14_4trials.json": "ed41dbd18c080154156484e3a0122c095e324a11367a640d88e15956daed7b9d",
+    "tau2/gpt-4.1-2025-04-14_airline_default_gpt-4.1-2025-04-14_4trials.json": "31d19e79b8ddc5934a60701f913ff5fefb41dee5e68f7b813c26254ab2e2d5c8",
+    "tau2/gpt-4.1-2025-04-14_retail_default_gpt-4.1-2025-04-14_4trials.json": "5fc5b96ada0fe46a463eaed98d1bfed9947fe073bac052290162dae18d71394e",
+    "tau2/gpt-4.1-mini-2025-04-14_airline_base_gpt-4.1-2025-04-14_4trials.json": "41788956547a100fb8e34baf159f36dd1f07f0765798a5fdaf917576c5dba9d0",
+    "tau2/gpt-4.1-mini-2025-04-14_retail_base_gpt-4.1-2025-04-14_4trials.json": "6d6badb43b716adca31591b0b40e15fd493b49adddaa8e2c47035bb557549257",
+    "tau2/o4-mini-2025-04-16_airline_default_gpt-4.1-2025-04-14_4trials.json": "6a3a354c9bce42b52905af096e9cea6f555548acbb17b567fd403c356df7b4ec",
+    "tau2/o4-mini-2025-04-16_retail_default_gpt-4.1-2025-04-14_4trials.json": "7135f38bbbbd46d6babe830574c8623bb276d8fd6da316580b905cf513853f98"
+  },
+  "experiment": "e3b",
+  "finished_at": "2026-11-22T22:49:57Z",
+  "git_dirty": false,
+  "git_sha": "690723099757060c9bbf0c6eb58e62a9c722224a",
+  "models": {
+    "s1": "jev-1.14.0",
+    "writer": "gpt-6.1-terra"
+  },
+  "new_spend_usd": {},
+  "notes": [
+    "retail/cancel_pending_order.branch: episode-wide branch has no defensible decision boundary; not evaluated",
+    "retail/exchange_delivered_order_items.branch: episode-wide branch has no defensible decision boundary; not evaluated",
+    "retail/modify_pending_order_address.branch: episode-wide branch has no defensible decision boundary; not evaluated",
+    "retail/modify_pending_order_items.branch: episode-wide branch has no defensible decision boundary; not evaluated",
+    "retail/modify_user_address.branch: episode-wide branch has no defensible decision boundary; not evaluated",
+    "retail/return_delivered_order_items.branch: episode-wide branch has no defensible decision boundary; not evaluated",
+    "retail/transfer_to_human_agents.branch: episode-wide branch has no defensible decision boundary; not evaluated",
+    "airline/book_reservation.branch: episode-wide branch has no defensible decision boundary; not evaluated",
+    "airline/cancel_reservation.branch: episode-wide branch has no defensible decision boundary; not evaluated",
+    "airline/send_certificate.branch: episode-wide branch has no defensible decision boundary; not evaluated",
+    "airline/transfer_to_human_agents.branch: episode-wide branch has no defensible decision boundary; not evaluated",
+    "airline/update_reservation_baggages.branch: episode-wide branch has no defensible decision boundary; not evaluated",
+    "airline/update_reservation_flights.branch: episode-wide branch has no defensible decision boundary; not evaluated"
+  ],
+  "python": "3.12.9",
+  "run_id": "tau2-768f3d8",
+  "som_version": "0.1.0.dev0",
+  "started_at": "2026-11-22T22:49:49Z"
+}

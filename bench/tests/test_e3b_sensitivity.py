@@ -45,6 +45,7 @@ def test_cancellation_echo_counts_instances_not_messages_and_only_assistant_text
         row("retail", "other.reason", "full", "changed mind", "changed mind", [assistant]),
     ]
     assert sensitivity(rows)["cancellation_reason_assistant_echo_count"] == 1
+    assert sensitivity(rows)["cancellation_reason_casefolded_assistant_echo_count"] == 2
 
 
 def test_empty_input_and_unmatched_ablation_have_undefined_accuracy():

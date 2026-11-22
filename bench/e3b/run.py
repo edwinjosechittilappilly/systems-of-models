@@ -866,8 +866,10 @@ def run(mode: str) -> None:
         f"({flight_one_way_fraction:.1%} of held-out instances).",
         "",
         f"Pooled user-and-tools-only teacher agreement: {sensitivity_results['user_and_tools_only_teacher']}. "
-        f"Cancellation-reason states with the teacher value verbatim in prior assistant text: "
-        f"{sensitivity_results['cancellation_reason_assistant_echo_count']}/"
+        "Cancellation-reason states containing the teacher value in prior assistant text: "
+        f"{sensitivity_results['cancellation_reason_assistant_echo_count']} case-sensitive exact matches and "
+        f"{sensitivity_results['cancellation_reason_casefolded_assistant_echo_count']} case-insensitive matches, "
+        "out of "
         f"{sum(r['domain'] == 'retail' and r['candidate'] == 'cancel_pending_order.reason' for r in all_rows)}.",
         "",
         "Independent review reported identical miner outcomes for all 103 candidates when only pre-call user turns "

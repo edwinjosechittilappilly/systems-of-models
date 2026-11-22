@@ -23,7 +23,7 @@ def sensitivity(rows: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
     """
     counts: dict[tuple[str, str], Counter[str]] = defaultdict(Counter)
     ablated = []
-    echoes = 0
+    echoes = casefolded_echoes = 0
     for row in rows:
         domain, candidate = row["domain"], row["candidate"]
         teacher = row["teacher"]
@@ -35,14 +35,14 @@ def sensitivity(rows: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
                 and candidate == "cancel_pending_order.reason"
                 and isinstance(teacher, str)
                 and teacher
-                and any(
-                    message.get("role") == "assistant"
-                    and isinstance(message.get("content"), str)
-                    and teacher in message["content"]
-                    for message in row["state"]["transcript"]
-                )
             ):
-                echoes += 1
+                texts = [
+                    message["content"]
+                    for message in row["state"]["transcript"]
+                    if message.get("role") == "assistant" and isinstance(message.get("content"), str)
+                ]
+                echoes += any(teacher in text for text in texts)
+                casefolded_echoes += any(teacher.casefold() in text.casefold() for text in texts)
         elif row["state_variant"] == "user-and-tools-only" and row["prediction"] is not None and teacher is not None:
             ablated.append(row)
 
@@ -59,4 +59,5 @@ def sensitivity(rows: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
         "matched_majority": _accuracy(majority_correct, len(matched)),
         "user_and_tools_only_teacher": _accuracy(teacher_correct, len(ablated)),
         "cancellation_reason_assistant_echo_count": echoes,
+        "cancellation_reason_casefolded_assistant_echo_count": casefolded_echoes,
     }

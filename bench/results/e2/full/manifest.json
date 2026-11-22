@@ -1,0 +1,156 @@
+{
+  "cache": {
+    "banking77/decisions/calibration": {
+      "hits": 1540,
+      "misses": 0
+    },
+    "banking77/decisions/test": {
+      "hits": 3080,
+      "misses": 0
+    },
+    "banking77/s2/calibration": {
+      "hits": 500,
+      "misses": 0
+    },
+    "banking77/s2/test": {
+      "hits": 3080,
+      "misses": 0
+    },
+    "banking77/typesafe/calibration": {
+      "hits": 1540,
+      "misses": 0
+    },
+    "banking77/typesafe/test": {
+      "hits": 3080,
+      "misses": 0
+    },
+    "clinc150/decisions/calibration": {
+      "hits": 3100,
+      "misses": 0
+    },
+    "clinc150/decisions/calibration/choice_only": {
+      "hits": 0,
+      "misses": 0
+    },
+    "clinc150/decisions/calibration/v2": {
+      "hits": 3100,
+      "misses": 0
+    },
+    "clinc150/decisions/test": {
+      "hits": 5500,
+      "misses": 0
+    },
+    "clinc150/decisions/test/choice_only": {
+      "hits": 0,
+      "misses": 0
+    },
+    "clinc150/decisions/test/v2": {
+      "hits": 5500,
+      "misses": 0
+    },
+    "clinc150/s2/calibration/v2": {
+      "hits": 500,
+      "misses": 0
+    },
+    "clinc150/s2/test/v2": {
+      "hits": 625,
+      "misses": 4875
+    },
+    "clinc150/typesafe/calibration": {
+      "hits": 3100,
+      "misses": 0
+    },
+    "clinc150/typesafe/calibration/choice_only": {
+      "hits": 0,
+      "misses": 0
+    },
+    "clinc150/typesafe/calibration/v2": {
+      "hits": 3100,
+      "misses": 0
+    },
+    "clinc150/typesafe/test": {
+      "hits": 5500,
+      "misses": 0
+    },
+    "clinc150/typesafe/test/choice_only": {
+      "hits": 0,
+      "misses": 0
+    },
+    "clinc150/typesafe/test/v2": {
+      "hits": 5500,
+      "misses": 0
+    }
+  },
+  "cache_accounted_spend_usd": {
+    "openai": 29.145689,
+    "typesafe": 1.640737
+  },
+  "counts": {
+    "banking77/decisions/calibration": 1540,
+    "banking77/decisions/test": 3080,
+    "banking77/s2/calibration": 500,
+    "banking77/s2/test": 3080,
+    "banking77/typesafe/calibration": 1540,
+    "banking77/typesafe/test": 3080,
+    "clinc150/decisions/calibration": 3100,
+    "clinc150/decisions/test": 5500,
+    "clinc150/s2/calibration": 500,
+    "clinc150/s2/test": 5500,
+    "clinc150/typesafe/calibration": 3100,
+    "clinc150/typesafe/test": 5500
+  },
+  "data_sha256": {
+    "banking77-test.parquet": "1f40f777c33f0edfa6c530ff84fe2878db6490838c12d22d036f626948905341",
+    "banking77-train.parquet": "8dc89b87a188509c42cce5a086e8f7c1ff4a225bdd9ae3f23e6cdfa5806e363a",
+    "clinc150-test.parquet": "3e60e45b25bf86543aa5df8ba4fcc674114164e6184f0197690648c2908d0102",
+    "clinc150-train.parquet": "30188119cf9f86fc9db27e1c22442d091cb5cb0913c9496f945fe11e7a02a28f",
+    "clinc150-validation.parquet": "fbd545b46c611c4a7ba4b48cae6c7f09bb5b59f33ff56206ad1cd366c85cdfaa",
+    "tau2/claude-3-7-sonnet-20250219_airline_default_gpt-4.1-2025-04-14_4trials.json": "40a2c6a246eab27db5cdefda895fbe7f44be78a23d300817248534aa606d66de",
+    "tau2/claude-3-7-sonnet-20250219_retail_default_gpt-4.1-2025-04-14_4trials.json": "ed41dbd18c080154156484e3a0122c095e324a11367a640d88e15956daed7b9d",
+    "tau2/gpt-4.1-2025-04-14_airline_default_gpt-4.1-2025-04-14_4trials.json": "31d19e79b8ddc5934a60701f913ff5fefb41dee5e68f7b813c26254ab2e2d5c8",
+    "tau2/gpt-4.1-2025-04-14_retail_default_gpt-4.1-2025-04-14_4trials.json": "5fc5b96ada0fe46a463eaed98d1bfed9947fe073bac052290162dae18d71394e",
+    "tau2/gpt-4.1-mini-2025-04-14_airline_base_gpt-4.1-2025-04-14_4trials.json": "41788956547a100fb8e34baf159f36dd1f07f0765798a5fdaf917576c5dba9d0",
+    "tau2/gpt-4.1-mini-2025-04-14_retail_base_gpt-4.1-2025-04-14_4trials.json": "6d6badb43b716adca31591b0b40e15fd493b49adddaa8e2c47035bb557549257",
+    "tau2/o4-mini-2025-04-16_airline_default_gpt-4.1-2025-04-14_4trials.json": "6a3a354c9bce42b52905af096e9cea6f555548acbb17b567fd403c356df7b4ec",
+    "tau2/o4-mini-2025-04-16_retail_default_gpt-4.1-2025-04-14_4trials.json": "7135f38bbbbd46d6babe830574c8623bb276d8fd6da316580b905cf513853f98"
+  },
+  "models": {
+    "banking77/decisions": [
+      "gpt-6-luna"
+    ],
+    "banking77/s2": [
+      "gpt-6.1-terra"
+    ],
+    "banking77/typesafe": [
+      "jev-1.14.0"
+    ],
+    "clinc150/decisions": [
+      "gpt-6-luna"
+    ],
+    "clinc150/s2": [
+      "gpt-6.1-terra"
+    ],
+    "clinc150/typesafe": [
+      "jev-1.14.0"
+    ]
+  },
+  "new_spend_usd": {
+    "openai": 8.632364,
+    "typesafe": 0.0
+  },
+  "som_git_sha": "c9c67108b537477477becde840398a66c482f3ee",
+  "usage_weighted_cost_usd": {
+    "banking77/decisions/calibration": 0.15163220000000002,
+    "banking77/decisions/test": 0.30311920000000003,
+    "banking77/s2/calibration": 0.710745,
+    "banking77/s2/test": 4.359989,
+    "banking77/typesafe/calibration": 0.10914477,
+    "banking77/typesafe/test": 0.21818202,
+    "clinc150/decisions/calibration": 0.650205,
+    "clinc150/decisions/test": 1.1340718,
+    "clinc150/s2/calibration": 0.875635,
+    "clinc150/s2/test": 9.72340155,
+    "clinc150/typesafe/calibration": 0.47344113600000004,
+    "clinc150/typesafe/test": 0.839969088
+  }
+}

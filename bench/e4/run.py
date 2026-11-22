@@ -1,7 +1,8 @@
 """E4: the contracts exercised by real runs.
 
-1. Validation: every envelope recorded in the response caches (E1/E2/E3/demo) is validated against its system's
-   schema at the package's contract version.
+1. Validation: every envelope stored in the response caches is validated against its system's schema at the
+   package's contract version. Caches hold S1 and S2 envelopes (E1/E2/E3b S1 calls and the demo); E3a's S4/S5
+   records are validated when they are written and are not counted here.
 2. Field matrix: for each adapter, which envelope fields the provider returns natively, which the adapter derives
    by a documented rule, and which are unavailable.
 3. Round trip: for each recorded provider response, the share of its leaf fields whose values are recoverable from
@@ -44,6 +45,7 @@ SCHEMA_FOR_SYSTEM = {
 # Evidence cites the provider field or the rule. Reviewed against the adapters in src/som/adapters on 2026-11-22.
 FIELD_MATRIX: list[dict[str, str]] = []
 _FIELDS = ("id", "confidence", "cost.amount", "cost.usage", "latency_ms", "trace_ref", "implementation.model", "body")
+_DISCRIMINATORS = {"type", "role", "status", "object"}
 _ADAPTERS: dict[str, dict[str, tuple[str, str]]] = {
     "TypeSafe /v1/systemone": {
         "id": ("D", "no response id; generated resp_<hex>"),
@@ -149,7 +151,12 @@ def validate_envelopes() -> list[dict[str, Any]]:
     for namespace, envelope in cached_envelopes():
         system = envelope.get("system", "?")
         key = (namespace, system)
-        errors = list(schemas.validator(SCHEMA_FOR_SYSTEM.get(system, "envelope")).iter_errors({"response": envelope}))
+        # System schemas validate a document {"response": envelope}; other systems (e.g. meta-layer `x.*` ids) are
+        # validated as bare envelopes, as Envelope.validate() does.
+        if system in SCHEMA_FOR_SYSTEM:
+            errors = list(schemas.validator(SCHEMA_FOR_SYSTEM[system]).iter_errors({"response": envelope}))
+        else:
+            errors = list(schemas.validator("envelope").iter_errors(envelope))
         counts[key]["valid" if not errors else "invalid"] += 1
         counts[key][f"basis:{envelope.get('cost', {}).get('basis')}"] += 1
         if errors and key not in first_error:
@@ -213,10 +220,14 @@ def round_trip() -> list[dict[str, Any]]:
 
     for adapter, native, decision in cases:
         envelope_values = {json.dumps(v, sort_keys=True) for _, v in _leaves(decision.envelope.to_dict())}
+        # Informative leaves exclude empty values, booleans and zeros (too easily matched by coincidence), protocol
+        # discriminators the adapter writes as constants (type, role, status, object), and request echoes.
         informative = [
             (path, value)
             for path, value in _leaves(native)
-            if value not in (None, "", [], {}, 0, False)
+            if not isinstance(value, bool)
+            and value not in (None, "", [], {}, 0)
+            and path.rsplit(".", 1)[-1] not in _DISCRIMINATORS
             and not path.startswith(("tools", "text.", "reasoning.", "metadata"))
         ]
         kept = [path for path, value in informative if json.dumps(value, sort_keys=True) in envelope_values]
@@ -335,9 +346,11 @@ def main() -> None:
         "",
         *[f"- {r['measurement']}: {r['median_us']}" for r in costs],
         "",
-        "Threats: the field matrix is a reviewed reading of adapter code and provider docs, not a measurement; the",
-        "round-trip check matches values, so a coincidental equal value counts as recovered; overhead is",
-        "machine-dependent and excludes network time, which dominates real calls by three orders of magnitude.",
+        "Threats: the field matrix is a reviewed reading of adapter code and provider docs, not a measurement. The",
+        "round trip matches values, so a coincidentally equal value would count as recovered; booleans, zeros and",
+        "protocol discriminators (type, role, status, object) are excluded for that reason, which also means they are",
+        "not checked. Overhead is machine-dependent and excludes network time, which dominates real calls by three",
+        "orders of magnitude.",
     ]
     (out / "ANALYSIS.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     print("\n".join(lines))

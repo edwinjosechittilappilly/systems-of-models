@@ -1,6 +1,6 @@
 # E4: contracts exercised
 
-Envelopes in the response caches: 45368; valid against contract 2.0.0: 45368; invalid: 0.
+Envelopes in the response caches: 46714; valid against contract 2.0.0: 46714; invalid: 0.
 
 | namespace | system | envelopes | valid | cost bases |
 |---|---|---|---|---|
@@ -8,7 +8,7 @@ Envelopes in the response caches: 45368; valid against contract 2.0.0: 45368; in
 | demo-terra | s2.reasoning | 20 | 20 | list_price=20 |
 | e1_decisions_banking77 | s1.decision | 4620 | 4620 | list_price=4620 |
 | e1_decisions_clinc150 | s1.decision | 8600 | 8600 | list_price=8600 |
-| e1_decisions_clinc150_fit_v2 | s1.decision | 658 | 658 | list_price=658 |
+| e1_decisions_clinc150_fit_v2 | s1.decision | 2004 | 2004 | list_price=2004 |
 | e1_s2_banking77 | s2.reasoning | 3080 | 3080 | list_price=3080 |
 | e1_s2_cal_banking77 | s2.reasoning | 500 | 500 | list_price=500 |
 | e1_s2_cal_clinc150 | s2.reasoning | 500 | 500 | list_price=500 |
@@ -29,12 +29,12 @@ Round trip (share of informative native leaves recoverable from the envelope):
 
 Overhead (median microseconds per call, stub transports, this machine):
 
-- gate, served by S1 (stub deciders): 27.8
+- gate, served by S1 (stub deciders): 27.5
 - gate, escalated to S2 (stub deciders): 46.3
 - envelope.to_dict(): 1.7
-- envelope.validate() (s1-decision schema): 434.5
-- OpenAI SDK responses.create, unwrapped (mock transport): 614.6
-- OpenAI SDK responses.create, som.wrap (mock transport): 684.6
+- envelope.validate() (s1-decision schema): 427.5
+- OpenAI SDK responses.create, unwrapped (mock transport): 632.5
+- OpenAI SDK responses.create, som.wrap (mock transport): 687.9
 
 Threats: the field matrix is a reviewed reading of adapter code and provider docs, not a measurement; the
 round-trip check matches values, so a coincidental equal value counts as recovered; overhead is

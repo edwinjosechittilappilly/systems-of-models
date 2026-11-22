@@ -6,20 +6,20 @@
   "contract_version": "2.0.0",
   "cost_usd": {},
   "counts": {
-    "envelopes": 46714,
+    "envelopes": 52964,
     "invalid": 0,
-    "valid": 46714
+    "valid": 52964
   },
   "data": {},
   "experiment": "e4",
-  "finished_at": "2026-11-22T22:24:39Z",
-  "git_dirty": true,
-  "git_sha": "2dd55e14493ec0ca900fe5bfb4bba97b921d170b",
+  "finished_at": "2026-11-22T22:35:23Z",
+  "git_dirty": false,
+  "git_sha": "c5b10a9985fd2219f3fd119a991f2991a89608c7",
   "models": {},
   "new_spend_usd": {},
   "notes": [],
   "python": "3.12.9",
   "run_id": "contracts-v2-dev",
   "som_version": "0.1.0.dev0",
-  "started_at": "2026-11-22T22:23:07Z"
+  "started_at": "2026-11-22T22:33:47Z"
 }

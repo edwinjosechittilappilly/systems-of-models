@@ -1,7 +1,7 @@
 measurement,median_us,iterations
-"gate, served by S1 (stub deciders)",27.5,500
-"gate, escalated to S2 (stub deciders)",46.3,500
+"gate, served by S1 (stub deciders)",27.7,500
+"gate, escalated to S2 (stub deciders)",49.3,500
 envelope.to_dict(),1.7,500
-envelope.validate() (s1-decision schema),427.5,500
-"OpenAI SDK responses.create, unwrapped (mock transport)",632.5,500
-"OpenAI SDK responses.create, som.wrap (mock transport)",687.9,500
+envelope.validate() (s1-decision schema),436.9,500
+"OpenAI SDK responses.create, unwrapped (mock transport)",611.8,500
+"OpenAI SDK responses.create, som.wrap (mock transport)",659.1,500

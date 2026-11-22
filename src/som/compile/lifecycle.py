@@ -31,6 +31,8 @@ class PromotionResult:
     validation_errors: int
     upper_bound: float | None
     promoted: bool
+    tau_rule: Literal["upper_bound", "margin"]
+    calibration_bound: float | None
 
 
 def _binomial_cdf(k: int, n: int, p: float) -> float:
@@ -69,6 +71,22 @@ class CompiledDecision:
     retry with a new window. Route every request, randomly audit served answers,
     and pass each audited answer and its reference to ``record_audit``.
     Detection time counts routed requests since promotion, including escalations.
+
+    ``tau_rule="upper_bound"`` selects the lowest threshold with calibration
+    Clopper-Pearson upper bound at most epsilon, using ``alpha_cal``. The
+    alternative ``"margin"`` requires empirical error at most
+    ``calibration_margin * epsilon``. The reported calibration bound is
+    descriptive after threshold selection, not a simultaneous confidence
+    guarantee; only the independent validation bound controls promotion.
+    Small calibration windows may not provide enough evidence even with zero
+    errors; increase ``n_cal`` or explicitly choose the margin rule.
+    Audit bets form an equally weighted geometric grid ending at 0.95/epsilon.
+
+    Counts and coverage start at promotion and stop at demotion. A rejected or
+    demoted decision is final: recompilation requires a new instance and a
+    fresh, independently allocated alpha budget. Choice answers use string
+    values; stringify integer or boolean reference values before constructing
+    a ChoiceAnswer so equality measures the intended agreement.
     """
 
     def __init__(
@@ -82,6 +100,9 @@ class CompiledDecision:
         metric: Metric = "probability",
         max_promotion_attempts: int = 1,
         min_coverage: float = 0.0,
+        tau_rule: Literal["upper_bound", "margin"] = "upper_bound",
+        alpha_cal: float = 0.05,
+        calibration_margin: float = 0.6,
     ) -> None:
         if not 0 < epsilon < 1 or not 0 < alpha < 1:
             raise ValueError("epsilon and alpha must lie strictly between 0 and 1")
@@ -91,6 +112,10 @@ class CompiledDecision:
             raise ValueError("window sizes and max_promotion_attempts must be positive integers")
         if metric not in ("probability", "confidence", "margin"):
             raise ValueError("unknown metric")
+        if tau_rule not in ("upper_bound", "margin"):
+            raise ValueError("unknown tau_rule")
+        if not 0 < alpha_cal < 1 or not 0 < calibration_margin < 1:
+            raise ValueError("alpha_cal and calibration_margin must lie strictly between 0 and 1")
         self.epsilon = epsilon
         self.alpha = alpha
         self.n_cal = n_cal
@@ -99,7 +124,10 @@ class CompiledDecision:
         self.metric = metric
         self.max_promotion_attempts = max_promotion_attempts
         self.min_coverage = min_coverage
-        self.state: Literal["candidate", "shadow", "promoted", "demoted"] = "candidate"
+        self.tau_rule = tau_rule
+        self.alpha_cal = alpha_cal
+        self.calibration_margin = calibration_margin
+        self.state: Literal["candidate", "shadow", "promoted", "demoted", "rejected"] = "candidate"
         self.tau: float | None = None
         self.promotion_attempts = 0
         self.last_promotion: PromotionResult | None = None
@@ -108,10 +136,9 @@ class CompiledDecision:
         self.audit_count = 0
         self.audit_errors = 0
         self.detection_time: int | None = None
-        self._promoted_at = 0
         self._window: list[tuple[float | None, bool]] = []
         self._log_wealth = [0.0] * 9
-        self._lambdas = [(i / 10) / max(epsilon, 1 - epsilon) for i in range(1, 10)]
+        self._lambdas = [(0.95 / epsilon) * 2 ** (i - 8) for i in range(9)]
 
     @property
     def coverage(self) -> float:
@@ -169,15 +196,20 @@ class CompiledDecision:
         thresholds = [0.0, *(math.nextafter(s, math.inf) for s in scores)]
         tau = None
         cal_n = cal_errors = val_n = val_errors = 0
-        bound = None
+        bound = cal_bound = None
         for threshold in thresholds:
             selected = [error for score, error in cal if score is not None and score >= threshold]
-            if (
-                selected
-                and len(selected) / self.n_cal >= self.min_coverage
-                and sum(selected) / len(selected) <= self.epsilon
-            ):
-                tau, cal_n, cal_errors = threshold, len(selected), sum(selected)
+            if not selected or len(selected) / self.n_cal < self.min_coverage:
+                continue
+            errors = sum(selected)
+            candidate_bound = _upper_bound(errors, len(selected), self.alpha_cal)
+            acceptable = (
+                candidate_bound <= self.epsilon
+                if self.tau_rule == "upper_bound"
+                else errors / len(selected) <= self.calibration_margin * self.epsilon
+            )
+            if acceptable:
+                tau, cal_n, cal_errors, cal_bound = threshold, len(selected), errors, candidate_bound
                 break
         if tau is not None:
             selected = [error for score, error in val if score is not None and score >= tau]
@@ -188,16 +220,29 @@ class CompiledDecision:
         if promoted:
             self.state = "promoted"
             self.tau = tau
-            self._promoted_at = self.total_count
-        result = PromotionResult(self.promotion_attempts, tau, cal_n, cal_errors, val_n, val_errors, bound, promoted)
+        elif self.promotion_attempts >= self.max_promotion_attempts:
+            self.state = "rejected"
+        result = PromotionResult(
+            self.promotion_attempts,
+            tau,
+            cal_n,
+            cal_errors,
+            val_n,
+            val_errors,
+            bound,
+            promoted,
+            self.tau_rule,
+            cal_bound,
+        )
         self.last_promotion = result
         return result
 
     def route(self, answer: Answer) -> Literal["serve", "escalate"]:
         score = self._score(answer)
         served = self.state == "promoted" and self.tau is not None and score is not None and score >= self.tau
-        self.total_count += 1
-        self.served_count += int(served)
+        if self.state == "promoted":
+            self.total_count += 1
+            self.served_count += int(served)
         return "serve" if served else "escalate"
 
     def should_audit(self, rng: _Random) -> bool:
@@ -218,6 +263,6 @@ class CompiledDecision:
             self._log_wealth[i] += math.log1p(fraction * (int(error) - self.epsilon))
         if self.e_value >= 1 / self.alpha:
             self.state = "demoted"
-            self.detection_time = self.total_count - self._promoted_at
+            self.detection_time = self.total_count
             return True
         return False

@@ -14,9 +14,9 @@ def answer(value="a", score=0.9):
 
 
 def promoted(*, epsilon=0.1, alpha=0.05, audit_rate=1.0):
-    decision = CompiledDecision(epsilon=epsilon, alpha=alpha, n_cal=1, n_val=60, audit_rate=audit_rate)
+    decision = CompiledDecision(epsilon=epsilon, alpha=alpha, n_cal=60, n_val=60, audit_rate=audit_rate)
     decision.start_shadow()
-    for _ in range(61):
+    for _ in range(120):
         decision.observe_shadow(answer(), answer())
     assert decision.attempt_promotion().promoted
     return decision
@@ -31,6 +31,7 @@ def test_split_sample_threshold_and_clopper_pearson_alpha_spending():
         audit_rate=0.5,
         min_coverage=0.5,
         max_promotion_attempts=2,
+        tau_rule="margin",
     )
     decision.start_shadow()
     decision.observe_shadow(answer(score=0.8), answer("b"))
@@ -51,7 +52,7 @@ def test_split_sample_threshold_and_clopper_pearson_alpha_spending():
 
 
 def test_nonzero_error_clopper_pearson_bound():
-    decision = CompiledDecision(epsilon=0.5, alpha=0.05, n_cal=1, n_val=10, audit_rate=0)
+    decision = CompiledDecision(epsilon=0.5, alpha=0.05, n_cal=1, n_val=10, audit_rate=0, tau_rule="margin")
     decision.start_shadow()
     decision.observe_shadow(answer(), answer())
     decision.observe_shadow(answer(), answer("b"))
@@ -63,7 +64,9 @@ def test_nonzero_error_clopper_pearson_bound():
 
 
 def test_validation_rejects_and_retry_requires_fresh_disjoint_window():
-    decision = CompiledDecision(epsilon=0.2, alpha=0.05, n_cal=2, n_val=20, audit_rate=0, max_promotion_attempts=2)
+    decision = CompiledDecision(
+        epsilon=0.2, alpha=0.05, n_cal=2, n_val=20, audit_rate=0, max_promotion_attempts=2, tau_rule="margin"
+    )
     decision.start_shadow()
     for _ in range(2):
         decision.observe_shadow(answer(), answer())
@@ -73,6 +76,7 @@ def test_validation_rejects_and_retry_requires_fresh_disjoint_window():
     assert not result.promoted and result.validation_errors == 20 and result.upper_bound == 1
     assert decision.state == "shadow"
     assert decision.route(answer()) == "escalate"
+    assert (decision.total_count, decision.served_count, decision.coverage) == (0, 0, 0)
     with pytest.raises(RuntimeError, match="complete"):
         decision.attempt_promotion()
     for _ in range(22):
@@ -88,10 +92,11 @@ def test_no_calibration_coverage_and_no_validation_served_cannot_promote():
     for _ in range(20):
         decision.observe_shadow(answer(), answer())
     assert not decision.attempt_promotion().promoted
-    with pytest.raises(RuntimeError, match="exhausted"):
+    assert decision.state == "rejected"
+    with pytest.raises(RuntimeError, match="shadow"):
         decision.observe_shadow(answer(), answer())
 
-    empty_val = CompiledDecision(epsilon=0.2, alpha=0.05, n_cal=1, n_val=20, audit_rate=0)
+    empty_val = CompiledDecision(epsilon=0.2, alpha=0.05, n_cal=1, n_val=20, audit_rate=0, tau_rule="margin")
     empty_val.start_shadow()
     empty_val.observe_shadow(answer(), answer())
     for _ in range(20):
@@ -102,6 +107,7 @@ def test_no_calibration_coverage_and_no_validation_served_cannot_promote():
 
 def test_shift_demotes_and_counts_detection_in_all_routed_requests():
     decision = promoted()
+    assert decision.route(Refusal("choice")) == "escalate"
     for _ in range(1, 101):
         assert decision.route(answer()) == "serve"
         if decision.record_audit(answer(), answer("b")):
@@ -109,10 +115,11 @@ def test_shift_demotes_and_counts_detection_in_all_routed_requests():
     else:
         pytest.fail("strong shift was not detected")
     assert decision.state == "demoted"
-    assert decision.detection_time == decision.audit_count
+    assert decision.detection_time == decision.audit_count + 1
     assert decision.audit_count == decision.audit_errors
     assert decision.e_value >= 20
     assert decision.route(answer()) == "escalate"
+    assert decision.total_count == decision.detection_time
     assert not decision.should_audit(random.Random(0))
     with pytest.raises(RuntimeError, match="audits"):
         decision.record_audit(answer(), answer("b"))
@@ -157,6 +164,9 @@ def test_rejects_invalid_configuration_and_signals():
         {"audit_rate": 2},
         {"min_coverage": -1},
         {"metric": "unknown"},
+        {"tau_rule": "unknown"},
+        {"alpha_cal": 0},
+        {"calibration_margin": 1},
     ):
         params = dict(epsilon=0.1, alpha=0.05, n_cal=1, n_val=60, audit_rate=0.1)
         params.update(kwargs)
@@ -173,3 +183,69 @@ def test_high_epsilon_audit_betting_factors_remain_positive():
         decision.route(answer())
         assert not decision.record_audit(answer(), answer())
     assert 0 < decision.e_value < 1
+
+
+def test_calibration_rules_and_bound_are_reported():
+    def run(rule, alpha_cal=0.05, margin=0.6):
+        decision = CompiledDecision(
+            epsilon=0.2,
+            alpha=0.05,
+            n_cal=30,
+            n_val=30,
+            audit_rate=0,
+            tau_rule=rule,
+            alpha_cal=alpha_cal,
+            calibration_margin=margin,
+        )
+        decision.start_shadow()
+        for i in range(30):
+            decision.observe_shadow(answer(), answer("b") if i < 3 else answer())
+        for _ in range(30):
+            decision.observe_shadow(answer(), answer())
+        return decision.attempt_promotion()
+
+    strict = run("upper_bound")
+    assert strict.threshold is None and strict.calibration_bound is None
+    relaxed = run("upper_bound", alpha_cal=0.5)
+    assert relaxed.promoted and relaxed.tau_rule == "upper_bound"
+    assert relaxed.calibration_bound <= 0.2
+    margin = run("margin")
+    assert margin.promoted and margin.tau_rule == "margin"
+    assert margin.calibration_bound > 0.2
+    assert run("margin", margin=0.4).threshold is None
+
+
+def test_calibrated_stream_promotion_has_power():
+    promoted_count = 0
+    for seed in range(40):
+        rng = random.Random(seed)
+        decision = CompiledDecision(
+            epsilon=0.2,
+            alpha=0.05,
+            n_cal=400,
+            n_val=400,
+            audit_rate=0,
+            min_coverage=0.25,
+        )
+        decision.start_shadow()
+        for _ in range(800):
+            score = rng.choice((0.7, 0.8, 0.9, 0.98))
+            reference = answer() if rng.random() < score else answer("b")
+            decision.observe_shadow(answer(score=score), reference)
+        promoted_count += decision.attempt_promotion().promoted
+    assert promoted_count >= 20
+
+
+@pytest.mark.parametrize(("error_rate", "max_median"), [(0.1, 500), (0.2, 90), (0.35, 40)])
+def test_demotion_detection_delay_across_shift_severities(error_rate, max_median):
+    delays = []
+    for seed in range(31):
+        rng = random.Random(seed)
+        decision = promoted(epsilon=0.05)
+        for _ in range(1000):
+            decision.route(answer())
+            reference = answer("b") if rng.random() < error_rate else answer()
+            if decision.record_audit(answer(), reference):
+                break
+        delays.append(decision.detection_time or 1001)
+    assert sorted(delays)[len(delays) // 2] <= max_median

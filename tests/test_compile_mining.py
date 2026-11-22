@@ -81,6 +81,117 @@ def test_retrieval_ambiguity_does_not_invent_a_choice():
     ]
     report = mine(traces, min_support=2)
     assert all(candidate.kind != "retrieval_choice" for candidate in report.accepted + report.rejected)
+    assert report.ambiguous_retrieval_count == 4
+
+
+def test_retrieval_dependencies_use_shared_traces_despite_ambiguous_choices():
+    traces = []
+    for i in range(48):
+        department, priority = f"d{i % 4}", f"p{(i // 4) % 3}"
+        chosen = {"id": f"id{i % 12}", "department": department, "priority": priority}
+        other = (
+            {"id": "other", "department": department, "priority": priority}
+            if i < 12
+            else {"id": "other", "department": "other", "priority": "other"}
+        )
+        traces.append(
+            AgentTrace(
+                str(i),
+                "ticket",
+                [
+                    AgentStep("search", {}, [chosen, other]),
+                    AgentStep("route", {"department": department, "priority": priority}, None),
+                ],
+            )
+        )
+
+    report = mine(traces, min_support=2)
+    rejected = {item.name: item for item in report.rejected}
+    assert report.ambiguous_retrieval_count == 12
+    assert rejected["route.department"].reason == "functional_dependency"
+    assert rejected["route.department"].determinant == "search.retrieval_choice"
+    assert rejected["route.priority"].determinant == "search.retrieval_choice"
+
+
+def test_unique_retrieval_ids_are_not_decisions_or_determinants():
+    traces = []
+    for i in range(30):
+        traces.append(
+            AgentTrace(
+                str(i),
+                "ticket",
+                [
+                    AgentStep("search", {}, [{"id": f"id{i}"}, {"id": "other"}]),
+                    AgentStep("use", {"id": f"id{i}"}, None),
+                    AgentStep("route", {"action": ("cancel", "return", "exchange")[i % 3]}, None),
+                ],
+            )
+        )
+    report = mine(traces, min_support=2)
+    rejected = {item.name: item for item in report.rejected}
+    assert rejected["search.retrieval_choice"].reason == "free_text"
+    assert rejected["search.retrieval_choice"].support == 1
+    assert "route.action" in {item.name for item in report.accepted}
+
+
+def test_singleton_determinant_groups_do_not_predict_their_own_values():
+    traces = []
+    for i in range(20):
+        determinant = "common" if i < 18 else f"unique{i}"
+        value = "yes" if i < 18 else "no"
+        traces.append(
+            AgentTrace(
+                str(i), "ticket", [AgentStep("a", {"key": determinant}, None), AgentStep("b", {"value": value}, None)]
+            )
+        )
+    report = mine(traces, min_support=1)
+    assert {"a.key", "b.value"} <= {item.name for item in report.accepted}
+
+
+def test_dependency_requires_moderate_overlap():
+    traces = []
+    for i in range(20):
+        value = ("x", "y")[i % 2]
+        steps = []
+        if i < 8:
+            steps.extend(
+                [AgentStep("search", {}, [{"id": value}, {"id": "other"}]), AgentStep("use", {"id": value}, None)]
+            )
+        steps.append(AgentStep("route", {"kind": value}, None))
+        traces.append(AgentTrace(str(i), "ticket", steps))
+    report = mine(traces, min_support=2)
+    assert "route.kind" in {item.name for item in report.accepted}
+
+
+def test_support_is_the_least_common_value_for_branches_and_arguments():
+    traces = []
+    for i in range(20):
+        steps = [AgentStep("route", {"kind": "unusual" if i == 0 else "usual"}, None)]
+        if i:
+            steps.append(AgentStep("near_always", {}, None))
+        traces.append(AgentTrace(str(i), "ticket", steps))
+    report = mine(traces, min_support=3)
+    rejected = {item.name: item for item in report.rejected}
+    for name in ("near_always.branch", "route.kind"):
+        assert rejected[name].reason == "rare"
+        assert rejected[name].support == 1
+
+
+def test_no_evidence_and_resolved_ties_are_not_counted_as_ambiguous():
+    traces = [
+        AgentTrace("none", "ticket", [AgentStep("search", {}, [{"id": "a"}, {"id": "b"}])]),
+        AgentTrace(
+            "resolved",
+            "ticket",
+            [
+                AgentStep("search", {}, [{"id": "a", "kind": "x"}, {"id": "b", "kind": "x"}]),
+                AgentStep("filter", {"kind": "x"}, None),
+                AgentStep("use", {"id": "a"}, None),
+            ],
+        ),
+    ]
+    report = mine(traces, min_support=1)
+    assert report.ambiguous_retrieval_count == 0
 
 
 def test_miner_rejects_duplicate_trace_ids_and_invalid_configuration():

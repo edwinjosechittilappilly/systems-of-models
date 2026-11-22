@@ -21,17 +21,21 @@ def test_writer_only_receives_samples_and_reproduces_selection():
     )
     seen = []
 
-    def writer(samples):
-        seen.append(samples)
+    def writer(context):
+        seen.append(context)
         return {"name": "policy", "instructions": "Choose the governing policy"}
 
     question, provenance = write_question(candidate, writer, n_samples=3, seed=7)
     _, repeat = write_question(candidate, writer, n_samples=3, seed=7)
     assert isinstance(question, Choice)
     assert question.values == ["0", "1"]
+    assert [option.description for option in question.options] == ["title 0", "title 1"]
     assert provenance == repeat
-    assert seen[0] == seen[1] and len(seen[0]) == 3
-    assert all(set(sample) == {"input", "value", "title"} for sample in seen[0])
+    assert provenance["writer"].endswith(".writer")
+    assert seen[0] == seen[1] and len(seen[0]["samples"]) == 3
+    assert all(set(sample) == {"input", "value", "title"} for sample in seen[0]["samples"])
+    assert seen[0]["choices"] == [{"value": "0", "title": "title 0"}, {"value": "1", "title": "title 1"}]
+    assert set(seen[0]) == {"samples", "choices"}
 
 
 def test_writer_branch_becomes_predicate():
@@ -44,7 +48,14 @@ def test_writer_branch_becomes_predicate():
         values=[True, False],
         support=2,
     )
-    question, _ = write_question(candidate, lambda _: {"name": "verify", "instructions": "Verify?"}, seed=1)
+    seen = []
+
+    def writer(context):
+        seen.append(context)
+        return {"name": "verify", "instructions": "Verify?"}
+
+    question, _ = write_question(candidate, writer, seed=1)
+    assert seen[0]["tool"] == "verify" and seen[0]["argument"] is None
     assert isinstance(question, Predicate)
     with pytest.raises(ValueError, match="n_samples"):
         write_question(candidate, lambda _: {}, n_samples=0, seed=1)
@@ -58,4 +69,4 @@ def test_openai_writer_uses_structured_response():
             return SimpleNamespace(output_text='{"name":"n","instructions":"i","true_means":"yes","false_means":"no"}')
 
     writer = OpenAIQuestionWriter(client=SimpleNamespace(responses=Responses()))
-    assert writer([{"input": "ticket", "value": True}])["name"] == "n"
+    assert writer({"samples": [{"input": "ticket", "value": True}]})["name"] == "n"

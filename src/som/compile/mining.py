@@ -45,10 +45,11 @@ class Candidate:
 
 @dataclass
 class MiningReport:
-    """Accepted and rejected candidates, including reasons for every rejection."""
+    """Accepted and rejected candidates and the number of ambiguous retrieval traces."""
 
     accepted: list[Candidate]
     rejected: list[Candidate]
+    ambiguous_retrieval_count: int = 0
 
     def to_rows(self) -> list[dict[str, Any]]:
         """Return flat, CSV-writer-compatible rows for all candidates."""
@@ -88,14 +89,15 @@ def _copied(value: Any, source: Any) -> bool:
     return type(value) is type(source) and value == source
 
 
-def _retrieved(trace: AgentTrace, index: int) -> tuple[Any, str | None] | None:
+def _retrieved(trace: AgentTrace, index: int) -> tuple[tuple[Any, str | None] | None, bool]:
     result = trace.steps[index].result
     if (
         not isinstance(result, list)
         or not result
         or not all(isinstance(item, dict) and "id" in item for item in result)
     ):
-        return None
+        return None, False
+    ambiguous = False
     for later in trace.steps[index + 1 :]:
         scores = [
             sum(key in later.arguments and _key(value) == _key(later.arguments[key]) for key, value in item.items())
@@ -105,8 +107,10 @@ def _retrieved(trace: AgentTrace, index: int) -> tuple[Any, str | None] | None:
         if best and scores.count(best) == 1:
             item = result[scores.index(best)]
             title = item.get("title", item.get("label"))
-            return item["id"], str(title) if title is not None else None
-    return None
+            return (item["id"], str(title) if title is not None else None), False
+        if best:
+            ambiguous = True
+    return None, ambiguous
 
 
 def _dependent(candidate: Candidate, determinant: Candidate, min_support: int) -> bool:
@@ -120,12 +124,21 @@ def _dependent(candidate: Candidate, determinant: Candidate, min_support: int) -
     left = per_trace(determinant.examples)
     right = per_trace(candidate.examples)
     common = left.keys() & right.keys()
-    if len(common) < min_support or len(common) < len(right) * 0.99:
+    # A determinant must cover at least half the candidate's unambiguous traces.
+    if len(common) < min_support or len(common) < len(right) * 0.5:
         return False
     groups: dict[str, Counter[str]] = defaultdict(Counter)
     for trace_id in common:
         groups[left[trace_id]][right[trace_id]] += 1
-    return sum(max(counts.values()) for counts in groups.values()) / len(common) >= 0.99
+    correct = 0
+    for counts in groups.values():
+        for value, count in counts.items():
+            # Predict each held-out observation using only the other observations.
+            remaining = count - 1
+            other_max = max((n for key, n in counts.items() if key != value), default=0)
+            if remaining > other_max:
+                correct += count
+    return correct / len(common) >= 0.99
 
 
 def mine(
@@ -136,7 +149,13 @@ def mine(
     free_text_ratio: float = 0.8,
     copied_ratio: float = 0.8,
 ) -> MiningReport:
-    """Mine tool arguments, tool-call branches and uniquely inferred retrieval choices."""
+    """Mine decisions from traces.
+
+    Support is the least frequent observed value. Dependencies require at least
+    ``min_support`` shared traces, at least half the candidate's traces, and
+    99% leave-one-out majority accuracy. The report counts distinct traces
+    with an unresolved positive-score retrieval tie.
+    """
     if min_support < 1 or max_cardinality < 1:
         raise ValueError("min_support and max_cardinality must be positive")
     if not 0 < free_text_ratio <= 1 or not 0 < copied_ratio <= 1:
@@ -145,6 +164,7 @@ def mine(
     if len({trace.trace_id for trace in traces}) != len(traces):
         raise ValueError("trace IDs must be unique")
     candidates: dict[tuple[str, str, str | None], Candidate] = {}
+    ambiguous_retrieval_traces: set[str] = set()
 
     def add(kind: str, tool: str, argument: str | None, example: Example) -> None:
         key = (kind, tool, argument)
@@ -161,7 +181,9 @@ def mine(
         for index, step in enumerate(trace.steps):
             for argument, value in step.arguments.items():
                 add("tool_argument", step.tool, argument, Example(trace.trace_id, trace.input, value))
-            choice = _retrieved(trace, index)
+            choice, ambiguous = _retrieved(trace, index)
+            if ambiguous:
+                ambiguous_retrieval_traces.add(trace.trace_id)
             if choice is not None:
                 value, title = choice
                 add("retrieval_choice", step.tool, None, Example(trace.trace_id, trace.input, value, title))
@@ -172,30 +194,27 @@ def mine(
     order = {"retrieval_choice": 0, "branch": 1, "tool_argument": 2}
     for candidate in sorted(candidates.values(), key=lambda item: (order[item.kind], item.name)):
         distinct: dict[str, Any] = {}
+        counts: Counter[str] = Counter()
         for example in candidate.examples:
-            distinct.setdefault(_key(example.value), example.value)
+            key = _key(example.value)
+            distinct.setdefault(key, example.value)
+            counts[key] += 1
         candidate.values = list(distinct.values())
-        candidate.support = (
-            sum(example.value is True for example in candidate.examples)
-            if candidate.kind == "branch"
-            else len(candidate.examples)
-        )
-        if candidate.support < min_support:
-            candidate.reason = "rare"
-        elif len(distinct) < 2:
-            candidate.reason = "constant"
-        elif (
+        candidate.support = min(counts.values())
+        if (
             candidate.kind == "tool_argument"
             and sum(_copied(example.value, example.input) for example in candidate.examples) / len(candidate.examples)
             >= copied_ratio
         ):
             candidate.reason = "copied_from_input"
         elif len(distinct) > max_cardinality or (
-            candidate.kind == "tool_argument"
-            and len(candidate.examples) >= 10
-            and len(distinct) / len(candidate.examples) >= free_text_ratio
+            len(candidate.examples) >= 10 and len(distinct) / len(candidate.examples) >= free_text_ratio
         ):
             candidate.reason = "free_text"
+        elif candidate.support < min_support:
+            candidate.reason = "rare"
+        elif len(distinct) < 2:
+            candidate.reason = "constant"
         else:
             for other in accepted:
                 if _dependent(candidate, other, min_support):
@@ -203,4 +222,4 @@ def mine(
                     candidate.determinant = other.name
                     break
         (rejected if candidate.reason else accepted).append(candidate)
-    return MiningReport(accepted, rejected)
+    return MiningReport(accepted, rejected, len(ambiguous_retrieval_traces))

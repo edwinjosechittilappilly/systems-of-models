@@ -4374,10 +4374,15 @@ dev = [
     { name = "langchain-core", version = "1.8.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "mcp" },
     { name = "mypy" },
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
+    { name = "numpy", version = "2.5.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "openai" },
     { name = "opentelemetry-sdk" },
     { name = "pytest" },
     { name = "ruff" },
+    { name = "scikit-learn", version = "1.7.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "scikit-learn", version = "1.9.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "types-jsonschema" },
 ]
 
@@ -4416,10 +4421,12 @@ dev = [
     { name = "langchain-core", marker = "python_full_version >= '3.11'", specifier = ">=1.8.4" },
     { name = "mcp", specifier = ">=2.3.0" },
     { name = "mypy", specifier = ">=1.13" },
+    { name = "numpy", specifier = ">=1.26" },
     { name = "openai", specifier = ">=3.57.0" },
     { name = "opentelemetry-sdk", specifier = ">=1.30" },
     { name = "pytest", specifier = ">=8.3" },
     { name = "ruff", specifier = ">=0.8" },
+    { name = "scikit-learn", specifier = ">=1.5" },
     { name = "types-jsonschema" },
 ]
 

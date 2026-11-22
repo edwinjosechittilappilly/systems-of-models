@@ -60,6 +60,10 @@ mcp = [
 otel = [
     "opentelemetry-api>=1.30",
 ]
+surrogate = [
+    "numpy>=1.26",
+    "scikit-learn>=1.5",
+]
 
 [dependency-groups]
 bench = [

@@ -21,9 +21,11 @@
       "PROTOCOL.md": "17b1ec567f646d854e17e1ac9c84c0f7d10e0a848bdfc6c79fa293a84b27613a",
       "data.py": "c7731b754d513763943fdac256a11a4d6cebf2858883918a74fbef888721bd28",
       "decision_labels.yaml": "6bfbb19192bb0c1d4b4c02e8c76a89bfa99a87f7677775188c46981dd9dbd4a3",
+      "discovery.py": "223bb7c11c5c6ba49601e48ebdb8ce803fe41c510e94384b48499e2e664d07ac",
       "extract.py": "670223748a502aa31f8662dd5b8e30a95a1763457d6637a975c7178713e481aa",
       "metrics.py": "4ffef225c5f0702a6df698ee3c4ef6169e31a2f9be23df152b572ffad1f6c271",
-      "run.py": "0ce300bd9c140f3972e2560b76851fc538ba44f4840d5249a1883aec2a1abf36"
+      "run.py": "46ad3375f0a9127038d46ac556d1a629589233337ae80714cd4bb28f054d5d50",
+      "sensitivity.py": "d4feb1ef030953851010b7e0691a3619617072d8db89b85ec125baaaaeb1eecc"
     },
     "tau2_commit": "768f3d8fe8528b4f32a5096f9ed008ae50f48ead"
   },
@@ -52,9 +54,9 @@
     "tau2/o4-mini-2025-04-16_retail_default_gpt-4.1-2025-04-14_4trials.json": "7135f38bbbbd46d6babe830574c8623bb276d8fd6da316580b905cf513853f98"
   },
   "experiment": "e3b",
-  "finished_at": "2026-11-22T22:28:05Z",
-  "git_dirty": true,
-  "git_sha": "2b075cb8c89fd26de3d6fd80517f83b0be3f644c",
+  "finished_at": "2026-11-22T22:41:58Z",
+  "git_dirty": false,
+  "git_sha": "5e253b9216088fea0cc559f1f9a194440ad430e3",
   "models": {
     "s1": "jev-1.14.0",
     "writer": "gpt-6.1-terra"
@@ -78,5 +80,5 @@
   "python": "3.12.9",
   "run_id": "tau2-768f3d8",
   "som_version": "0.1.0.dev0",
-  "started_at": "2026-11-22T22:27:58Z"
+  "started_at": "2026-11-22T22:41:51Z"
 }

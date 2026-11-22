@@ -51,6 +51,14 @@ otel = [
 ]
 
 [dependency-groups]
+bench = [
+    "matplotlib>=3.9",
+    "numpy>=1.26",
+    "pandas>=2.2",
+    "pyarrow>=17",
+    "scikit-learn>=1.5",
+    "scipy>=1.13",
+]
 dev = [
     "pytest>=8.3",
     "ruff>=0.8",

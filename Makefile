@@ -1,4 +1,4 @@
-.PHONY: help sync lint format test test-live check build hygiene clean
+.PHONY: help sync lint format test test-bench test-live check build hygiene clean
 
 help: ## list targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-12s %s\n", $$1, $$2}'
@@ -18,6 +18,9 @@ format: ## apply ruff fixes and formatting
 test: ## offline tests (no API calls)
 	uv run pytest -m "not live"
 	uv run som check-schemas
+
+test-bench: ## offline tests for the experiment harness (bench/); replays caches, no API calls
+	uv run --group bench pytest -q bench/tests
 
 test-live: ## tests that call real APIs; needs keys in .env
 	uv run --env-file .env pytest -m live

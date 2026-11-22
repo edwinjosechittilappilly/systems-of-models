@@ -1,0 +1,54 @@
+# ieee.mplstyle — Matplotlib style for IEEE publication figures
+# Usage: plt.style.use('figures/ieee.mplstyle')  (from project root)
+#        OR: plt.style.use('/abs/path/to/figures/ieee.mplstyle')
+
+# ---- Font ----
+font.family         : serif
+font.serif          : Times New Roman, Times, DejaVu Serif
+font.size           : 8
+axes.labelsize      : 8
+axes.titlesize      : 9
+xtick.labelsize     : 7
+ytick.labelsize     : 7
+legend.fontsize     : 7
+legend.frameon      : False
+
+# ---- Figure size ----
+# IEEE single column = 3.5 in, double column = 7.16 in
+figure.figsize      : 3.5, 2.625
+figure.dpi          : 300
+savefig.dpi         : 300
+savefig.bbox        : tight
+savefig.pad_inches  : 0.02
+savefig.format      : pdf
+
+# ---- Lines and markers ----
+lines.linewidth     : 1.0
+lines.markersize    : 4
+lines.markeredgewidth : 0.5
+
+# ---- Axes ----
+axes.linewidth      : 0.8
+axes.spines.top     : False
+axes.spines.right   : False
+axes.grid           : True
+grid.alpha          : 0.3
+grid.linestyle      : --
+grid.linewidth      : 0.5
+
+# ---- Ticks ----
+xtick.direction     : out
+ytick.direction     : out
+xtick.major.width   : 0.8
+ytick.major.width   : 0.8
+xtick.major.size    : 3
+ytick.major.size    : 3
+
+# ---- Color cycle (colorblind-safe — Tol bright palette) ----
+axes.prop_cycle     : cycler('color', ['0072B2', 'E69F00', '009E73', 'CC79A7', '56B4E9', 'F0E442', 'D55E00', '000000'])
+
+# ---- Layout ----
+figure.constrained_layout.use : True
+
+# ---- Math ----
+mathtext.fontset    : cm

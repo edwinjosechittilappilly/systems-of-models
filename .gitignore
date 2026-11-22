@@ -16,9 +16,10 @@ build/
 .coverage
 htmlcov/
 
-# Bench: downloaded datasets and raw API response caches (results/*.csv and run manifests are committed)
-bench/data/
-bench/cache/
+# Bench: downloaded datasets and raw API response caches (results/*.csv and run manifests are committed).
+# No trailing slash, so symlinks to a shared cache (git worktrees) are ignored too.
+bench/data
+bench/cache
 
 # OS / editors
 .DS_Store

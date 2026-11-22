@@ -150,9 +150,15 @@ paired joint gold accuracy by a 2-point margin, using a ticket-cluster bootstrap
 and costs at most X% of always-agent per ticket.
 
 H4 (primary): for 15% and 30% restructure, S1 plus audit/demotion has lower cumulative excess
-error over tickets 1,200-2,399 than refit-only and escalation-only monitoring. Use paired seed-level
-bootstrap intervals and Holm correction across the two comparisons; report the two severities
-separately and retain misses. With only three disjoint seeds, inference is necessarily limited.
+error over tickets 1,200-2,399 than refit-only and escalation-only monitoring. For every ticket,
+the outcome is the served route's gold-correctness indicator, including escalated and audited
+tickets. Use a one-sided paired ticket sign-flip permutation test stratified by seed and Holm
+correction across the two comparisons within each severity. Report ticket-cluster bootstrap
+intervals stratified by seed, per-seed cumulative effects and whether all three effects have the
+same positive sign as a secondary consistency criterion. An exact seed-level sign-flip test would
+have minimum one-sided p=1/8 with three seeds, motivating the ticket-level primary analysis.
+Ticket-level randomization assumes exchangeable paired differences; adaptive state and temporal
+dependence may make its uncertainty anti-conservative, so per-seed results remain essential.
 
 H5 (exploratory): compare S1-question and surrogate under the equal training-label rule. No
 evaluation stream is used to choose a parameter. The provider dashboard will be reconciled if

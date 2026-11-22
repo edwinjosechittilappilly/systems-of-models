@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import itertools
 from typing import Any
 
 import numpy as np
@@ -21,11 +20,10 @@ def _paired(table: pd.DataFrame, stream: str, arm: str, reference: str) -> pd.Da
 def evaluate(
     table: pd.DataFrame, *, cost_bound_percent: float, seed: int = 20261122, resamples: int = 2000
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    """H3/H4 paired intervals and Holm-adjusted exact seed-level randomization p-values.
+    """H3/H4 ticket-paired intervals and Holm-adjusted randomization p-values.
 
-    Resampling for H3 is stratified over seeds and samples tickets within each
-    seed. H4 bootstraps the three paired per-seed cumulative-error contrasts;
-    exact sign flips expose the severe resolution limit from only three seeds.
+    Samples and sign flips are stratified by seed. H4's unit is a ticket;
+    seed-wise effects and their sign consistency are reported separately.
     """
     if resamples < 1 or cost_bound_percent <= 0:
         raise ValueError("resamples and cost bound must be positive")
@@ -65,7 +63,7 @@ def evaluate(
     for severity in (15, 30):
         comparisons = []
         for other in ("s1_refit", "escalation_only"):
-            contrasts = []
+            differences = []
             for stream_seed in (11, 23, 37):
                 stream = f"seed_{stream_seed}_restructure_{severity}"
                 data = _paired(table, stream, "s1_audit", other)
@@ -73,19 +71,24 @@ def evaluate(
                 if len(data) != 1200:
                     raise ValueError(f"incomplete H4 post-shift window: {stream}")
                 # Lower error in audit arm gives a positive advantage.
-                contrasts.append(
-                    float(
-                        (
-                            data["gold_joint_correct_arm"].astype(float) - data["gold_joint_correct_ref"].astype(float)
-                        ).sum()
-                    )
+                differences.append(
+                    data["gold_joint_correct_arm"].astype(float).to_numpy()
+                    - data["gold_joint_correct_ref"].astype(float).to_numpy()
                 )
-            values = np.array(contrasts)
-            point = float(values.mean())
-            boot = np.array([values[rng.integers(0, len(values), len(values))].mean() for _ in range(resamples)])
+            values = np.stack(differences)
+            contrasts = values.sum(axis=1)
+            point = float(contrasts.mean())
+            boot = np.array(
+                [
+                    np.mean([part[rng.integers(0, len(part), len(part))].sum() for part in values])
+                    for _ in range(resamples)
+                ]
+            )
             lo, hi = np.quantile(boot, [0.025, 0.975])
-            flips = [float(np.mean(values * signs)) for signs in itertools.product((-1, 1), repeat=len(values))]
-            p = sum(value >= point - 1e-12 for value in flips) / len(flips)
+            permutations = np.array(
+                [float((values * rng.choice((-1, 1), size=values.shape)).sum(axis=1).mean()) for _ in range(resamples)]
+            )
+            p = (1 + int(np.sum(permutations >= point - 1e-12))) / (resamples + 1)
             comparisons.append(
                 {
                     "hypothesis": "H4",
@@ -94,14 +97,15 @@ def evaluate(
                     "mean_audit_advantage": point,
                     "ci_low": float(lo),
                     "ci_high": float(hi),
-                    "exact_one_sided_p": p,
-                    "per_seed_advantages": contrasts,
+                    "ticket_permutation_one_sided_p": p,
+                    "per_seed_advantages": contrasts.tolist(),
+                    "all_seed_effects_positive": bool(np.all(contrasts > 0)),
                 }
             )
-        order = sorted(range(len(comparisons)), key=lambda i: comparisons[i]["exact_one_sided_p"])
+        order = sorted(range(len(comparisons)), key=lambda i: comparisons[i]["ticket_permutation_one_sided_p"])
         running = 0.0
         for rank, index in enumerate(order):
-            running = max(running, min(1.0, (len(order) - rank) * comparisons[index]["exact_one_sided_p"]))
+            running = max(running, min(1.0, (len(order) - rank) * comparisons[index]["ticket_permutation_one_sided_p"]))
             comparisons[index]["holm_p_within_severity"] = running
         h4.extend(comparisons)
     return h3, h4

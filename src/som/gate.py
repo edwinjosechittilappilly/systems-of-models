@@ -60,16 +60,32 @@ class GateResult:
     s1: Decision
     s2: Decision | None
     escalation: Escalation | None
+    fit: Answer | None = None
+    """The serving system's answer to the companion predicate, when the gate has one."""
+    s1_in_scope: bool | None = None
+    """Whether S1 said an option fits, judged with the gate's ``fit_threshold`` (None without a companion predicate
+    or when the fit answer was refused)."""
+    s2_in_scope: bool | None = None
+    """The same for S2; None when S2 was not called."""
+
+    @property
+    def in_scope(self) -> bool | None:
+        """Whether the serving system said an option fits. When False, :attr:`value` is None."""
+        return self.s1_in_scope if self.served_by == "s1" else self.s2_in_scope
 
     @property
     def value(self) -> Any:
-        """The served answer's value; None when the serving system refused (see :attr:`refused`)."""
+        """The served answer's value; None when the serving system refused (see :attr:`refused`) or said no option
+        fits (see :attr:`in_scope`)."""
+        if self.in_scope is False:
+            return None
         return self.answer.value
 
     @property
     def refused(self) -> bool:
         """True when no system produced an in-space answer (S1 escalated and S2 also refused). Callers must handle
-        this case: route to a person, retry with more context, or fail the request."""
+        this case, and the out-of-scope case (``in_scope`` False), where :attr:`value` is also None: route to a
+        person, retry with more context, or fail the request."""
         return isinstance(self.answer, Refusal)
 
     @property
@@ -86,11 +102,15 @@ class GateResult:
 
     @property
     def agreed(self) -> bool | None:
-        """In shadow mode or after an escalation: did System 1 give the same answer as System 2?"""
+        """In shadow mode or after an escalation: did System 1 give the same answer as System 2? Saying that nothing
+        fits counts as the answer None, so two out-of-scope verdicts agree whatever labels they were forced to pick.
+        """
         if self.s2 is None:
             return None
         name = self.answer.name
-        return self.s1.answers[name].value == self.s2.answers[name].value
+        first = None if self.s1_in_scope is False else self.s1.answers[name].value
+        second = None if self.s2_in_scope is False else self.s2.answers[name].value
+        return first == second
 
 
 class Gate:
@@ -158,6 +178,15 @@ class Gate:
     def s2_system(self) -> SystemId:
         return self.s2.system
 
+    def _in_scope(self, fit: Answer | None) -> bool | None:
+        """Read a fit answer with the same cutoff the gate escalates on; a bare (probability-free) answer is taken
+        at its value."""
+        if self.fit is None or not isinstance(fit, PredicateAnswer):
+            return None
+        if fit.probability is None:
+            return bool(fit.raw_value)
+        return fit.probability >= self.fit_threshold
+
     def __call__(self, input: Input, *, metadata: Mapping[str, str] | None = None) -> GateResult:
         questions: list[Question] = [self.question] + ([self.fit] if self.fit is not None else [])
         with span(f"gate {self.question.name}") as gate_ref:
@@ -166,7 +195,8 @@ class Gate:
             escalation = self._check(first)
             second: Decision | None = None
             if escalation is not None or self.mode == "shadow":
-                second = self.s2.decide(input, [self.question], trace_id=trace_id)
+                # S2 answers the companion predicate too, so it can also say that nothing fits.
+                second = self.s2.decide(input, questions, trace_id=trace_id)
             if escalation is not None and second is not None:
                 escalation.performed = True
                 escalation.downstream_response_id = second.envelope.id
@@ -182,7 +212,17 @@ class Gate:
         for decision in (first, second):
             if decision is not None:
                 decision.envelope.metadata.update(extra)
-        result = GateResult(served.answers[self.question.name], served_by, first, second, escalation)
+        fit_name = self.fit.name if self.fit is not None else None
+        result = GateResult(
+            served.answers[self.question.name],
+            served_by,
+            first,
+            second,
+            escalation,
+            served.answers.get(fit_name) if fit_name else None,
+            self._in_scope(first.answers.get(fit_name) if fit_name else None),
+            self._in_scope(second.answers.get(fit_name)) if fit_name and second is not None else None,
+        )
         if self.store is not None:
             self.store.add_envelope(first.envelope, role="s1", question=self.question.name, metadata=extra)
             if second is not None:
@@ -194,6 +234,7 @@ class Gate:
                 served_by=served_by,
                 value=result.value,
                 refused=result.refused,
+                in_scope=result.in_scope,
                 s1_value=first.answers[self.question.name].value,
                 s2_value=None if second is None else second.answers[self.question.name].value,
                 signal=signal(first.answers[self.question.name], self.metric),

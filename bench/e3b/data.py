@@ -62,6 +62,7 @@ class ToolCall:
     name: str
     arguments: dict[str, Any]
     result: Any = None
+    result_index: int | None = None
 
 
 @dataclass
@@ -107,13 +108,23 @@ def load(model: str, domain: str) -> Iterator[Episode]:
     raw = json.loads(fetch(model, domain).read_text())
     tasks = {str(task["id"]): task for task in raw["tasks"]}
     for sim in raw["simulations"]:
-        results = {m.get("id"): _parse_result(m.get("content")) for m in sim["messages"] if m["role"] == "tool"}
+        results = {
+            m.get("id"): (index, _parse_result(m.get("content")))
+            for index, m in enumerate(sim["messages"])
+            if m["role"] == "tool"
+        }
         turns = []
         for index, message in enumerate(sim["messages"]):
             if message["role"] == "tool":
                 continue
             calls = [
-                ToolCall(call["id"], call["name"], call.get("arguments") or {}, results.get(call["id"]))
+                ToolCall(
+                    call["id"],
+                    call["name"],
+                    call.get("arguments") or {},
+                    results.get(call["id"], (None, None))[1],
+                    results.get(call["id"], (None, None))[0],
+                )
                 for call in (message.get("tool_calls") or [])
             ]
             turns.append(Turn(index, message["role"], message.get("content") or "", calls))

@@ -1,6 +1,8 @@
-# Systems of Models: contract schemas (contract 2.0.0)
+# Systems of Models: contract schemas (contract 2.1.0)
 
 JSON Schema (draft 2020-12) contracts for the taxonomy. Each system schema defines `$defs/request` and `$defs/response`. The response composes `envelope.schema.json` through `allOf` and fixes `system`, the major version (`system_version` matches `^2\.`), and `body`. Every response states `contract_version`. A top-level document holds a `request`, a `response`, or both. `examples/` has one valid instance per schema, plus extra meta-layer examples (one records the 1.x → 2.0.0 change). Example values are illustrative.
+
+**2.1.0 (2026-11-23), minor:** meta-layer patch change kinds gain `rollback` (the `$defs` group is renamed `patch_kinds`). A compiled decision that monitoring demotes is a new patch behind the same contract, but it is not an improvement, so none of the earlier kinds described it truthfully. Found while building E3a.
 
 **2.0.0 (2026-11-22), breaking:** `cost.basis` is required (`provider_reported`, `list_price`, `local_measured`, `unknown`), `cost.amount` is null exactly when the basis is `unknown`, `cost.rate_card` is `{source, retrieved_at}`, each `breakdown` item has a `basis`, and envelopes carry `contract_version`. 1.x labelled every amount as billed, although almost no provider returns a per-call charge.
 

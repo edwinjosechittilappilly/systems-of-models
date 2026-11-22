@@ -105,6 +105,27 @@ def test_version_bump_records_patch_and_links_s5_response():
     assert record["bump"] == "patch"
 
 
+def test_a_demotion_is_a_rollback_patch_not_an_improvement():
+    record = version_bump_record(
+        record_id="bump-2",
+        created_at="2026-11-23T12:00:00Z",
+        author={"kind": "s5", "id": "compiler"},
+        status="accepted",
+        evidence={"metrics": {"e_value": 21.4, "audits": 63}},
+        system="s1.decision",
+        from_version="2.0.1",
+        to_version="2.0.2",
+        description="Demote the compiled decision after the audit e-process crossed 1/alpha",
+        change_kind="rollback",
+        s5_response_ids=["evo-2"],
+    )
+    assert record["changes"][0]["kind"] == "rollback"
+    # rollback is a patch kind only: it cannot justify a minor bump on its own.
+    minor = {**record, "bump": "minor", "to_version": "2.1.0"}
+    with pytest.raises(schemas.ValidationError):
+        schemas.validate(minor, "meta-layer")
+
+
 def test_invalid_version_effect_is_rejected():
     args = _arguments()
     args["to_version"] = "2.1.0"

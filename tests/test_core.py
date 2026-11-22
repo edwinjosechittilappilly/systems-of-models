@@ -62,6 +62,39 @@ def test_companion_predicate_escalates_out_of_answer_space():
     result.s1.envelope.validate()
 
 
+def test_s2_can_say_nothing_fits_after_an_out_of_space_escalation():
+    def s2_answer(_input, question):
+        if question.name == "fits":
+            return PredicateAnswer("fits", None, raw_value=False)
+        return ChoiceAnswer(question.name, "billing")
+
+    s2 = FunctionDecider(s2_answer, system="s2.reasoning")
+    result = som.Gate(s1_answering(0.99, fit=0.1), s2, TEAMS, fit=FITS)("What is the weather?")
+    assert (result.served_by, result.in_scope, result.value) == ("s2", False, None)
+    confident = som.Gate(s1_answering(0.99, fit=0.95), s2, TEAMS, fit=FITS)("double charge")
+    assert (confident.served_by, confident.in_scope, confident.value) == ("s1", True, "billing")
+    # A fit accepted under a lenient fit_threshold is in scope, even below 0.5.
+    lenient = som.Gate(s1_answering(0.99, fit=0.4), s2, TEAMS, fit=FITS, fit_threshold=0.3)("double charge")
+    assert (lenient.served_by, lenient.in_scope, lenient.value) == ("s1", True, "billing")
+
+
+def test_agreement_counts_a_no_fit_verdict_as_the_answer():
+    def s2_no_fit(label):
+        def answer(_input, question):
+            if question.name == "fits":
+                return PredicateAnswer("fits", None, raw_value=False)
+            return ChoiceAnswer(question.name, label)
+
+        return FunctionDecider(answer, system="s2.reasoning")
+
+    # Shadow: S1 would serve billing; S2 picks billing too but says nothing fits, so they disagree.
+    shadow = som.Gate(s1_answering(0.99, fit=0.95), s2_no_fit("billing"), TEAMS, fit=FITS, mode="shadow")("x")
+    assert (shadow.value, shadow.agreed) == (None, False)
+    # Escalation: both say nothing fits, whatever labels they were forced to pick.
+    both = som.Gate(s1_answering(0.99, fit=0.1), s2_no_fit("cards"), TEAMS, fit=FITS)("x")
+    assert (both.s1_in_scope, both.s2_in_scope, both.agreed) == (False, False, True)
+
+
 def test_refusal_escalates():
     s1 = FunctionDecider(lambda _i, q: Refusal(q.name, "out_of_answer_space"))
     result = som.Gate(s1, s2_answering(), TEAMS)("?")

@@ -37,7 +37,7 @@
   "response": {
     "id": "evo_01JAC0",
     "object": "system.response",
-    "contract_version": "2.0.0",
+    "contract_version": "2.1.0",
     "system": "s5.self_evolving",
     "system_version": "2.0.0",
     "created_at": 1792054800,

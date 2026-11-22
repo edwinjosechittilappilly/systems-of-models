@@ -156,7 +156,16 @@ class OpenAIResponses:
                 kwargs["reasoning"] = {"effort": self.reasoning_effort}
             with timed() as clock:
                 response = self.client.responses.create(**kwargs)
-            text = str(_get(response, "output_text") or "")
+            # SDK objects expose output_text as a property; raw JSON (proxies, recorded responses) does not.
+            text = str(
+                _get(response, "output_text")
+                or "".join(
+                    str(_get(part, "text") or "")
+                    for item in (_get(response, "output") or [])
+                    for part in (_get(item, "content") or [])
+                    if _get(part, "type") == "output_text"
+                )
+            )
             parsed = parse_json_object(text)
             refused = any(
                 _get(part, "type") == "refusal"

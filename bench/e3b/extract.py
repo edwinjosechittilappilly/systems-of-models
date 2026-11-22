@@ -33,10 +33,10 @@ def _bounded(value: Any) -> Any:
 
 
 def to_trace(episode: Episode) -> AgentTrace:
-    """Preserve the public conversation and the assistant's ordered tool calls."""
+    """Use user turns as the environment input and preserve ordered tool calls."""
     return AgentTrace(
         trace_id=episode.episode_id,
-        input=episode.transcript(),
+        input="\n".join(f"user: {turn.content}" for turn in episode.turns if turn.role == "user" and turn.content),
         steps=[
             AgentStep(call.name, call.arguments, call.result)
             for turn in episode.turns

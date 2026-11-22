@@ -83,6 +83,14 @@ _PRIOR_ARGUMENT_FP = [
     "airline/update_reservation_flights.flights",
     "airline/update_reservation_flights.payment_id",
 ]
+_REV4_LABEL_REJECTIONS = {
+    "retail/modify_pending_order_payment.branch": "rare",
+    "retail/cancel_pending_order.reason": "copied_from_context",
+    "airline/update_reservation_passengers.branch": "rare",
+    "airline/book_reservation.cabin": "copied_from_context",
+    "airline/book_reservation.insurance": "copied_from_context",
+    "airline/update_reservation_flights.cabin": "copied_from_context",
+}
 
 
 def miner_history(rows: list[dict[str, Any]], pooled: dict[str, Any]) -> list[str]:
@@ -93,18 +101,30 @@ def miner_history(rows: list[dict[str, Any]], pooled: dict[str, Any]) -> list[st
         | {"retail/get_order_details.branch", "airline/update_reservation_baggages.payment_id"}
     )
     second = sorted(_PRIOR_BRANCH_FP)
-    fourth = sorted(f"{row['domain']}/{row['name']}" for row in rows if row["accepted"] and not row["judgement"])
+    fourth = sorted(
+        set(third)
+        - {
+            "retail/exchange_delivered_order_items.order_id",
+            "retail/exchange_delivered_order_items.payment_method_id",
+            "retail/get_user_details.user_id",
+            "retail/modify_pending_order_items.order_id",
+            "retail/modify_pending_order_items.payment_method_id",
+        }
+    )
+    fourth_b = sorted(f"{row['domain']}/{row['name']}" for row in rows if row["accepted"] and not row["judgement"])
     history = [
         ("1 initial", 0.283, 0.750, first),
         ("2 reviewed", 0.556, 0.750, second),
         ("3 non-majority support", 0.288, 0.750, third),
-        ("4 earlier-tool-result context", pooled["precision"], pooled["recall"], fourth),
+        ("4 earlier-tool-result context", 0.304, 0.700, fourth),
+        ("4b user-turn trace input (extraction fix)", pooled["precision"], pooled["recall"], fourth_b),
     ]
     lines = [
         "## Miner revision history",
         "",
-        "All revisions follow frozen labels; revisions 2-4 occurred after results were observed. "
-        "Revision 1 candidates are reconstructed from its mining log; revisions 2 and 3 from archived CSVs.",
+        "All revisions follow frozen labels; revisions 2-4b occurred after results were observed. "
+        "Revision 1 candidates are reconstructed from its mining log; revisions 2-4 from archived CSVs. "
+        "Revision 4b fixes trace extraction without changing the miner.",
         "",
         "| Revision | Precision | Recall | False-positive candidates |",
         "|---|---:|---:|---|",
@@ -684,13 +704,13 @@ def run(mode: str) -> None:
         "",
         *miner_history(mining_rows, discovery_rows[-1]),
         "",
-        "## Revision 4 false positives by distractor category",
+        "## Revision 4b false positives by distractor category",
         "",
         *[f"- **{group}**: {', '.join(sorted(names))}" for group, names in sorted(fp_groups.items())],
         "",
         "These are label-based categories, not proven causal explanations of miner failures.",
         "",
-        "## Revision 4 rejected candidates",
+        "## Revision 4b rejected candidates",
         "",
         "| Domain / candidate | Kind | Support | Rejection reason | Determinant |",
         "|---|---|---:|---|---|",
@@ -698,6 +718,20 @@ def run(mode: str) -> None:
             f"| {r['domain']}/{r['name']} | {r['kind']} | {r['support']} | {r['reason']} | {r['determinant'] or ''} |"
             for r in mining_rows
             if not r["accepted"]
+        ],
+        "",
+        "## Labelled judgement candidate outcomes",
+        "",
+        "Revision 4 rejection reasons are shown alongside 4b; `accepted` means no rejection.",
+        "",
+        "| Domain / candidate | Revision 4 | Revision 4b | Support |",
+        "|---|---|---|---:|",
+        *[
+            f"| {r['domain']}/{r['name']} | "
+            f"{_REV4_LABEL_REJECTIONS.get(r['domain'] + '/' + r['name'], 'accepted')} | "
+            f"{r['reason'] or 'accepted'} | {r['support']} |"
+            for r in mining_rows
+            if r["judgement"]
         ],
         "",
         "## Evaluation",
@@ -743,6 +777,9 @@ def run(mode: str) -> None:
         "the recorded provider-call cache is archived beside these results.",
         "- The preceding assistant text can already communicate the tool argument before the call. "
         "These scores measure recovery at the tool-call boundary, not anticipation before the agent decided.",
+        "- Mining trace input now contains only user-turn text, not assistant text. It still concatenates "
+        "all user turns, including turns after a candidate tool call; this remaining future-user exposure "
+        "can affect copied-value detection and is not a predecision-prefix guarantee.",
         *[
             f"- The {q['candidate']} draft asks about a tracking number, apparently off target."
             for q in questions

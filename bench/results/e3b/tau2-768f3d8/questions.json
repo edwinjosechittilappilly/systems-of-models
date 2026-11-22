@@ -266,6 +266,52 @@
     }
   },
   {
+    "domain": "retail",
+    "candidate": "cancel_pending_order.reason",
+    "question": {
+      "type": "choice",
+      "name": "cancellation_ordered_by_mistake",
+      "instructions": "Identify the reason for the requested cancellation from the conversation. Use the customer's stated or confirmed reason; if none is stated, predict based on context.",
+      "choices": [
+        {
+          "value": "no longer needed"
+        },
+        {
+          "value": "ordered by mistake"
+        }
+      ]
+    },
+    "provenance": {
+      "candidate": "cancel_pending_order.reason",
+      "kind": "tool_argument",
+      "seed": 0,
+      "n_samples": 20,
+      "sample_trace_ids": [
+        "gpt-4.1/retail/54/2",
+        "gpt-4.1/retail/113/2",
+        "gpt-4.1/retail/54/0",
+        "gpt-4.1/retail/59/1",
+        "gpt-4.1/retail/32/3",
+        "gpt-4.1/retail/54/3",
+        "gpt-4.1/retail/78/2",
+        "gpt-4.1/retail/30/1",
+        "gpt-4.1/retail/28/3",
+        "gpt-4.1/retail/81/2",
+        "gpt-4.1/retail/54/1",
+        "gpt-4.1/retail/32/3",
+        "gpt-4.1/retail/113/0",
+        "gpt-4.1/retail/98/1",
+        "gpt-4.1/retail/55/3",
+        "gpt-4.1/retail/55/0",
+        "gpt-4.1/retail/90/1",
+        "gpt-4.1/retail/113/0",
+        "gpt-4.1/retail/78/0",
+        "gpt-4.1/retail/99/0"
+      ],
+      "writer": "gpt-6.1-terra"
+    }
+  },
+  {
     "domain": "airline",
     "candidate": "book_reservation.branch",
     "question": {

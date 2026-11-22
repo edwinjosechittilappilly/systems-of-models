@@ -40,13 +40,10 @@ def episode():
     )
 
 
-def test_trace_uses_public_transcript_and_ordered_tool_steps():
+def test_trace_uses_user_messages_only_and_ordered_tool_steps():
     trace = to_trace(episode())
     assert trace.trace_id == "m/retail/1/0"
-    assert (
-        trace.input == "user: Please help\nassistant: Looking up your order\nuser: Please cancel\n"
-        "assistant: I will handle it\nassistant: Future response"
-    )
+    assert trace.input == "user: Please help\nuser: Please cancel"
     assert [(step.tool, step.arguments, step.result) for step in trace.steps] == [
         ("lookup", {"id": "123"}, {"status": "open"}),
         ("change", {"mode": "cancel"}, {"secret": "later result"}),

@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import argparse
 import json
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from types import SimpleNamespace
 
 import pandas as pd
 from bench.common.budget import Budget
@@ -41,7 +43,13 @@ def namespace(system, split):
     return f"e1_{system}_clinc150_fit_v2"
 
 
-def main():
+def main(mode=None):
+    if mode is None:
+        parser = argparse.ArgumentParser()
+        parser.add_argument("--mode", choices=["record", "replay"], default="record")
+        mode = parser.parse_args().mode
+    if mode == "replay" and not (DATA_DIR / "clinc150-test.parquet").exists():
+        raise RuntimeError("Pilot replay requires cached data; refusing to download")
     budget = prior_budget()
     before = budget.summary()
     frame = load("clinc150", "test").iloc[:50]
@@ -51,8 +59,17 @@ def main():
         ("decisions", "openai", lambda: som.OpenAIDecisions("gpt-6-luna")),
         ("s2", "openai", lambda: som.OpenAIResponses("gpt-6.1-terra", reasoning_effort="low")),
     ):
-        cache = JsonCache(namespace(system, "test"), mode="record")
-        decider = CachedDecider(Charged(factory(), budget, provider), cache)
+        cache = JsonCache(namespace(system, "test"), mode=mode)
+        inner_name = {
+            "typesafe": "typesafe/jev-1.14.0",
+            "decisions": "openai-decisions/gpt-6-luna",
+            "s2": "openai/gpt-6.1-terra",
+        }[system]
+        tier = "s2.reasoning" if system == "s2" else "s1.decision"
+        inner = (
+            SimpleNamespace(name=inner_name, system=tier) if mode == "replay" else Charged(factory(), budget, provider)
+        )
+        decider = CachedDecider(inner, cache)
         qs = revised_questions(system)
 
         def measure(item, decider=decider, qs=qs, system=system):
@@ -83,7 +100,7 @@ def main():
     raw = pd.DataFrame(rows)
     root = Path("bench/results/e1/pilot-v2")
     root.mkdir(parents=True, exist_ok=True)
-    raw.to_csv(root / "calls.csv", index=False)
+    raw.to_csv(root / "calls.csv", index=False, lineterminator="\n")
     summary = raw.groupby("system", as_index=False).agg(
         calls=("cost", "size"),
         input_tokens=("input_tokens", "mean"),
@@ -92,7 +109,9 @@ def main():
         latency_p50_ms=("latency_ms", "median"),
         latency_p95_ms=("latency_ms", lambda x: x.quantile(0.95)),
     )
-    summary.to_csv(root / "summary.csv", index=False)
+    summary.to_csv(root / "summary.csv", index=False, lineterminator="\n")
+    if mode == "replay":
+        return
     costs = dict(zip(summary.system, summary.cost_per_call, strict=True))
     projected_extra = {"typesafe": costs["typesafe"] * 8600, "openai": costs["decisions"] * 8600 + costs["s2"] * 6000}
     projected_total = {provider: before.get(provider, 0) + projected_extra[provider] for provider in CAPS}

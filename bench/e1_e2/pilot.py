@@ -66,10 +66,13 @@ def questions(dataset):
     return result
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", choices=["record", "replay"], required=True)
-    args = parser.parse_args()
+def main(mode=None):
+    if mode is None:
+        parser = argparse.ArgumentParser()
+        parser.add_argument("--mode", choices=["record", "replay"], required=True)
+        args = parser.parse_args()
+    else:
+        args = SimpleNamespace(mode=mode)
     budget = Budget({"openai": 45.0, "typesafe": 5.0})
     output = Path("bench/results/e1/pilot")
     output.mkdir(parents=True, exist_ok=True)
@@ -126,7 +129,7 @@ def main():
             with ThreadPoolExecutor(max_workers=4) as executor:
                 rows.extend(executor.map(measure, frame.iterrows()))
     raw = pd.DataFrame(rows)
-    raw.to_csv(output / "calls.csv", index=False)
+    raw.to_csv(output / "calls.csv", index=False, lineterminator="\n")
     summary = raw.groupby(["dataset", "system"], as_index=False).agg(
         calls=("cost", "size"),
         input_tokens_mean=("input_tokens", "mean"),
@@ -135,7 +138,7 @@ def main():
         latency_p50_ms=("latency_ms", "median"),
         latency_p95_ms=("latency_ms", lambda x: x.quantile(0.95)),
     )
-    summary.to_csv(output / "summary.csv", index=False)
+    summary.to_csv(output / "summary.csv", index=False, lineterminator="\n")
     projected = {"openai": 0.0, "typesafe": 0.0}
     for row in summary.itertuples():
         count = {
@@ -154,7 +157,8 @@ def main():
         "caps_usd": budget.caps,
         "cache": {k: {"hits": c.hits, "misses": c.misses} for k, c in caches.items()},
     }
-    (output / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
+    if args.mode != "replay" or not (output / "manifest.json").exists():
+        (output / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
     (output / "ANALYSIS.md").write_text(
         "# E1 Banking77 pilot\n\n50 paired test items; first 50 in dataset order, not a random or "
         "stratified sample. Option descriptions replace underscores with spaces.\n\n"

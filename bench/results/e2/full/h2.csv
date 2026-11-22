@@ -1,0 +1,5 @@
+dataset,system,n,difference,ci_low,ci_high,h2_pass
+banking77,typesafe,3080,0.0,0.0,0.0,False
+banking77,decisions,3073,0.0,0.0,0.0,False
+clinc150,typesafe,5500,0.0,0.0,0.0,False
+clinc150,decisions,5310,0.0,0.0,0.0,False

@@ -13,6 +13,8 @@ from bench.common.stats import aurc, brier, ece, nll
 from bench.e1_e2.analysis import analyse, with_signals
 from bench.e1_e2.collect import collect, splits
 from bench.e1_e2.metrics import choose_threshold
+from bench.e1_e2.pilot import main as replay_banking_pilot
+from bench.e1_e2.revision_pilot import main as replay_clinc_pilot
 from bench.e1_e2.surrogate import fit_predict
 
 
@@ -87,9 +89,12 @@ def baseline(mode, raw):
                 for i, gold, answer, probability in zip(frame.index, frame.intent, pred, conf, strict=True)
             )
     root = Path("bench/results/e1/full")
-    pd.DataFrame(rows).to_csv(root / "supervised_items.csv", index=False)
-    pd.DataFrame(summaries).to_csv(root / "supervised_summary.csv", index=False)
-    pd.DataFrame(sweeps).to_csv(root / "supervised_sweep.csv", index=False)
+    pd.DataFrame(rows).to_csv(
+        root / "supervised_items.csv.gz", index=False, lineterminator="\n", compression={"method": "gzip", "mtime": 0}
+    )
+    pd.DataFrame(summaries).to_csv(root / "supervised_summary.csv", index=False, lineterminator="\n")
+    for (dataset, metric), group in pd.DataFrame(sweeps).groupby(["dataset", "metric"]):
+        group.to_csv(root / f"supervised_sweep_{dataset}_{metric}.csv", index=False, lineterminator="\n")
     with (root / "ANALYSIS.md").open("a") as handle:
         handle.write(
             "\n\n## Supervised embedding ceiling\n\n"
@@ -119,8 +124,10 @@ def main():
         ]
         if not all(path.exists() for path in needed):
             raise RuntimeError("Replay requires all five cached data files; refusing to download")
+        replay_banking_pilot("replay")
+        replay_clinc_pilot("replay")
     raw, budget, stats = collect(args.mode)
-    analyse(raw, budget, stats)
+    analyse(raw, budget, stats, mode=args.mode)
     baseline(args.mode, raw)
     print(json.dumps({"items": len(raw), "accounted_spend_usd": budget}))
 

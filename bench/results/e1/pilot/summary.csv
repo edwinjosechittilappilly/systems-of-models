@@ -1,0 +1,4 @@
+dataset,system,calls,input_tokens_mean,output_tokens_mean,cost_mean,latency_p50_ms,latency_p95_ms
+banking77,decisions,50,986.14,0.0,9.861400000000002e-05,170.9235,297.8632
+banking77,s2,50,1313.22,17.46,0.0014005200000000002,1218.0115,2021.679799999998
+banking77,typesafe,50,1686.5,827.2,7.0833e-05,93.031,129.76629999999997

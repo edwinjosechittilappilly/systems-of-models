@@ -49,7 +49,9 @@ def plot_save(fig, root, name):
 
 
 def e1(raw, root):
-    raw.drop(columns="probabilities").to_csv(root / "items.csv", index=False)
+    raw.drop(columns="probabilities").to_csv(
+        root / "items.csv.gz", index=False, lineterminator="\n", compression={"method": "gzip", "mtime": 0}
+    )
     sweeps, selected, baselines = [], [], []
     fig, ax = plt.subplots()
 
@@ -170,9 +172,9 @@ def e1(raw, root):
                     if pd.notna(near):
                         mark = sweep.loc[near]
                         ax.scatter(mark.cost_per_request / teacher.cost.mean(), mark.accuracy, marker="x")
-    pd.concat(sweeps, ignore_index=True).to_csv(root / "sweep.csv", index=False)
-    pd.DataFrame(selected).to_csv(root / "selected.csv", index=False)
-    pd.DataFrame(baselines).to_csv(root / "baselines.csv", index=False)
+    pd.concat(sweeps, ignore_index=True).to_csv(root / "sweep.csv", index=False, lineterminator="\n")
+    pd.DataFrame(selected).to_csv(root / "selected.csv", index=False, lineterminator="\n")
+    pd.DataFrame(baselines).to_csv(root / "baselines.csv", index=False, lineterminator="\n")
     ax.set(xlabel="Cascade / S2 cost", ylabel="Accuracy", title="Exploratory test frontier; x = nearest break-even")
     ax.legend(fontsize="x-small")
     plot_save(fig, root, "cost_accuracy")
@@ -220,7 +222,9 @@ def score_items(frame, probabilities, labels, dataset, system, question, method)
 
 
 def e2(raw, root):
-    with_signals(raw).drop(columns="probabilities").to_csv(root / "items.csv", index=False)
+    with_signals(raw).drop(columns="probabilities").to_csv(
+        root / "items.csv.gz", index=False, lineterminator="\n", compression={"method": "gzip", "mtime": 0}
+    )
     scores, differences, curves, reliability, scored_items = [], [], [], [], []
     fig, ax = plt.subplots()
     relfig, relax = plt.subplots()
@@ -342,11 +346,14 @@ def e2(raw, root):
                             }
                         )
                         scored_items.append(score_items(tfit, p, ty, dataset, system, "fit_predicate", name))
-    pd.DataFrame(scores).to_csv(root / "metrics.csv", index=False)
-    pd.DataFrame(differences).to_csv(root / "h2.csv", index=False)
-    pd.DataFrame(curves).to_csv(root / "risk_coverage.csv", index=False)
-    pd.DataFrame(reliability).to_csv(root / "reliability.csv", index=False)
-    pd.concat(scored_items, ignore_index=True).to_csv(root / "calibration_items.csv", index=False)
+    pd.DataFrame(scores).to_csv(root / "metrics.csv", index=False, lineterminator="\n")
+    pd.DataFrame(differences).to_csv(root / "h2.csv", index=False, lineterminator="\n")
+    for (dataset, system, metric), group in pd.DataFrame(curves).groupby(["dataset", "system", "metric"]):
+        group.to_csv(root / f"risk_coverage_{dataset}_{system}_{metric}.csv", index=False, lineterminator="\n")
+    pd.DataFrame(reliability).to_csv(root / "reliability.csv", index=False, lineterminator="\n")
+    pd.concat(scored_items, ignore_index=True).to_csv(
+        root / "calibration_items.csv.gz", index=False, lineterminator="\n", compression={"method": "gzip", "mtime": 0}
+    )
     ax.set(xlabel="Coverage", ylabel="Selective risk")
     ax.legend(fontsize="xx-small")
     plot_save(fig, root, "risk_coverage")
@@ -357,7 +364,7 @@ def e2(raw, root):
     return scores, differences
 
 
-def analyse(raw, budget, cache_stats):
+def analyse(raw, budget, cache_stats, *, mode):
     plt.style.use("bench/ieee.mplstyle")
     roots = [Path("bench/results/e1/full"), Path("bench/results/e2/full")]
     for root in roots:
@@ -376,7 +383,9 @@ def analyse(raw, budget, cache_stats):
     for field in ("counts", "usage_weighted_cost_usd"):
         manifest[field] = {"/".join(k): v for k, v in manifest[field].items()}
     for root in roots:
-        (root / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True, default=str) + "\n")
+        path = root / "manifest.json"
+        if mode != "replay" or not path.exists():
+            path.write_text(json.dumps(manifest, indent=2, sort_keys=True, default=str) + "\n")
     notes = (
         "\n\nBanking77 and CLINC choice-only sensitivity threshold rule: "
         + RULE
@@ -402,8 +411,15 @@ def analyse(raw, budget, cache_stats):
         "items as incorrect whenever served by S1. "
         "Coverage is a cost proxy, not conditional teacher cost. Escalate if fit probability or choice signal "
         "is missing or below its selected threshold. The E2 risk curves rank by each choice signal alone. "
+        "Per-item CSVs are gzip-compressed with mtime 0; risk curves and supervised sweeps are plain CSV shards. "
         "S1 CLINC cost and latency sum the Choice and new predicate calls. Rows marked legacy_bundled "
         "include the unusable old predicate's cost, so are conservative for a fresh choice-only deployment. "
+    )
+    notes = notes.rstrip()
+    notes += (
+        "\n\nTask-wide cache-accounted list-price spend (including invalid first CLINC calls): "
+        + json.dumps(budget["cache_accounted_spend_usd"], sort_keys=True)
+        + ". This is not a provider billing reconciliation.\n"
     )
     baseline_table = pd.read_csv(roots[0] / "baselines.csv").to_string(index=False)
     primary = [x for x in selected if x["dataset"] == "banking77" and x["metric"] == "top_probability"]

@@ -1,0 +1,28 @@
+{
+  "after_pilot_accounted_usd": {
+    "openai": 18.109366,
+    "typesafe": 1.246045
+  },
+  "caps_usd": {
+    "openai": 60.0,
+    "typesafe": 5.0
+  },
+  "counts": {"decisions": 50, "s2": 50, "typesafe": 50},
+  "data_sha256": {"clinc150-test.parquet": "3e60e45b25bf86543aa5df8ba4fcc674114164e6184f0197690648c2908d0102"},
+  "models": {"decisions": "gpt-6-luna", "s2": "gpt-6.1-terra", "typesafe": "jev-1.14.0"},
+  "usage_weighted_cost_usd": {"decisions": 0.0030728, "s2": 0.08758205, "typesafe": 0.002309874},
+  "new_spend_usd": {"openai": 0.090655, "typesafe": 0.00231},
+  "full_run_go": true,
+  "previous_cache_accounted_usd": {
+    "openai": 18.018711,
+    "typesafe": 1.243735
+  },
+  "projected_extra_usd": {
+    "openai": 11.0383676,
+    "typesafe": 0.397298328
+  },
+  "projected_total_usd": {
+    "openai": 29.0570786,
+    "typesafe": 1.641033328
+  }
+}

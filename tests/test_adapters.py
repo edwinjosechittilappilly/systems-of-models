@@ -126,6 +126,16 @@ def test_openai_responses_parses_structured_output_and_records_reasoning_tokens(
     envelope.validate()
 
 
+def test_openai_responses_reads_the_answer_from_raw_json_without_output_text():
+    # Raw API JSON (proxies, recorded responses) has no SDK `output_text` property; the text lives in output items.
+    recorded = fixture("openai_responses.json")
+    assert "output_text" not in recorded
+    adapter = som.OpenAIResponses(client=fake_openai(responses=SimpleNamespace(create=lambda **_: recorded)))
+    decision = adapter.decide(TEXT, QUESTIONS)
+    text = next(part["text"] for item in recorded["output"] for part in item.get("content") or [])
+    assert decision["team"].value == json.loads(text)["team"]
+
+
 def test_an_answer_outside_the_answer_space_becomes_a_refusal():
     recorded = fixture("openai_responses.json")
     adapter = som.OpenAIResponses(

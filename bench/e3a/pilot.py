@@ -104,9 +104,8 @@ def main() -> None:
                     "department_correct": department_ok,
                     "priority_correct": priority_ok,
                     "identity_correct": identity_ok,
-                    "entry_correct": bool(
-                        [event for event in events_before_route if event["tool"] == "get_policy"]
-                    ) and [event for event in events_before_route if event["tool"] == "get_policy"][-1]["entry_id"]
+                    "entry_correct": bool([event for event in events_before_route if event["tool"] == "get_policy"])
+                    and [event for event in events_before_route if event["tool"] == "get_policy"][-1]["entry_id"]
                     == gold["id"],
                     "searched_policy": any(event["tool"] == "search_policy" for event in env.events),
                     "joint_correct": department_ok and priority_ok and identity_ok,

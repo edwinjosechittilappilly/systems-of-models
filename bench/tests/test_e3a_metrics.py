@@ -12,14 +12,19 @@ def candidate(kind, tool, reason=None):
 def test_discovery_scores_frozen_truth_and_retains_rejections_and_ambiguity():
     report = MiningReport(
         [candidate("retrieval_choice", "search_policy"), candidate("branch", "route")],
-        [candidate("branch", "verify_identity", "functional_dependency"),
-         candidate("tool_argument", "search_policy", "copied_from_input")],
+        [
+            candidate("branch", "verify_identity", "functional_dependency"),
+            candidate("tool_argument", "search_policy", "copied_from_input"),
+        ],
         ambiguous_retrieval_count=3,
     )
     assert discovery_summary(report) == {
-        "discovery_precision": 0.5, "discovery_recall": 0.5,
-        "discovery_true_positives": 1, "discovery_accepted": 2,
-        "discovery_rejected": 2, "ambiguous_retrieval_count": 3,
+        "discovery_precision": 0.5,
+        "discovery_recall": 0.5,
+        "discovery_true_positives": 1,
+        "discovery_accepted": 2,
+        "discovery_rejected": 2,
+        "ambiguous_retrieval_count": 3,
     }
     rows = discovery_rows(report)
     assert len(rows) == 4
@@ -37,12 +42,21 @@ def tickets(count=5, shift=2, stream="shifted"):
     rows = []
     for arm in ("always_agent", "compiled"):
         for i in range(count):
-            rows.append({
-                "ticket_index": i, "shift_at": shift, "arm": arm, "stream": stream,
-                "gold_joint_correct": True, "teacher_agreement": None,
-                "served_by": "agent" if arm == "always_agent" else "s1",
-                "cost_usd": 1.0, "demoted": False, "audited": False, "promoted": False,
-            })
+            rows.append(
+                {
+                    "ticket_index": i,
+                    "shift_at": shift,
+                    "arm": arm,
+                    "stream": stream,
+                    "gold_joint_correct": True,
+                    "teacher_agreement": None,
+                    "served_by": "agent" if arm == "always_agent" else "s1",
+                    "cost_usd": 1.0,
+                    "demoted": False,
+                    "audited": False,
+                    "promoted": False,
+                }
+            )
     return pd.DataFrame(rows)
 
 
@@ -114,8 +128,6 @@ def test_recovery_requires_rolling_coverage_and_resets_on_a_bad_window():
     assert result.recovery_ticket == 149
     data.loc[compiled & data.ticket_index.between(200, 299), "served_by"] = "agent"
     assert pd.isna(row(data).recovery_ticket)
-
-
 
 
 def test_unpaired_and_duplicate_tickets_rejected():

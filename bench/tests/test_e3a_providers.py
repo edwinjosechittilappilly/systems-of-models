@@ -28,18 +28,33 @@ class OpenAIStub:
         self.calls.append(request)
         usage = {"input_tokens": 1000, "output_tokens": 100, "input_tokens_details": {"cached_tokens": 200}}
         if "text" in request:
-            return Response({"usage": usage, "model": "gpt-6.1-terra"}, json.dumps({
-                "name": "route", "instructions": "Which route?", "true_means": "yes", "false_means": "no"
-            }))
+            return Response(
+                {"usage": usage, "model": "gpt-6.1-terra"},
+                json.dumps({"name": "route", "instructions": "Which route?", "true_means": "yes", "false_means": "no"}),
+            )
         calls = [
             ("verify_identity", {"account_id": "acct"}),
-            ("route_ticket", {"department": "cards", "priority": "normal", "queue": "cards_queue",
-                              "note": "policy", "account_id": "acct"}),
+            (
+                "route_ticket",
+                {
+                    "department": "cards",
+                    "priority": "normal",
+                    "queue": "cards_queue",
+                    "note": "policy",
+                    "account_id": "acct",
+                },
+            ),
         ]
-        return Response({"model": "gpt-6.1-terra", "usage": usage, "output": [
-            {"type": "function_call", "name": name, "call_id": str(i), "arguments": json.dumps(args)}
-            for i, (name, args) in enumerate(calls)
-        ]})
+        return Response(
+            {
+                "model": "gpt-6.1-terra",
+                "usage": usage,
+                "output": [
+                    {"type": "function_call", "name": name, "call_id": str(i), "arguments": json.dumps(args)}
+                    for i, (name, args) in enumerate(calls)
+                ],
+            }
+        )
 
 
 def test_teacher_replays_same_agent_trace_and_account_specific_verification(tmp_path):
@@ -88,8 +103,14 @@ def test_jev_new_spend_is_booked_once_and_replay_needs_no_key(tmp_path, monkeypa
 
     def respond(request):
         calls.append(request)
-        return httpx.Response(200, json={"model": "jev-1.14.0", "usage": {"input_tokens": 1000,
-                              "output_tokens": 100}, "answers": {"verify": {"type": "noul", "noul": 0.9}}})
+        return httpx.Response(
+            200,
+            json={
+                "model": "jev-1.14.0",
+                "usage": {"input_tokens": 1000, "output_tokens": 100},
+                "answers": {"verify": {"type": "noul", "noul": 0.9}},
+            },
+        )
 
     budget = Budget({"openai": 55, "typesafe": 5})
     client = httpx.Client(transport=httpx.MockTransport(respond))

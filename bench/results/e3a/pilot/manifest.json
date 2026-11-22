@@ -1,0 +1,50 @@
+{
+  "cache": {
+    "gpt-6-luna": {
+      "hits": 288,
+      "misses": 0
+    },
+    "gpt-6.1-terra": {
+      "hits": 299,
+      "misses": 0
+    }
+  },
+  "config": {
+    "budget_cap_usd": 12,
+    "granularity": 4,
+    "mode": "replay",
+    "sample_seed": 20261122,
+    "size": 100,
+    "source_record_new_spend_usd": {
+      "openai": 0.269886
+    }
+  },
+  "contract_version": "2.0.0",
+  "cost_usd": {
+    "gpt-6-luna": 0.02638267,
+    "gpt-6.1-terra": 0.2441396
+  },
+  "counts": {
+    "gpt-6-luna": 100,
+    "gpt-6.1-terra": 100
+  },
+  "data": {
+    "banking77-train.parquet": "8dc89b87a188509c42cce5a086e8f7c1ff4a225bdd9ae3f23e6cdfa5806e363a"
+  },
+  "experiment": "e3a",
+  "finished_at": "2026-11-22T21:42:01Z",
+  "git_dirty": true,
+  "git_sha": "6b0d276f144e41fa850793f39d60d0159a360e7c",
+  "models": {
+    "gpt-6-luna": "gpt-6-luna",
+    "gpt-6.1-terra": "gpt-6.1-terra"
+  },
+  "new_spend_usd": {},
+  "notes": [
+    "The initial collection attempt received HTTP 400 for a null async_ input field on each model; recorded successful-call spend was $0.000636. The successful calls were cached and replayed after fixing serialization. Failed-request billing is unknown."
+  ],
+  "python": "3.12.9",
+  "run_id": "pilot",
+  "som_version": "0.1.0.dev0",
+  "started_at": "2026-11-22T21:42:00Z"
+}

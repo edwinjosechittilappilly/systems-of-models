@@ -4,7 +4,7 @@ import pytest
 from bench.e3a.hypotheses import evaluate
 
 
-def test_paired_hypotheses_keep_three_seed_resolution_and_equal_costs():
+def test_paired_hypotheses_use_ticket_permutation_and_report_seed_consistency():
     rows = []
     for seed in (11, 23, 37):
         for index in range(600, 1200):
@@ -33,8 +33,9 @@ def test_paired_hypotheses_keep_three_seed_resolution_and_equal_costs():
     h3, h4 = evaluate(pd.DataFrame(rows), cost_bound_percent=100, resamples=50)
     assert h3[0]["noninferior_and_cost_pass"]
     assert all(row["mean_audit_advantage"] == 1200 for row in h4)
-    assert all(row["exact_one_sided_p"] == 0.125 for row in h4)
-    assert all(row["holm_p_within_severity"] == 0.25 for row in h4)
+    assert all(row["ticket_permutation_one_sided_p"] == pytest.approx(1 / 51) for row in h4)
+    assert all(row["holm_p_within_severity"] == pytest.approx(2 / 51) for row in h4)
+    assert all(row["all_seed_effects_positive"] for row in h4)
 
 
 def test_missing_paired_stream_is_an_error():

@@ -1,10 +1,11 @@
 """Mine recurring trace decisions with explicit, empirical rejection rules.
 
-For binary candidates support is the minority count; for larger choices it is
-the total observations. Copied values require an 80% verbatim input match.
-The default free-text rule rejects a distinct/occurrence ratio of at least 0.8
-with ten or more observations, or cardinality above the limit. Functional
-dependencies use leave-one-out prediction on overlapping traces; all are heuristics.
+Support is the number of observations that differ from the most common value (the minority count for binary
+candidates). A value is *copied* when every scalar in it appears verbatim in the run's input or in the result of an
+earlier tool call in the same run: the agent looked it up rather than decided it; 80% of observations must be
+copied to reject. The default free-text rule rejects a distinct/occurrence ratio of at least 0.8 with ten or more
+observations, or cardinality above the limit. Functional dependencies use leave-one-out prediction on overlapping
+traces; all are heuristics.
 """
 
 from __future__ import annotations
@@ -20,12 +21,14 @@ from som.compile.traces import AgentTrace
 
 @dataclass
 class Example:
-    """An observed decision and its originating input."""
+    """An observed decision, its originating input and what the agent had read before deciding."""
 
     trace_id: str
     input: Any
     value: Any
     title: str | None = None
+    context: list[Any] = field(default_factory=list)
+    """Results of the tool calls made before this decision in the same run."""
 
 
 @dataclass
@@ -75,6 +78,11 @@ def _key(value: Any) -> str:
 
 
 def _copied(value: Any, source: Any) -> bool:
+    """True when every scalar in ``value`` appears verbatim in ``source`` (text, or nested JSON-like data)."""
+    if isinstance(value, dict):
+        return bool(value) and all(_copied(item, source) for item in value.values())
+    if isinstance(value, list):
+        return bool(value) and all(_copied(item, source) for item in value)
     if isinstance(source, str):
         return (
             isinstance(value, (str, int, float))
@@ -99,8 +107,11 @@ def _retrieved(trace: AgentTrace, index: int) -> tuple[tuple[Any, str | None] | 
         return None, False
     ambiguous = False
     for later in trace.steps[index + 1 :]:
+        later_values = {_key(value) for value in later.arguments.values()}
         scores = [
             sum(key in later.arguments and _key(value) == _key(later.arguments[key]) for key, value in item.items())
+            # A later call that passes the item's id under any argument name (get_policy(entry_id=...)) follows it.
+            + int(_key(item["id"]) in later_values)
             for item in result
         ]
         best = max(scores)
@@ -185,8 +196,9 @@ def mine(
         for tool in tools:
             add("branch", tool, None, Example(trace.trace_id, trace.input, tool in called))
         for index, step in enumerate(trace.steps):
+            context = [earlier.result for earlier in trace.steps[:index] if earlier.result is not None]
             for argument, value in step.arguments.items():
-                add("tool_argument", step.tool, argument, Example(trace.trace_id, trace.input, value))
+                add("tool_argument", step.tool, argument, Example(trace.trace_id, trace.input, value, context=context))
             choice, ambiguous = _retrieved(trace, index)
             if ambiguous:
                 ambiguous_retrieval_traces.add(trace.trace_id)
@@ -211,10 +223,10 @@ def mine(
         candidate.support = len(candidate.examples) - max(counts.values())
         if (
             candidate.kind == "tool_argument"
-            and sum(_copied(example.value, example.input) for example in candidate.examples) / len(candidate.examples)
+            and sum(_copied(e.value, [e.input, *e.context]) for e in candidate.examples) / len(candidate.examples)
             >= copied_ratio
         ):
-            candidate.reason = "copied_from_input"
+            candidate.reason = "copied_from_context"
         elif len(distinct) > max_cardinality or (
             len(candidate.examples) >= 10 and len(distinct) / len(candidate.examples) >= max_distinct_ratio
         ):

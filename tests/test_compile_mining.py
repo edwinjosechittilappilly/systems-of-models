@@ -35,7 +35,7 @@ def test_miner_finds_choices_and_records_all_distractor_reasons():
                 "route",
                 {
                     "department": entry["department"],
-                    "queue": entry["department"],
+                    "queue": f"{entry['department']}_queue",
                     "note": f"agent explanation number {i}",
                     "account": f"acct-{i}",
                     "fixed": "same",
@@ -53,10 +53,11 @@ def test_miner_finds_choices_and_records_all_distractor_reasons():
     assert accepted["search.retrieval_choice"].values == ["p0", "p1", "p2"]
     assert accepted["search.retrieval_choice"].examples[0].title == "Policy 0"
     assert set(accepted["verify.branch"].values) == {True, False}
-    assert rejected["route.department"].reason == "functional_dependency"
+    assert rejected["route.department"].reason == "copied_from_context"  # read off the chosen entry
     assert rejected["route.queue"].reason == "functional_dependency"
+    assert rejected["route.queue"].determinant == "search.retrieval_choice"
     assert rejected["route.note"].reason == "free_text"
-    assert rejected["route.account"].reason == "copied_from_input"
+    assert rejected["route.account"].reason == "copied_from_context"
     assert rejected["route.fixed"].reason == "constant"
     assert rejected["rare.branch"].reason == "rare"
     rows = report.to_rows()
@@ -106,11 +107,13 @@ def test_retrieval_dependencies_use_shared_traces_despite_ambiguous_choices():
         )
 
     report = mine(traces, min_support=2)
+    accepted = {item.name: item for item in report.accepted}
     rejected = {item.name: item for item in report.rejected}
     assert report.ambiguous_retrieval_count == 12
-    assert rejected["route.department"].reason == "functional_dependency"
-    assert rejected["route.department"].determinant == "search.retrieval_choice"
-    assert rejected["route.priority"].determinant == "search.retrieval_choice"
+    assert "search.retrieval_choice" in accepted
+    # Routing fields are read off the retrieved entry, so they are lookups, not separate judgements.
+    assert rejected["route.department"].reason == "copied_from_context"
+    assert rejected["route.priority"].reason == "copied_from_context"
 
 
 def test_unique_retrieval_ids_are_not_decisions_or_determinants():
@@ -207,6 +210,60 @@ def test_near_constant_argument_with_three_values_is_rare():
     rejected = {item.name: item for item in report.rejected}
     assert rejected["lookup.top_k"].reason == "rare"
     assert rejected["lookup.top_k"].support == 2
+
+
+def test_ids_read_from_earlier_tool_results_are_copied_not_decided():
+    traces = []
+    for i in range(40):
+        orders = [f"#W{i}0", f"#W{i}1"]
+        traces.append(
+            AgentTrace(
+                str(i),
+                "I want to return something",
+                [
+                    AgentStep("get_user", {"user": "u"}, {"orders": orders, "payment": f"card_{i}"}),
+                    AgentStep(
+                        "return_items",
+                        {
+                            "order_id": orders[i % 2],
+                            "items": [f"#W{i}0"],
+                            "payment_method_id": f"card_{i}",
+                            "reason": ("damaged", "wrong size", "late")[i % 3],
+                        },
+                        None,
+                    ),
+                ],
+            )
+        )
+    report = mine(traces, min_support=5)
+    rejected = {item.name: item for item in report.rejected}
+    for name in ("return_items.order_id", "return_items.items", "return_items.payment_method_id"):
+        assert rejected[name].reason == "copied_from_context"
+    assert "return_items.reason" in {item.name for item in report.accepted}
+
+
+def test_a_call_that_passes_a_retrieved_id_under_another_name_is_a_retrieval_choice():
+    traces = []
+    for i in range(60):
+        entries = [{"id": f"p{j}", "title": f"Policy {j}"} for j in range(5)]
+        chosen = f"p{i % 5}"
+        traces.append(
+            AgentTrace(
+                str(i),
+                f"ticket {i}",
+                [
+                    AgentStep("search_policy", {"query": f"q{i}"}, entries),
+                    AgentStep("get_policy", {"entry_id": chosen}, {}),
+                ],
+            )
+        )
+    report = mine(traces, min_support=5)
+    accepted = {item.name: item for item in report.accepted}
+    rejected = {item.name: item for item in report.rejected}
+    assert set(accepted["search_policy.retrieval_choice"].values) == {"p0", "p1", "p2", "p3", "p4"}
+    assert accepted["search_policy.retrieval_choice"].examples[0].title == "Policy 0"
+    assert rejected["get_policy.entry_id"].reason == "copied_from_context"
+    assert report.ambiguous_retrieval_count == 0
 
 
 def test_min_minority_can_be_lower_than_total_support():

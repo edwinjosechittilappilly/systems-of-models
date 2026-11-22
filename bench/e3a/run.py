@@ -166,6 +166,9 @@ def main() -> None:
     directory.mkdir(parents=True, exist_ok=True)
     config = vars(args).copy()
     manifest = Manifest("e3a", run_id, config)
+    for filename in ("banking_policy_4.json", "banking_policy_12.json", "clinc_map.json"):
+        source = ROOT / "tasks" / filename
+        manifest.data[filename] = hashlib.sha256(source.read_bytes()).hexdigest()
     budget = JournaledBudget({"openai": 55.0, "typesafe": 5.0}, initial={"openai": previous_openai_spend()})
     providers = E3aProviders(args.mode, budget)
     embedder = CachedEmbedder(JsonCache(EMBEDDING_NAMESPACE, mode=args.mode))
@@ -329,8 +332,21 @@ def main() -> None:
     manifest.cost_usd = {str(arm): float(part["cost_usd"].sum()) for arm, part in result.groupby("arm")}
     if args.streams == "eval":
         manifest.cost_usd["teacher_variance_unused_draws"] = variance_overhead
-    manifest.cache = {"teacher": {"hits": providers.agent_cache.hits, "misses": providers.agent_cache.misses}}
-    manifest.models = {"teacher": "gpt-6.1-terra", "s1": "jev-1.14.0", "embedder": "embeddinggemma"}
+    caches = {
+        "teacher": providers.agent_cache,
+        "s1": providers.s1.cache,
+        "writer": providers.writer.cache,
+        "embeddings": embedder.cache,
+        "local_timings": embedder.timing_cache,
+        "mining_timings": mining_timing,
+    }
+    manifest.cache = {name: {"hits": cache.hits, "misses": cache.misses} for name, cache in caches.items()}
+    manifest.models = {
+        "teacher": providers.actual_model or "not returned",
+        "s1": providers.s1.pinned_model or "not called",
+        "writer": providers.writer.actual_model or "not called",
+        "embedder": "embeddinggemma",
+    }
     manifest.write()
     analysis = [
         "# E3a development tuning" if args.streams == "dev" else "# E3a evaluation",

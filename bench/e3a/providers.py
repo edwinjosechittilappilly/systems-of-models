@@ -125,6 +125,7 @@ class _Writer:
         self.cache, self.budget, self.client = cache, budget, client
         self.last_cost: Cost | None = None
         self.last_latency_ms: float | None = None
+        self.actual_model: str | None = None
 
     def __call__(self, context: dict[str, Any]) -> dict[str, str]:
         fresh = False
@@ -164,6 +165,13 @@ class _Writer:
                 owner.last_latency_ms = recorded["latency_ms"]
                 if fresh:
                     owner.budget.charge("openai", owner.last_cost.amount)
+                actual = data.get("model")
+                if not isinstance(actual, str) or not actual:
+                    raise RuntimeError("writer response does not identify a model")
+                if owner.actual_model is None:
+                    owner.actual_model = actual
+                elif owner.actual_model != actual:
+                    raise RuntimeError(f"writer model changed: {owner.actual_model} -> {actual}")
                 return SimpleNamespace(output_text=data.get("output_text"))
 
         self.last_cost = None
@@ -191,6 +199,8 @@ class E3aProviders:
         typesafe_client: Any = None,
     ) -> None:
         self.budget = budget
+        self.actual_model: str | None = None
+        self._model_lock = threading.Lock()
         self.client = _OpenAIClient(openai_client)
         self.agent_cache = JsonCache("e3a_agent_v2_gpt-6_1-terra", mode=mode, directory=cache_dir)
         self.s1 = _BudgetedDecider(
@@ -214,6 +224,14 @@ class E3aProviders:
             sample=sample,
         )
         envelope = agent.run(text, env)
+        actual = envelope.implementation.model if envelope.implementation else None
+        if actual is None:
+            raise RuntimeError("teacher response does not identify a model")
+        with self._model_lock:
+            if self.actual_model is None:
+                self.actual_model = actual
+            elif self.actual_model != actual:
+                raise RuntimeError(f"teacher model changed: {self.actual_model} -> {actual}")
         steps = [AgentStep(r["tool"], r["arguments"], r["result"]) for r in store.of_kind("agent_step")]
         trace = AgentTrace(envelope.trace_ref.trace_id, text, steps)
         verified = False

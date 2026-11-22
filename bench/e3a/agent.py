@@ -17,8 +17,8 @@ from som.trace import TraceStore
 
 PROMPT = (
     "You are a banking support routing agent. Search the policy knowledge base to identify the policy "
-    "governing the customer's request. Look up the account. Follow the retrieved policy, including whether "
-    "to verify identity, and route the ticket. Put the governing policy ID in your free-text note. "
+    "governing the customer's request, then use get_policy to read its routing instructions. "
+    "Look up the account. Follow the retrieved policy, including whether to verify identity, and route the ticket. "
     "The queue is the department followed by _queue. Preserve any amount and merchant provided. "
     "Do not invent customer information."
 )
@@ -57,6 +57,7 @@ TOOLS = [
     _tool(
         "search_policy", "Search the policy knowledge base; returns the five best matches.", {"query": _S}, ["query"]
     ),
+    _tool("get_policy", "Read the complete policy for a selected entry ID.", {"entry_id": _S}, ["entry_id"]),
     _tool("get_account", "Look up the customer account.", {"account_id": _S}, ["account_id"]),
     _tool("verify_identity", "Verify the customer's identity.", {"account_id": _S}, ["account_id"]),
     _tool(
@@ -111,9 +112,10 @@ class Agent:
                 "max_output_tokens": 800,
                 "reasoning": {"effort": "low"},
             }
+            new_cost: list[float | None] = []
 
             def call(payload: dict[str, Any] = payload) -> dict[str, Any]:
-                # A conservative reserve per request prevents the next request from exceeding the $12 cap.
+                # Reserve headroom before each paid request.
                 if self.budget.spent.get("openai", 0.0) + 1.0 > self.budget.caps["openai"]:
                     raise RuntimeError("OpenAI budget reserve exhausted")
                 before = time.perf_counter()
@@ -126,10 +128,12 @@ class Agent:
                     output_tokens=u.get("output_tokens", 0),
                     cached_tokens=(u.get("input_tokens_details") or {}).get("cached_tokens", 0),
                 )
-                self.budget.charge("openai", lookup("openai", self.model).cost(priced).amount)
+                new_cost.append(lookup("openai", self.model).cost(priced).amount)
                 return {"response": data, "latency_ms": elapsed}
 
             recorded = self.cache.get_or_call(payload, call)
+            if new_cost:
+                self.budget.charge("openai", new_cost[0])
             response = recorded["response"]
             measured_ms += recorded["latency_ms"]
             actual_model = response["model"]

@@ -24,14 +24,14 @@ from bench.tasks.environment import PolicyKB, SupportEnvironment, augment_ticket
 from som.trace import TraceStore
 
 ROOT = Path(__file__).resolve().parents[1]
-MODELS = ("gpt-6-luna", "gpt-6.1-terra")
+MODELS = ("gpt-6.1-terra",)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", choices=["record", "replay"], default="replay")
     args = parser.parse_args()
-    out = ROOT / "results" / "e3a" / "pilot"
+    out = ROOT / "results" / "e3a" / "pilot-v2"
     previous = (
         json.loads((out / "manifest.json").read_text())
         if args.mode == "replay" and (out / "manifest.json").exists()
@@ -40,7 +40,7 @@ def main() -> None:
     out.mkdir(parents=True, exist_ok=True)
     manifest = Manifest(
         "e3a",
-        "pilot",
+        "pilot-v2",
         {"size": 100, "sample_seed": 20261122, "granularity": 4, "mode": args.mode, "budget_cap_usd": 12},
     )
     if previous:
@@ -60,7 +60,7 @@ def main() -> None:
     summaries: list[dict] = []
     failures: list[str] = []
     for model in MODELS:
-        cache = JsonCache("e3a_agent_" + model.replace(".", "_"), mode=args.mode)
+        cache = JsonCache("e3a_agent_v2_" + model.replace(".", "_"), mode=args.mode)
         trace_path = out / (model + "_traces.jsonl")
         trace_path.write_text("")
         store = TraceStore(trace_path)
@@ -104,7 +104,10 @@ def main() -> None:
                     "department_correct": department_ok,
                     "priority_correct": priority_ok,
                     "identity_correct": identity_ok,
-                    "entry_correct": str(gold["id"]) in str(route.get("note", "")),
+                    "entry_correct": bool(
+                        [event for event in events_before_route if event["tool"] == "get_policy"]
+                    ) and [event for event in events_before_route if event["tool"] == "get_policy"][-1]["entry_id"]
+                    == gold["id"],
                     "searched_policy": any(event["tool"] == "search_policy" for event in env.events),
                     "joint_correct": department_ok and priority_ok and identity_ok,
                     "cost_usd": result.cost.amount,
@@ -152,9 +155,9 @@ def main() -> None:
     manifest.notes = failures
     manifest.write()
     lines = [
-        "# E3a agent pilot",
+        "# E3a agent pilot: environment v2",
         "",
-        "100 paired Banking77 train tickets; seed 20261122; four departments.",
+        "100 Banking77 train tickets; seed 20261122; four departments.",
         "Gold is the intent's frozen policy; joint accuracy requires correct department, "
         "priority, and identity decision.",
         "Costs use provider-reported token usage and dated list prices, not provider billing.",
@@ -165,18 +168,18 @@ def main() -> None:
     ]
     if eligible:
         recommended = max(eligible, key=lambda row: (row["joint_correct"], -row["cost_usd"]))
-        lines.append(f"Recommendation: GO with {recommended['model']} (highest joint accuracy among eligible models).")
+        lines.append(f"Recommendation: GO with {recommended['model']} (meets both pilot thresholds).")
     elif len(summaries) == len(MODELS) and all(row["n"] == 100 for row in summaries):
-        lines.append("Recommendation: NO GO; neither model meets both thresholds.")
+        lines.append("Recommendation: NO GO; the model does not meet both thresholds.")
     else:
-        lines.append("Recommendation: indeterminate; the paired pilot is incomplete.")
+        lines.append("Recommendation: indeterminate; the pilot is incomplete.")
     for row in summaries:
         go = row["n"] == 100 and row["joint_correct"] >= 0.70 and row["cost_usd"] <= 0.02
         lines.append(
             f"- {row['model']}: n={row['n']}, joint accuracy={row['joint_correct']:.3f} "
             f"(95% Wilson {row['joint_ci_low']:.3f}-{row['joint_ci_high']:.3f}), "
             f"department={row['department_correct']:.3f}, priority={row['priority_correct']:.3f}, "
-            f"identity={row['identity_correct']:.3f}, entry ID in note={row['entry_correct']:.3f}, "
+            f"identity={row['identity_correct']:.3f}, get_policy entry accuracy={row['entry_correct']:.3f}, "
             f"search rate={row['searched_policy']:.3f}, cost/ticket=${row['cost_usd']:.6f}; "
             f"{'GO' if go else 'NO GO'}."
         )
@@ -200,8 +203,7 @@ def main() -> None:
     lines += [
         "",
         "Limitations: public-data contamination, synthetic policy and account data, and a single teacher sample.",
-        "Entry-ID accuracy counts whether the gold ID appears in the free-text note; "
-        "it is a proxy, not a parsed decision.",
+        "Entry-ID accuracy uses the last get_policy call before routing.",
         "Identity accuracy counts verification of the ticket account before the first route.",
         "The provider dashboard was not reconciled. Latencies are recorded original API round trips, not replay time.",
     ]

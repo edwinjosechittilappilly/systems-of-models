@@ -1,5 +1,7 @@
 # E3a agent pilot
 
+This is the **v1 environment**, retained for historical comparison. V2 replaces full search results with title/ID results followed by an explicit free-form `get_policy` lookup; v1 results are not interchangeable with v2.
+
 100 paired Banking77 train tickets; seed 20261122; four departments.
 Gold is the intent's frozen policy; joint accuracy requires correct department, priority, and identity decision.
 Costs use provider-reported token usage and dated list prices, not provider billing.

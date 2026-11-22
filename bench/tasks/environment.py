@@ -80,7 +80,7 @@ class PolicyKB:
                 entry["id"],
             ),
         )
-        return [entry.copy() for entry in ranked[:5]]
+        return [{"id": entry["id"], "title": entry["title"]} for entry in ranked[:5]]
 
 
 class SupportEnvironment:
@@ -98,6 +98,11 @@ class SupportEnvironment:
     def search_policy(self, query: str) -> list[dict]:
         self.events.append({"tool": "search_policy", "query": query})
         return self.kb.search_policy(query)
+
+    def get_policy(self, entry_id: str) -> dict:
+        """Look up the complete policy after the agent chooses an entry."""
+        self.events.append({"tool": "get_policy", "entry_id": entry_id})
+        return self.kb.get_entry(entry_id)
 
     def get_account(self, account_id: str) -> dict:
         self.events.append({"tool": "get_account", "account_id": account_id})
@@ -144,7 +149,7 @@ class SupportEnvironment:
         matches = self.search_policy(entry_id)
         if not matches or matches[0]["id"] != entry_id:
             raise KeyError(entry_id)
-        entry = matches[0]
+        entry = self.get_policy(entry_id)
         if verify:
             self.verify_identity(account_id)
         return self.route_ticket(

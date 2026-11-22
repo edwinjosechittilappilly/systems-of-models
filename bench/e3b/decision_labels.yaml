@@ -1,0 +1,17 @@
+# Registered before examining mining output. Rules apply to every emitted candidate.
+# Ordered rules: first match wins; unspecified candidates are distractors.
+retail:
+  judgement:
+    branch_tools: [cancel_pending_order, exchange_delivered_order_items, modify_pending_order_address, modify_pending_order_items, modify_pending_order_payment, modify_user_address, return_delivered_order_items, transfer_to_human_agents]
+    tool_arguments:
+      cancel_pending_order: [reason]
+  distractor:
+    description: All other tool arguments, retrieval choices, and tool-call branches; identifiers, personal data, addresses, item/payment lists, and calculations are copied or operational data, not policy judgements.
+airline:
+  judgement:
+    branch_tools: [book_reservation, cancel_reservation, send_certificate, transfer_to_human_agents, update_reservation_baggages, update_reservation_flights, update_reservation_passengers]
+    tool_arguments:
+      book_reservation: [cabin, flight_type, insurance]
+      update_reservation_flights: [cabin]
+  distractor:
+    description: All other tool arguments, retrieval choices, and tool-call branches; identifiers, dates, locations, personal data, flights, payment lists, amounts, baggage counts, and calculations are supplied data or operational values.

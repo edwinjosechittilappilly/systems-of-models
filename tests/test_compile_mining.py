@@ -130,8 +130,29 @@ def test_unique_retrieval_ids_are_not_decisions_or_determinants():
     report = mine(traces, min_support=2)
     rejected = {item.name: item for item in report.rejected}
     assert rejected["search.retrieval_choice"].reason == "free_text"
-    assert rejected["search.retrieval_choice"].support == 1
+    assert rejected["search.retrieval_choice"].support == 30
     assert "route.action" in {item.name for item in report.accepted}
+
+
+def test_many_valued_decision_uses_total_support_even_with_singleton_values():
+    traces = [
+        AgentTrace(str(i), "ticket", [AgentStep("route", {"policy": f"policy-{i % 76 if i < 599 else 76}"}, None)])
+        for i in range(600)
+    ]
+    report = mine(traces, min_support=10)
+    choice = next(item for item in report.accepted if item.name == "route.policy")
+    assert len(choice.values) == 77
+    assert choice.support == 600
+    assert sum(example.value == "policy-76" for example in choice.examples) == 1
+
+
+def test_distinct_ratio_is_configurable_for_many_valued_decisions():
+    traces = [
+        AgentTrace(str(i), "ticket", [AgentStep("route", {"policy": f"policy-{i % 8}"}, None)]) for i in range(20)
+    ]
+    assert "route.policy" in {item.name for item in mine(traces, min_support=2).accepted}
+    rejected = {item.name: item for item in mine(traces, min_support=2, max_distinct_ratio=0.4).rejected}
+    assert rejected["route.policy"].reason == "free_text"
 
 
 def test_singleton_determinant_groups_do_not_predict_their_own_values():
@@ -175,6 +196,14 @@ def test_support_is_the_least_common_value_for_branches_and_arguments():
     for name in ("near_always.branch", "route.kind"):
         assert rejected[name].reason == "rare"
         assert rejected[name].support == 1
+
+
+def test_min_minority_can_be_lower_than_total_support():
+    traces = [
+        AgentTrace(str(i), "ticket", [AgentStep("route", {"kind": "minor" if i < 2 else "major"}, None)])
+        for i in range(20)
+    ]
+    assert "route.kind" in {item.name for item in mine(traces, min_support=5, min_minority=2).accepted}
 
 
 def test_no_evidence_and_resolved_ties_are_not_counted_as_ambiguous():

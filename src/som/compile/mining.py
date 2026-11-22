@@ -1,10 +1,10 @@
 """Mine recurring trace decisions with explicit, empirical rejection rules.
 
-Support counts observations (called traces for branches); copied values require an 80%
-verbatim input match, and free text has at least ten observations and an 80% distinct
-ratio, or exceeds the cardinality limit. Functional dependencies use majority
-prediction on overlapping trace IDs, at 99% consistency. These are heuristics, not
-proofs of causality; retrieval matches must identify a unique returned item.
+For binary candidates support is the minority count; for larger choices it is
+the total observations. Copied values require an 80% verbatim input match.
+The default free-text rule rejects a distinct/occurrence ratio of at least 0.8
+with ten or more observations, or cardinality above the limit. Functional
+dependencies use leave-one-out prediction on overlapping traces; all are heuristics.
 """
 
 from __future__ import annotations
@@ -145,21 +145,27 @@ def mine(
     traces: Iterable[AgentTrace],
     *,
     min_support: int,
+    min_minority: int | None = None,
     max_cardinality: int = 255,
-    free_text_ratio: float = 0.8,
+    max_distinct_ratio: float = 0.8,
     copied_ratio: float = 0.8,
 ) -> MiningReport:
     """Mine decisions from traces.
 
-    Support is the least frequent observed value. Dependencies require at least
-    ``min_support`` shared traces, at least half the candidate's traces, and
-    99% leave-one-out majority accuracy. The report counts distinct traces
-    with an unresolved positive-score retrieval tie.
+    Binary candidates require ``min_minority`` observations of each value,
+    defaulting to ``min_support``. Larger choices require ``min_support`` total
+    observations. At least ten observations are required for the distinct-ratio
+    free-text rule; the default rejection threshold is 0.8 (inclusive).
+    Dependencies require at least ``min_support`` shared traces, at least half
+    the candidate's traces, and 99% leave-one-out majority accuracy. The report
+    counts distinct traces with an unresolved positive-score retrieval tie.
     """
-    if min_support < 1 or max_cardinality < 1:
-        raise ValueError("min_support and max_cardinality must be positive")
-    if not 0 < free_text_ratio <= 1 or not 0 < copied_ratio <= 1:
+    if min_support < 1 or max_cardinality < 1 or (min_minority is not None and min_minority < 1):
+        raise ValueError("min_support, min_minority and max_cardinality must be positive")
+    if not 0 < max_distinct_ratio <= 1 or not 0 < copied_ratio <= 1:
         raise ValueError("ratios must be in (0, 1]")
+    if min_minority is None:
+        min_minority = min_support
     traces = list(traces)
     if len({trace.trace_id for trace in traces}) != len(traces):
         raise ValueError("trace IDs must be unique")
@@ -200,7 +206,7 @@ def mine(
             distinct.setdefault(key, example.value)
             counts[key] += 1
         candidate.values = list(distinct.values())
-        candidate.support = min(counts.values())
+        candidate.support = min(counts.values()) if len(distinct) <= 2 else len(candidate.examples)
         if (
             candidate.kind == "tool_argument"
             and sum(_copied(example.value, example.input) for example in candidate.examples) / len(candidate.examples)
@@ -208,10 +214,10 @@ def mine(
         ):
             candidate.reason = "copied_from_input"
         elif len(distinct) > max_cardinality or (
-            len(candidate.examples) >= 10 and len(distinct) / len(candidate.examples) >= free_text_ratio
+            len(candidate.examples) >= 10 and len(distinct) / len(candidate.examples) >= max_distinct_ratio
         ):
             candidate.reason = "free_text"
-        elif candidate.support < min_support:
+        elif candidate.support < (min_minority if len(distinct) == 2 else min_support):
             candidate.reason = "rare"
         elif len(distinct) < 2:
             candidate.reason = "constant"

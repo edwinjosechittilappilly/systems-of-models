@@ -139,7 +139,7 @@ Held-out-majority rows are sensitivity analyses fitted on the evaluation labels,
 
 Flight-type teacher-label distributions: {'writer_training': {'one_way': 9, 'round_trip': 12}, 'calibration': {'one_way': 8}, 'held_out': {'one_way': 72, 'round_trip': 47}}. Its eight calibration occurrences are all one_way, so the threshold was fitted on one class; the writer-side majority is round_trip whereas the held-out majority is one_way (60.5% of held-out instances).
 
-Pooled user-and-tools-only teacher agreement: {'n': 435, 'correct': 418, 'accuracy': 0.960919540229885}. Cancellation-reason states with the teacher value verbatim in prior assistant text: 246/316.
+Pooled user-and-tools-only teacher agreement: {'n': 435, 'correct': 418, 'accuracy': 0.960919540229885}. Cancellation-reason states containing the teacher value in prior assistant text: 246 case-sensitive exact matches and 252 case-insensitive matches, out of 316.
 
 Independent review reported identical miner outcomes for all 103 candidates when only pre-call user turns were used in its check. The published run still uses the user-turn input described below.
 

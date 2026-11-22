@@ -62,6 +62,19 @@ def test_companion_predicate_escalates_out_of_answer_space():
     result.s1.envelope.validate()
 
 
+def test_s2_can_say_nothing_fits_after_an_out_of_space_escalation():
+    def s2_answer(_input, question):
+        if question.name == "fits":
+            return PredicateAnswer("fits", None, raw_value=False)
+        return ChoiceAnswer(question.name, "billing")
+
+    s2 = FunctionDecider(s2_answer, system="s2.reasoning")
+    result = som.Gate(s1_answering(0.99, fit=0.1), s2, TEAMS, fit=FITS)("What is the weather?")
+    assert (result.served_by, result.in_scope, result.value) == ("s2", False, None)
+    confident = som.Gate(s1_answering(0.99, fit=0.95), s2, TEAMS, fit=FITS)("double charge")
+    assert (confident.served_by, confident.in_scope, confident.value) == ("s1", True, "billing")
+
+
 def test_refusal_escalates():
     s1 = FunctionDecider(lambda _i, q: Refusal(q.name, "out_of_answer_space"))
     result = som.Gate(s1, s2_answering(), TEAMS)("?")

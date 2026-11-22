@@ -60,10 +60,23 @@ class GateResult:
     s1: Decision
     s2: Decision | None
     escalation: Escalation | None
+    fit: Answer | None = None
+    """The serving system's answer to the companion predicate, when the gate has one."""
+
+    @property
+    def in_scope(self) -> bool | None:
+        """Whether the serving system said the input fits the question's options (None without a companion
+        predicate). When False, :attr:`value` is None: no option applies."""
+        if self.fit is None:
+            return None
+        return bool(self.fit.value) if not isinstance(self.fit, Refusal) else None
 
     @property
     def value(self) -> Any:
-        """The served answer's value; None when the serving system refused (see :attr:`refused`)."""
+        """The served answer's value; None when the serving system refused (see :attr:`refused`) or said no option
+        fits (see :attr:`in_scope`)."""
+        if self.in_scope is False:
+            return None
         return self.answer.value
 
     @property
@@ -166,7 +179,8 @@ class Gate:
             escalation = self._check(first)
             second: Decision | None = None
             if escalation is not None or self.mode == "shadow":
-                second = self.s2.decide(input, [self.question], trace_id=trace_id)
+                # S2 answers the companion predicate too, so it can also say that nothing fits.
+                second = self.s2.decide(input, questions, trace_id=trace_id)
             if escalation is not None and second is not None:
                 escalation.performed = True
                 escalation.downstream_response_id = second.envelope.id
@@ -182,7 +196,8 @@ class Gate:
         for decision in (first, second):
             if decision is not None:
                 decision.envelope.metadata.update(extra)
-        result = GateResult(served.answers[self.question.name], served_by, first, second, escalation)
+        fit = served.answers.get(self.fit.name) if self.fit is not None else None
+        result = GateResult(served.answers[self.question.name], served_by, first, second, escalation, fit)
         if self.store is not None:
             self.store.add_envelope(first.envelope, role="s1", question=self.question.name, metadata=extra)
             if second is not None:

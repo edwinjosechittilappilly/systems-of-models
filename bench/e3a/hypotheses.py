@@ -15,7 +15,7 @@ def _paired(table: pd.DataFrame, stream: str, arm: str, reference: str) -> pd.Da
     right = part.loc[part["arm"] == reference].set_index("ticket_index")
     if left.empty or not left.index.equals(right.index):
         raise ValueError(f"unpaired or missing arm: {stream}/{arm}/{reference}")
-    return left.join(right, lsuffix="_arm", rsuffix="_ref")
+    return left.merge(right, left_index=True, right_index=True, suffixes=("_arm", "_ref"))
 
 
 def evaluate(

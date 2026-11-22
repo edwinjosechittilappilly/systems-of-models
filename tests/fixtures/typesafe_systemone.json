@@ -1,0 +1,72 @@
+{
+  "request": {
+    "model": "jev-preview",
+    "state": "I see two charges for the same coffee on my statement, can you refund one?",
+    "questions": {
+      "team": {
+        "type": "choice",
+        "instructions": "Which team should handle this ticket?",
+        "criteria": {
+          "billing": "charges, refunds, invoices",
+          "cards": "lost, stolen or declined cards",
+          "fraud": "unauthorised activity"
+        }
+      },
+      "fits": {
+        "type": "noul",
+        "instructions": "Is this ticket about a bank account or card?",
+        "criteria": {
+          "true": "a banking support request",
+          "false": "anything else"
+        }
+      },
+      "urgency": {
+        "type": "score",
+        "instructions": "How urgent is this ticket?",
+        "criteria": [
+          "can wait",
+          "this week",
+          "today"
+        ]
+      }
+    }
+  },
+  "response": {
+    "model": "jev-1.14.0",
+    "answers": {
+      "team": {
+        "type": "choice",
+        "choice": "billing",
+        "confidence": 1.0,
+        "probabilities": {
+          "billing": 1.0,
+          "cards": 0.0,
+          "fraud": 0.0
+        }
+      },
+      "fits": {
+        "type": "noul",
+        "noul": 0.84
+      },
+      "urgency": {
+        "type": "score",
+        "score": 0.96,
+        "confidence": 0.4,
+        "legend": {
+          "0": "can wait",
+          "1": "this week",
+          "2": "today"
+        },
+        "probabilities": {
+          "0": 0.22,
+          "1": 0.6,
+          "2": 0.18
+        }
+      }
+    },
+    "usage": {
+      "input_tokens": 428,
+      "output_tokens": 70
+    }
+  }
+}

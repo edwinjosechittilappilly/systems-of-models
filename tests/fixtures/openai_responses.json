@@ -1,0 +1,148 @@
+{
+  "id": "resp_07590ab9b56aa886006b035b1b2d9087d1b45284f45ea663c2",
+  "access_programs": {
+    "cyber": "standard"
+  },
+  "created_at": 1795382043.0,
+  "error": null,
+  "incomplete_details": null,
+  "instructions": "Answer each question about the input. Return only the JSON object the schema describes: one key per question, with true/false for yes-no questions, one of the listed values for choice questions, and the level number for score questions.",
+  "metadata": {},
+  "model": "gpt-6.1-terra",
+  "object": "response",
+  "output": [
+    {
+      "id": "msg_07590ab9b56aa886006b035b1c24cc87d19367e2f1db3b6c13",
+      "content": [
+        {
+          "annotations": [],
+          "text": "{\"team\":\"billing\",\"fits\":true,\"urgency\":0}",
+          "type": "output_text",
+          "logprobs": []
+        }
+      ],
+      "role": "assistant",
+      "status": "completed",
+      "type": "message",
+      "phase": "final_answer"
+    }
+  ],
+  "parallel_tool_calls": true,
+  "temperature": 1.0,
+  "tool_choice": "auto",
+  "tools": [],
+  "top_p": 0.98,
+  "background": false,
+  "completed_at": 1795382044.0,
+  "conversation": null,
+  "image": {
+    "context_compression": "disabled"
+  },
+  "input_transformations": [],
+  "max_output_tokens": null,
+  "max_tool_calls": null,
+  "moderation": null,
+  "previous_response_id": null,
+  "prompt": null,
+  "prompt_cache_diagnostics": null,
+  "prompt_cache_key": null,
+  "prompt_cache_options": null,
+  "prompt_cache_retention": "24h",
+  "reasoning": {
+    "context": "all_turns",
+    "effort": "low",
+    "generate_summary": null,
+    "mode": "standard",
+    "summary": null
+  },
+  "safety_identifier": null,
+  "service_tier": "default",
+  "status": "completed",
+  "text": {
+    "format": {
+      "name": "answers",
+      "schema_": {
+        "additionalProperties": false,
+        "properties": {
+          "fits": {
+            "description": "Is this ticket about a bank account or card?",
+            "type": "boolean"
+          },
+          "team": {
+            "description": "Which team should handle this ticket?",
+            "enum": [
+              "billing",
+              "cards",
+              "fraud"
+            ],
+            "type": "string"
+          },
+          "urgency": {
+            "description": "How urgent is this ticket?",
+            "enum": [
+              0,
+              1,
+              2
+            ],
+            "type": "integer"
+          }
+        },
+        "required": [
+          "team",
+          "fits",
+          "urgency"
+        ],
+        "type": "object"
+      },
+      "type": "json_schema",
+      "description": null,
+      "strict": true
+    },
+    "verbosity": "medium"
+  },
+  "tool_usage": {
+    "image_gen": {
+      "input_tokens": 0,
+      "input_tokens_details": {
+        "image_tokens": 0,
+        "text_tokens": 0
+      },
+      "output_tokens": 0,
+      "total_tokens": 0,
+      "cached_tokens": null,
+      "cached_tokens_details": null,
+      "output_tokens_details": {
+        "image_tokens": 0,
+        "text_tokens": 0
+      }
+    },
+    "web_search": {
+      "num_requests": 0
+    }
+  },
+  "top_logprobs": 0,
+  "truncation": "disabled",
+  "usage": {
+    "input_tokens": 256,
+    "input_tokens_details": {
+      "cache_write_tokens": 0,
+      "cached_tokens": 0,
+      "cache_write_tokens_details": {
+        "ttl_12h_tokens": 0,
+        "ttl_30m_tokens": 0
+      }
+    },
+    "output_tokens": 21,
+    "output_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "total_tokens": 277
+  },
+  "user": null,
+  "billing": {
+    "payer": "developer"
+  },
+  "frequency_penalty": 0.0,
+  "presence_penalty": 0.0,
+  "store": true
+}

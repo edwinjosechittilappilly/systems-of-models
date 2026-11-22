@@ -1,11 +1,20 @@
 """Systems of Models: typed contracts, gates and escalation for LLM systems.
 
-A :class:`Gate` asks a cheap System 1 decider a typed question and escalates to a stronger system when the answer
-is not sure enough. Every call returns an :class:`Envelope` that validates against the bundled JSON Schemas.
+    import som
+    gate = som.Gate(
+        s1=som.TypeSafe("jev-1.14.0"),
+        s2=som.OpenAIResponses("gpt-6.1-terra"),
+        question=som.Choice("team", "Which team should handle this ticket?", ["billing", "cards", "fraud"]),
+    )
+    result = gate("I was charged twice for my card")
+    result.value, result.served_by, result.cost.amount
+
+Every call also yields an :class:`Envelope` that validates against the bundled JSON Schemas.
 """
 
 from importlib.metadata import version
 
+from som.adapters import OpenAIChat, OpenAIDecisions, OpenAIResponses, TypeSafe
 from som.envelope import CONTRACT_VERSION, Cost, Envelope, Escalation, TraceRef, Usage
 from som.gate import Gate, GateResult, breakeven_rate
 from som.questions import Choice, ChoiceAnswer, Predicate, PredicateAnswer, Refusal, Score, ScoreAnswer
@@ -25,6 +34,9 @@ __all__ = [
     "Escalation",
     "Gate",
     "GateResult",
+    "OpenAIChat",
+    "OpenAIDecisions",
+    "OpenAIResponses",
     "Predicate",
     "PredicateAnswer",
     "Refusal",
@@ -32,6 +44,7 @@ __all__ = [
     "ScoreAnswer",
     "TraceRef",
     "TraceStore",
+    "TypeSafe",
     "Usage",
     "__version__",
     "breakeven_rate",

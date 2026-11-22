@@ -21,8 +21,12 @@ See `schemas/README.md` for the design rationale and the vendor precedent behind
 ## Validate
 
 ```bash
-uv run --with jsonschema python scripts/validate_schemas.py
+pip install systems-of-models        # or: uv add systems-of-models
+som check-schemas                    # every schema against JSON Schema 2020-12, every example against its schema
+som validate my-response.json --schema s1-decision
 ```
+
+From Python: `som.schemas.validate(instance, "envelope")` raises `jsonschema.ValidationError` on a mismatch.
 
 Each schema's `$id` resolves to its raw file in this repository, so `$ref`s work over the network as well as locally.
 

@@ -1,0 +1,34 @@
+name: Bug report
+description: Something behaves incorrectly, crashes, or produces an envelope that fails its schema
+title: "fix: "
+body:
+  - type: markdown
+    attributes:
+      value: Please do not paste API keys, prompts with personal data, or full provider responses that contain them.
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Minimal reproduction
+      description: A few lines of Python or a `som` command. Mock the provider if you can.
+      render: python
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      multiple: true
+      options: [schemas, core (gate / escalation / trace), compile loop, adapters, bench, CLI, docs]
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `som --version`, plus provider and model if relevant.

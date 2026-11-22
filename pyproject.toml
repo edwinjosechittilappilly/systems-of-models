@@ -1,0 +1,65 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "systems-of-models"
+version = "0.1.0.dev0"
+description = "Typed contracts for systems of models: put a cheap System 1 decision in front of your LLM, escalate when unsure, and compile repeated reasoning into new decisions."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Edwin Jose", email = "edwin.jose@wmich.edu" }]
+keywords = ["llm", "agents", "cascade", "routing", "system-1", "json-schema", "opentelemetry", "decision-model"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Typing :: Typed",
+]
+dependencies = ["jsonschema>=4.21", "referencing>=0.35"]
+
+[project.urls]
+Homepage = "https://github.com/edwinjosechittilappilly/systems-of-models"
+Issues = "https://github.com/edwinjosechittilappilly/systems-of-models/issues"
+Schemas = "https://github.com/edwinjosechittilappilly/systems-of-models/tree/main/schemas"
+
+[project.scripts]
+som = "som.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8.3", "ruff>=0.8", "mypy>=1.13", "types-jsonschema"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/som"]
+
+# schemas/ at the repository root stays the source of truth (their $id URLs point there); the wheel ships a copy.
+[tool.hatch.build.targets.wheel.force-include]
+"schemas" = "som/_schemas"
+
+[tool.hatch.build.targets.sdist]
+include = ["src/som", "schemas", "tests", "README.md", "LICENSE", "CITATION.cff"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "PT"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+markers = ["live: calls a paid or remote API; needs credentials (deselect with -m 'not live')"]
+
+[tool.mypy]
+python_version = "3.10"
+packages = ["som"]
+mypy_path = "src"
+strict = true

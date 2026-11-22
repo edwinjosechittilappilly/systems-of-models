@@ -1,0 +1,28 @@
+# Validates the PR title (Conventional Commits) and description (.github/pull_request_template.md) with
+# scripts/ci/check_pr.py. Kept apart from ci.yml so editing a title re-runs only this cheap check.
+# The title and body reach the script through $GITHUB_EVENT_PATH, never through `${{ }}` in a shell.
+name: PR checks
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened, ready_for_review]
+
+concurrency:
+  group: pr-checks-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  validate:
+    name: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check title and description
+        run: python3 scripts/ci/check_pr.py

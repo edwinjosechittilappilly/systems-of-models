@@ -1,0 +1,33 @@
+# Credentials: keep real keys in .env (copy .env.example). Never commit them.
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+dist/
+build/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Bench: downloaded datasets and raw API response caches (results/*.csv and run manifests are committed)
+bench/data/
+bench/cache/
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key
+.beads/proxieddb/
+*.gate.lock*

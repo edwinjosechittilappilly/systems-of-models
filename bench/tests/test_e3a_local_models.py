@@ -36,12 +36,14 @@ def test_embeddings_are_cached_per_text_and_replayed_with_original_accounting(tm
     with pytest.raises(CacheMiss):
         replay(["not recorded"])
     with pytest.raises(CacheMiss):
-        CachedEmbedder(JsonCache(EMBEDDING_NAMESPACE, mode="replay", directory=tmp_path),
-                       model="another-model", embed=no_network)(["one"])
+        CachedEmbedder(
+            JsonCache(EMBEDDING_NAMESPACE, mode="replay", directory=tmp_path), model="another-model", embed=no_network
+        )(["one"])
 
 
 def test_surrogate_trains_on_teacher_labels_and_replays_offline(tmp_path):
     pytest.importorskip("sklearn")
+
     def vectors(texts):
         return [[1.0, 0.0] if "billing" in text else [0.0, 1.0] for text in texts]
 
@@ -54,8 +56,10 @@ def test_surrogate_trains_on_teacher_labels_and_replays_offline(tmp_path):
     decision = model.decide("billing one", [question])
     assert decision.answers["route"].value == "billing"
     assert model.fit_metadata["cpu_scope"] == "current_process"
-    replay = CachedEmbedder(JsonCache(EMBEDDING_NAMESPACE, mode="replay", directory=tmp_path),
-                            embed=lambda _: pytest.fail("unexpected network call"))
+    replay = CachedEmbedder(
+        JsonCache(EMBEDDING_NAMESPACE, mode="replay", directory=tmp_path),
+        embed=lambda _: pytest.fail("unexpected network call"),
+    )
     restored = make_surrogate(replay, ["billing", "cards"]).fit(texts, labels)
     replayed = restored.decide("billing one", [question])
     assert replayed.answers["route"].probabilities == decision.answers["route"].probabilities
@@ -69,8 +73,9 @@ def test_surrogate_trains_on_teacher_labels_and_replays_offline(tmp_path):
 
 def test_knn_uses_prior_warmup_only_and_invalidation_disables_serving(tmp_path):
     vectors = {"a": [1.0, 0.0], "b": [0.8, 0.6], "c": [1.0, 0.0], "d": [0.0, 1.0]}
-    embed = CachedEmbedder(JsonCache(EMBEDDING_NAMESPACE, directory=tmp_path),
-                           embed=lambda texts: [vectors[text] for text in texts])
+    embed = CachedEmbedder(
+        JsonCache(EMBEDDING_NAMESPACE, directory=tmp_path), embed=lambda texts: [vectors[text] for text in texts]
+    )
     knn = KnnCache(embed, epsilon=0.2)
     # b disagrees with a at 0.8; c agrees with a at 1.0.
     assert knn.fit_warmup(["a", "b", "c"], ["A", "B", "A"]) == pytest.approx(1.0)
@@ -88,8 +93,9 @@ def test_knn_uses_prior_warmup_only_and_invalidation_disables_serving(tmp_path):
 
 def test_knn_no_threshold_when_warmup_has_only_errors_or_zero_vectors(tmp_path):
     vectors = {"a": [1.0, 0.0], "b": [1.0, 0.0], "zero": [0.0, 0.0]}
-    embed = CachedEmbedder(JsonCache(EMBEDDING_NAMESPACE, directory=tmp_path),
-                           embed=lambda texts: [vectors[text] for text in texts])
+    embed = CachedEmbedder(
+        JsonCache(EMBEDDING_NAMESPACE, directory=tmp_path), embed=lambda texts: [vectors[text] for text in texts]
+    )
     knn = KnnCache(embed, epsilon=0.1)
     assert knn.fit_warmup(["a", "b"], ["A", "B"]) is None
     assert not knn.predict("a").served

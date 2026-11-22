@@ -14,10 +14,24 @@ from som.testing import FunctionDecider
 
 
 def test_breakeven_reports_conditional_cost_and_savings(capsys: pytest.CaptureFixture[str]) -> None:
-    assert cli.main([
-        "breakeven", "--c1", "0.00004", "--c2", "0.004", "--escalated-c2", "0.005",
-        "--overhead", "0.00001", "--escalation-rate", "0.2",
-    ]) == 0
+    assert (
+        cli.main(
+            [
+                "breakeven",
+                "--c1",
+                "0.00004",
+                "--c2",
+                "0.004",
+                "--escalated-c2",
+                "0.005",
+                "--overhead",
+                "0.00001",
+                "--escalation-rate",
+                "0.2",
+            ]
+        )
+        == 0
+    )
     output = capsys.readouterr().out
     assert "99.00%" in output
     assert "79.00%" in output
@@ -61,7 +75,10 @@ def test_mcp_decide_returns_typed_answers_and_envelope() -> None:
     system = FunctionDecider(lambda _input, q: PredicateAnswer(q.name, 0.85))
     result = decide(system, "charged twice", [{"type": "predicate", "name": "refund", "instructions": "Refund?"}])
     assert result["answers"]["refund"] == {
-        "type": "predicate", "name": "refund", "probability": 0.85, "value": True,
+        "type": "predicate",
+        "name": "refund",
+        "probability": 0.85,
+        "value": True,
     }
     assert result["envelope"]["system"] == "s1.decision"
 
@@ -72,9 +89,17 @@ def test_mcp_rejects_duplicate_questions_and_choices() -> None:
     with pytest.raises(ValueError, match="unique"):
         decide(system, "text", [question, question])
     with pytest.raises(ValueError, match="distinct"):
-        parse_question({"type": "choice", "name": "x", "instructions": "Choose", "choices": [
-            {"value": "a"}, {"value": "a"},
-        ]})
+        parse_question(
+            {
+                "type": "choice",
+                "name": "x",
+                "instructions": "Choose",
+                "choices": [
+                    {"value": "a"},
+                    {"value": "a"},
+                ],
+            }
+        )
 
 
 def test_mcp_server_exposes_decide_tool() -> None:

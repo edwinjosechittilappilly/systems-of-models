@@ -38,8 +38,6 @@ class AsyncGate:
         task.add_done_callback(release)
         return await asyncio.shield(task)
 
-    async def batch(
-        self, inputs: Sequence[Input], *, metadata: Mapping[str, str] | None = None
-    ) -> list[GateResult]:
+    async def batch(self, inputs: Sequence[Input], *, metadata: Mapping[str, str] | None = None) -> list[GateResult]:
         """Run inputs concurrently and return results in input order."""
         return list(await asyncio.gather(*(self(input, metadata=metadata) for input in inputs)))

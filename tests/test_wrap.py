@@ -15,15 +15,23 @@ def client(responses=None, chat=None):
     return SimpleNamespace(
         responses=SimpleNamespace(create=responses, with_raw_response=object()),
         chat=SimpleNamespace(completions=SimpleNamespace(create=chat, with_raw_response=object())),
-        beta=object(), models=object(),
+        beta=object(),
+        models=object(),
     )
 
 
 def test_responses_are_native_and_recorded_with_usage_and_trace():
-    response = SimpleNamespace(id="resp_wrap_1", model="gpt-6.1-terra", status="completed", usage=SimpleNamespace(
-        input_tokens=100, output_tokens=20, input_tokens_details=SimpleNamespace(cached_tokens=10),
-        output_tokens_details=SimpleNamespace(reasoning_tokens=5),
-    ))
+    response = SimpleNamespace(
+        id="resp_wrap_1",
+        model="gpt-6.1-terra",
+        status="completed",
+        usage=SimpleNamespace(
+            input_tokens=100,
+            output_tokens=20,
+            input_tokens_details=SimpleNamespace(cached_tokens=10),
+            output_tokens_details=SimpleNamespace(reasoning_tokens=5),
+        ),
+    )
     create = Mock(return_value=response)
     store = TraceStore()
     observed = wrap(client(responses=create), store=store)
@@ -43,9 +51,14 @@ def test_responses_are_native_and_recorded_with_usage_and_trace():
 
 
 def test_chat_unknown_price_warns_and_preserves_call():
-    response = SimpleNamespace(id="chat_wrap_1", model="unpriced-model", usage=SimpleNamespace(
-        prompt_tokens=12, completion_tokens=3,
-    ))
+    response = SimpleNamespace(
+        id="chat_wrap_1",
+        model="unpriced-model",
+        usage=SimpleNamespace(
+            prompt_tokens=12,
+            completion_tokens=3,
+        ),
+    )
     create = Mock(return_value=response)
     with pytest.warns(UserWarning, match="no rate card"):
         assert wrap(client(chat=create)).chat.completions.create(model="unpriced-model", messages=[]) is response
@@ -89,13 +102,18 @@ class Stream:
 
 def test_stream_yields_native_events_and_records_final_usage():
     usage = SimpleNamespace(prompt_tokens=30, completion_tokens=4)
-    events = [SimpleNamespace(id="stream_chat_1", model="gpt-6.1-terra", usage=None),
-              SimpleNamespace(id="stream_chat_1", model="gpt-6.1-terra", usage=usage)]
+    events = [
+        SimpleNamespace(id="stream_chat_1", model="gpt-6.1-terra", usage=None),
+        SimpleNamespace(id="stream_chat_1", model="gpt-6.1-terra", usage=usage),
+    ]
     native = Stream(events)
     store = TraceStore()
     create = Mock(return_value=native)
     stream = wrap(client(chat=create), store=store).chat.completions.create(
-        model="gpt-6.1-terra", messages=[], stream=True, stream_options={"include_usage": True},
+        model="gpt-6.1-terra",
+        messages=[],
+        stream=True,
+        stream_options={"include_usage": True},
     )
     assert envelope_of(stream) is None
     assert list(stream) == events
@@ -111,7 +129,8 @@ def test_early_stream_close_is_incomplete_and_chat_hints_usage():
     native = Stream([SimpleNamespace(id="early", model="gpt-6.1-terra", usage=None)])
     with pytest.warns(UserWarning, match="include_usage"):
         stream = wrap(client(chat=Mock(return_value=native))).chat.completions.create(
-            model="gpt-6.1-terra", stream=True,
+            model="gpt-6.1-terra",
+            stream=True,
         )
     next(stream)
     stream.close()
@@ -120,9 +139,15 @@ def test_early_stream_close_is_incomplete_and_chat_hints_usage():
 
 
 def test_responses_stream_final_event_usage():
-    final = SimpleNamespace(id="response_stream_1", model="gpt-6.1-terra", status="completed", usage=SimpleNamespace(
-        input_tokens=5, output_tokens=6,
-    ))
+    final = SimpleNamespace(
+        id="response_stream_1",
+        model="gpt-6.1-terra",
+        status="completed",
+        usage=SimpleNamespace(
+            input_tokens=5,
+            output_tokens=6,
+        ),
+    )
     event = SimpleNamespace(type="response.completed", response=final)
     native = Stream([event])
     stream = wrap(client(responses=Mock(return_value=native))).responses.create(model="gpt-6.1-terra", stream=True)
@@ -203,9 +228,13 @@ def test_current_otel_span_is_annotated_without_prompt_text():
     provider = sdk_trace.TracerProvider()
     response = SimpleNamespace(id="otel_response", model="gpt-6.1-terra", usage=None)
     with provider.get_tracer("test").start_as_current_span("caller") as current:
-        assert wrap(client(responses=Mock(return_value=response))).responses.create(
-            model="gpt-6.1-terra", input="private prompt",
-        ) is response
+        assert (
+            wrap(client(responses=Mock(return_value=response))).responses.create(
+                model="gpt-6.1-terra",
+                input="private prompt",
+            )
+            is response
+        )
         assert trace.get_current_span() is current
         assert current.attributes["gen_ai.response.id"] == "otel_response"
         assert current.attributes["som.system"] == "s2.reasoning"

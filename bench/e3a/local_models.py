@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from bench.common.cache import JsonCache, request_key
+
 from som.compile import EmbeddingSurrogate, ollama_embedder
 from som.questions import Question
 from som.systems import Decision, Input
@@ -62,7 +63,8 @@ class CachedEmbedder:
         latency = cpu = 0.0
         duration = tokens = 0
         for text in texts:
-            def call() -> dict[str, Any]:
+
+            def call(text: str = text) -> dict[str, Any]:
                 started, cpu_started = time.perf_counter(), time.process_time()
                 if hasattr(self.embed, "with_metadata"):
                     rows, metadata = self.embed.with_metadata([text])
@@ -71,9 +73,13 @@ class CachedEmbedder:
                 elapsed = (time.perf_counter() - started) * 1000
                 cpu_elapsed = time.process_time() - cpu_started
                 vector = _validated_vector(rows, 1)[0]
-                return {"vector": vector, "latency_ms": elapsed, "cpu_seconds": cpu_elapsed,
-                        "server_duration_ns": int(metadata.get("total_duration", 0)),
-                        "prompt_eval_count": int(metadata.get("prompt_eval_count", 0))}
+                return {
+                    "vector": vector,
+                    "latency_ms": elapsed,
+                    "cpu_seconds": cpu_elapsed,
+                    "server_duration_ns": int(metadata.get("total_duration", 0)),
+                    "prompt_eval_count": int(metadata.get("prompt_eval_count", 0)),
+                }
 
             record = self.cache.get_or_call({"model": self.model, "text": text}, call)
             vectors.append(_validated_vector([record["vector"]], 1)[0])
@@ -120,21 +126,32 @@ class _MeasuredSurrogate(EmbeddingSurrogate):
         )
 
     def fit(self, inputs: Sequence[Input], labels: Sequence[str]) -> _MeasuredSurrogate:
-        key = {"operation": "fit", "model": self._embedder.model, "classes": self.classes,
-               "inputs": inputs, "labels": labels}
+        key = {
+            "operation": "fit",
+            "model": self._embedder.model,
+            "classes": self.classes,
+            "inputs": inputs,
+            "labels": labels,
+        }
         super().fit(inputs, labels)
-        timing = self._record_timing(key, float(self.fit_metadata["latency_ms"]),
-                                     float(self.fit_metadata["cpu_seconds"]))
+        timing = self._record_timing(
+            key, float(self.fit_metadata["latency_ms"]), float(self.fit_metadata["cpu_seconds"])
+        )
         self.fit_metadata.update(latency_ms=str(timing["latency_ms"]), cpu_seconds=str(timing["cpu_seconds"]))
         self._fit_key = request_key(key)
         return self
 
     def decide(self, input: Input, questions: Sequence[Question], *, trace_id: str | None = None) -> Decision:
         decision = super().decide(input, questions, trace_id=trace_id)
-        key = {"operation": "decide", "fit": self._fit_key, "input": input,
-               "questions": [question.to_contract() for question in questions]}
-        timing = self._record_timing(key, decision.envelope.latency_ms,
-                                     float(decision.envelope.metadata["cpu_seconds"]))
+        key = {
+            "operation": "decide",
+            "fit": self._fit_key,
+            "input": input,
+            "questions": [question.to_contract() for question in questions],
+        }
+        timing = self._record_timing(
+            key, decision.envelope.latency_ms, float(decision.envelope.metadata["cpu_seconds"])
+        )
         decision.envelope.latency_ms = timing["latency_ms"]
         decision.envelope.metadata["cpu_seconds"] = str(timing["cpu_seconds"])
         return decision
@@ -216,8 +233,13 @@ class KnnCache:
                 break
         latency = (time.perf_counter() - started) * 1000 - embedding_wall + self.embedder.last_measurement.latency_ms
         cpu = time.process_time() - cpu_started - embedding_cpu + self.embedder.last_measurement.cpu_seconds
-        key = {"operation": "knn_fit", "model": self.embedder.model, "epsilon": self.epsilon,
-               "texts": texts, "labels": labels}
+        key = {
+            "operation": "knn_fit",
+            "model": self.embedder.model,
+            "epsilon": self.epsilon,
+            "texts": texts,
+            "labels": labels,
+        }
         timing = self.embedder.timing_cache.get_or_call(key, lambda: {"latency_ms": latency, "cpu_seconds": cpu})
         self.fit_latency_ms, self.fit_cpu_seconds = timing["latency_ms"], timing["cpu_seconds"]
         self._state = request_key(key)
@@ -234,9 +256,11 @@ class KnnCache:
         key = {"operation": "knn_predict", "state": self._state, "text": text}
         timing = self.embedder.timing_cache.get_or_call(key, lambda: {"latency_ms": latency, "cpu_seconds": cpu})
         return KnnPrediction(
-            label, similarity,
+            label,
+            similarity,
             self.threshold is not None and similarity is not None and similarity >= self.threshold,
-            timing["latency_ms"], timing["cpu_seconds"],
+            timing["latency_ms"],
+            timing["cpu_seconds"],
         )
 
     def add(self, text: str, label: str) -> None:

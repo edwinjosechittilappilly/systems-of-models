@@ -10,6 +10,7 @@ Prompt and response text never goes into spans. The :class:`TraceStore` keeps wh
 
 from __future__ import annotations
 
+import importlib
 import json
 import secrets
 import time
@@ -20,9 +21,10 @@ from typing import Any
 
 from som.envelope import Envelope, TraceRef
 
-try:  # pragma: no cover - exercised only when the optional dependency is installed
-    from opentelemetry import trace as _otel
-except ImportError:  # pragma: no cover
+_otel: Any
+try:  # optional dependency; imported dynamically so type checking does not depend on whether it is installed
+    _otel = importlib.import_module("opentelemetry.trace")
+except ImportError:
     _otel = None
 
 _TRACER_NAME = "systems-of-models"
@@ -72,7 +74,8 @@ def annotate(envelope: Envelope, operation: str) -> None:
         attributes["gen_ai.usage.output_tokens"] = usage.output_tokens
         if usage.reasoning_tokens is not None:
             attributes["gen_ai.usage.reasoning.output_tokens"] = usage.reasoning_tokens
-    attributes["som.cost.amount"] = envelope.cost.amount
+    if envelope.cost.amount is not None:
+        attributes["som.cost.amount"] = envelope.cost.amount
     attributes["som.cost.basis"] = envelope.cost.basis
     attributes["som.status"] = envelope.status
     if envelope.confidence is not None:

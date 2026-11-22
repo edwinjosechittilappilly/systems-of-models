@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/edwinjosechittilappilly/systems-of-models/main/schemas/s1-decision.schema.json",
-  "title": "System 1 (Decision) contract, major version 1",
+  "title": "System 1 (Decision) contract, major version 2",
   "description": "Bounded, typed answers with probabilities over a caller-specified answer space. Field names follow the OpenAI Decisions API (`POST /v1/decisions`); TypeSafe Jev (`POST /v1/systemone`) maps `noul` to `predicate` and `state` to `input`. Reliable only inside a well-specified answer space; anything else is a refusal or an escalation.",
   "type": "object",
   "properties": {
@@ -204,7 +204,7 @@
         {
           "properties": {
             "system": { "const": "s1.decision" },
-            "system_version": { "pattern": "^1\\." },
+            "system_version": { "pattern": "^2\\." },
             "body": { "$ref": "#/$defs/body" }
           }
         }

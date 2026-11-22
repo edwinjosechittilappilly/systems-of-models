@@ -37,8 +37,9 @@
   "response": {
     "id": "evo_01JAC0",
     "object": "system.response",
+    "contract_version": "2.0.0",
     "system": "s5.self_evolving",
-    "system_version": "1.0.0",
+    "system_version": "2.0.0",
     "created_at": 1792054800,
     "status": "completed",
     "confidence": 0.88,
@@ -46,6 +47,7 @@
     "cost": {
       "amount": 0.41,
       "currency": "USD",
+      "basis": "list_price",
       "usage": {
         "model_calls": 2400
       }

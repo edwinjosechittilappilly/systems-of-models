@@ -33,7 +33,7 @@ def test_confident_s1_answer_is_served_without_calling_s2():
     s2 = s2_answering()
     result = som.Gate(s1_answering(0.95), s2, TEAMS, threshold=0.8)("I was charged twice")
     assert (result.served_by, result.value, s2.calls) == ("s1", "billing", 0)
-    assert result.cost == pytest.approx(0.0001)
+    assert (result.cost.amount, result.cost.basis) == (pytest.approx(0.0001), "list_price")
     result.s1.envelope.validate()
 
 
@@ -87,7 +87,25 @@ def test_list_price_cost_counts_cached_tokens_at_the_cached_rate():
     card = pricing.lookup("openai", "gpt-6.1-terra-2026-10-01")
     cost = card.cost(Usage(input_tokens=1_000_000, output_tokens=100_000, cached_tokens=500_000))
     assert cost.amount == pytest.approx(0.5 * 1.00 + 0.5 * 0.05 + 0.1 * 5.00)
-    assert (cost.basis, cost.rate_card) == ("list_price", card.source)
+    assert (cost.basis, cost.rate_card) == ("list_price", {"source": card.source, "retrieved_at": card.retrieved_at})
+
+
+def test_total_cost_takes_the_weakest_basis_and_unknown_wins():
+    known = pricing.lookup("typesafe", "jev-1.14.0").cost(Usage(input_tokens=1000))
+    local = pricing.local_cost(Usage())
+    total = som.Cost.total([("s1.decision", known, "a"), ("s2.reasoning", local, "b")])
+    assert (total.basis, total.amount) == ("local_measured", pytest.approx(known.amount))
+    assert [item.basis for item in total.breakdown] == ["list_price", "local_measured"]
+    unknown = som.Cost.total([("s1.decision", known, "a"), ("s2.reasoning", som.Cost.unknown(), "b")])
+    assert (unknown.basis, unknown.amount) == ("unknown", None)
+
+
+def test_unknown_cost_validates_with_a_null_amount_and_a_number_is_rejected():
+    envelope = som.Gate(s1_answering(0.95), s2_answering(), TEAMS)("x").s1.envelope
+    envelope.cost = som.Cost.unknown()
+    envelope.validate()
+    with pytest.raises(ValueError, match="exactly when"):
+        som.Cost(amount=0.0, basis="unknown")
 
 
 def test_unknown_model_price_is_an_error_not_zero():

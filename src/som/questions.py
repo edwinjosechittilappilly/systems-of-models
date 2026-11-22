@@ -169,7 +169,9 @@ class ScoreAnswer:
             "probabilities": [
                 {"value": i, "label": label, "probability": p}
                 for i, (label, p) in enumerate(zip(self.labels, self.probabilities, strict=True))
-            ],
+            ]
+            if self.probabilities
+            else [],
             "confidence": self.confidence,
         }
 

@@ -53,7 +53,12 @@ class FunctionDecider:
             envelope = Envelope(
                 system=self.system,  # type: ignore[arg-type]
                 body=body,
-                cost=Cost(amount=self.cost_per_call, basis="local", usage=Usage()),
+                cost=Cost(
+                    amount=self.cost_per_call,
+                    basis="list_price",
+                    rate_card={"source": "fixed cost per call (som.testing.FunctionDecider)", "retrieved_at": "n/a"},
+                    usage=Usage(),
+                ),
                 latency_ms=self.latency_ms,
                 trace_ref=ref,
                 implementation=Implementation(provider=provider, model=model or provider),

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/edwinjosechittilappilly/systems-of-models/main/schemas/s2-reasoning.schema.json",
-  "title": "System 2 (Reasoning) contract, major version 1",
+  "title": "System 2 (Reasoning) contract, major version 2",
   "description": "One sequential trajectory of test-time compute before an answer. Field names follow the OpenAI Responses API (`reasoning.effort`, `reasoning.summary`, `max_output_tokens`, `reasoning` output items, `usage.output_tokens_details.reasoning_tokens`). `budget_tokens` covers token-budget controls such as Anthropic `thinking.budget_tokens` and Gemini `thinkingBudget`.",
   "type": "object",
   "properties": {
@@ -166,7 +166,7 @@
         {
           "properties": {
             "system": { "const": "s2.reasoning" },
-            "system_version": { "pattern": "^1\\." },
+            "system_version": { "pattern": "^2\\." },
             "body": { "$ref": "#/$defs/body" }
           }
         }

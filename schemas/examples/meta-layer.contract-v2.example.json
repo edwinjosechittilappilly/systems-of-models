@@ -1,0 +1,55 @@
+{
+  "record_type": "version_bump",
+  "id": "vb_s1_2_0_0",
+  "created_at": "2026-11-22T20:00:00Z",
+  "author": {
+    "kind": "human",
+    "id": "maintainer:edwin"
+  },
+  "status": "accepted",
+  "evidence": {
+    "metrics": {
+      "adapters_with_provider_reported_cost": 1,
+      "adapters_surveyed": 9
+    },
+    "notes": "A 2026-11-22 survey of nine provider surfaces found one that reports a per-call charge (OpenRouter). Contract 1.x labelled every amount as billed, so list-price estimates were indistinguishable from charges and unknown cost could not be stated."
+  },
+  "review": {
+    "required_approvals": 1,
+    "approvals": [
+      {
+        "by": "maintainer:edwin",
+        "decision": "approve",
+        "at": "2026-11-22T21:00:00Z"
+      }
+    ]
+  },
+  "system": "s1.decision",
+  "from_version": "1.1.0",
+  "to_version": "2.0.0",
+  "bump": "major",
+  "changes": [
+    {
+      "kind": "field_added_required",
+      "path": "/$defs/cost/properties/basis",
+      "description": "`cost.basis` is required: provider_reported, list_price, local_measured or unknown.",
+      "breaking": true
+    },
+    {
+      "kind": "semantics_changed",
+      "path": "/$defs/cost/properties/amount",
+      "description": "`cost.amount` is the cost under `basis` (no longer always billed) and is null exactly when `basis` is unknown.",
+      "breaking": true
+    },
+    {
+      "kind": "field_added_required",
+      "path": "/properties/contract_version",
+      "description": "Envelopes state the contract version they follow, separately from `system_version`.",
+      "breaking": true
+    }
+  ],
+  "migration": {
+    "guide": "Add `contract_version: \"2.0.0\"`; add `cost.basis` (use `list_price` for usage times a rate card, `provider_reported` only for charges the provider returned); turn a string `rate_card` into `{source, retrieved_at}`; add `basis` to each `breakdown` item; bump `system_version` to major 2.",
+    "deprecation_window": "P0D"
+  }
+}

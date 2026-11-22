@@ -1,7 +1,8 @@
 {
   "id": "resp_s2_7f3a",
+  "contract_version": "2.0.0",
   "system": "s2.reasoning",
-  "system_version": "1.0.2",
+  "system_version": "2.0.2",
   "created_at": 1791968401,
   "status": "completed",
   "confidence": 0.9,
@@ -9,6 +10,11 @@
   "cost": {
     "amount": 0.000765,
     "currency": "USD",
+    "basis": "list_price",
+    "rate_card": {
+      "source": "https://developers.openai.com/api/docs/pricing",
+      "retrieved_at": "2026-11-22"
+    },
     "usage": {
       "input_tokens": 900,
       "output_tokens": 1350,

@@ -29,8 +29,9 @@
   "response": {
     "id": "srch_01JABC",
     "object": "system.response",
+    "contract_version": "2.0.0",
     "system": "s3.search",
-    "system_version": "1.0.0",
+    "system_version": "2.0.0",
     "created_at": 1791968460,
     "status": "completed",
     "confidence": 1.0,
@@ -38,6 +39,7 @@
     "cost": {
       "amount": 0.0118,
       "currency": "USD",
+      "basis": "list_price",
       "usage": {
         "input_tokens": 14200,
         "output_tokens": 20800,
@@ -50,7 +52,8 @@
       "breakdown": [
         {
           "system": "s2.reasoning",
-          "amount": 0.0118
+          "amount": 0.0118,
+          "basis": "list_price"
         }
       ]
     },

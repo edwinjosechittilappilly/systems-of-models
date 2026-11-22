@@ -2,10 +2,11 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/edwinjosechittilappilly/systems-of-models/main/schemas/envelope.schema.json",
   "title": "Common response envelope",
-  "description": "Fields shared by every system response. Each system schema composes this envelope with allOf and constrains `system`, `system_version` and `body`. Consumers MUST ignore unknown fields, because a minor version may add optional fields.",
+  "description": "Fields shared by every system response (contract 2.0.0). Each system schema composes this envelope with allOf and constrains `system`, `system_version` and `body`. Consumers MUST ignore unknown fields, because a minor version may add optional fields.",
   "type": "object",
   "required": [
     "id",
+    "contract_version",
     "system",
     "system_version",
     "confidence",
@@ -24,12 +25,17 @@
       "const": "system.response",
       "description": "Object discriminator, following the vendor `object` field convention."
     },
+    "contract_version": {
+      "type": "string",
+      "pattern": "^2\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
+      "description": "Version of these schemas the producer follows. Major 2 introduced required `cost.basis`; consumers branch on this, not on `system_version`."
+    },
     "system": {
       "$ref": "#/$defs/system_id"
     },
     "system_version": {
       "$ref": "#/$defs/semver",
-      "description": "Semantic version of the system contract plus implementation. Major = contract break; minor = new optional fields or output types; patch = model or capability improvement with an unchanged contract."
+      "description": "Semantic version of the system that answered: the contract major plus the implementation's minor and patch. Major = contract break (equals the `contract_version` major); minor = new optional fields or output types; patch = model or capability improvement with an unchanged contract."
     },
     "created_at": {
       "type": "integer",
@@ -280,17 +286,30 @@
         }
       }
     },
+    "cost_basis": {
+      "enum": [
+        "provider_reported",
+        "list_price",
+        "local_measured",
+        "unknown"
+      ],
+      "description": "How an amount was obtained. `provider_reported`: the provider returned the charge for this call. `list_price`: token usage times a published rate card (see `rate_card`). `local_measured`: self-hosted; the amount is measured local resource cost (0 if only API charges are counted, which `rate_card.source` must then say). `unknown`: no defensible amount; `amount` is null. A total's basis is the weakest of its parts, in that order."
+    },
     "cost": {
       "type": "object",
       "required": [
         "amount",
-        "currency"
+        "currency",
+        "basis"
       ],
       "properties": {
         "amount": {
-          "type": "number",
+          "type": [
+            "number",
+            "null"
+          ],
           "minimum": 0,
-          "description": "Total cost of this call, including nested calls, under `basis`."
+          "description": "Total cost of this call, including nested calls, under `basis`. Null exactly when `basis` is `unknown`."
         },
         "currency": {
           "type": "string",
@@ -298,17 +317,25 @@
           "description": "ISO 4217 code."
         },
         "basis": {
-          "enum": [
-            "billed",
-            "list_price",
-            "local"
-          ],
-          "default": "billed",
-          "description": "How `amount` was obtained. `billed`: the provider reported the charge. `list_price`: token usage times a published rate card (see `rate_card`). `local`: no API charge (self-hosted); compute is not counted. Added in 1.1.0; absent means `billed`, the 1.0 meaning."
+          "$ref": "#/$defs/cost_basis"
         },
         "rate_card": {
-          "type": "string",
-          "description": "Source of the prices behind a `list_price` amount, e.g. `openai:2026-11-22`."
+          "type": "object",
+          "description": "Where the prices behind a `list_price` or `local_measured` amount came from.",
+          "required": [
+            "source"
+          ],
+          "properties": {
+            "source": {
+              "type": "string",
+              "description": "E.g. `https://developers.openai.com/api/docs/pricing`."
+            },
+            "retrieved_at": {
+              "type": "string",
+              "format": "date",
+              "description": "Date the prices were read."
+            }
+          }
         },
         "usage": {
           "$ref": "#/$defs/usage"
@@ -320,20 +347,48 @@
             "type": "object",
             "required": [
               "system",
-              "amount"
+              "amount",
+              "basis"
             ],
             "properties": {
               "system": {
                 "$ref": "#/$defs/system_id"
               },
               "amount": {
-                "type": "number",
+                "type": [
+                  "number",
+                  "null"
+                ],
                 "minimum": 0
+              },
+              "basis": {
+                "$ref": "#/$defs/cost_basis"
               },
               "response_id": {
                 "type": "string"
               }
             }
+          }
+        }
+      },
+      "if": {
+        "properties": {
+          "basis": {
+            "const": "unknown"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "amount": {
+            "type": "null"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "amount": {
+            "type": "number"
           }
         }
       }

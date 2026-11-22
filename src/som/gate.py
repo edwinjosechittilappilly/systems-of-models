@@ -6,7 +6,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, Literal
 
-from som.envelope import Escalation, Threshold
+from som.envelope import Cost, Escalation, Threshold
 from som.questions import Answer, Predicate, PredicateAnswer, Question, Refusal
 from som.systems import Decider, Decision, Input
 from som.trace import TraceStore
@@ -53,8 +53,12 @@ class GateResult:
         return self.answer.value
 
     @property
-    def cost(self) -> float:
-        return self.s1.envelope.cost.amount + (self.s2.envelope.cost.amount if self.s2 else 0.0)
+    def cost(self) -> Cost:
+        """Total cost of the request (S1 plus any S2 call), with a per-system breakdown and the weakest basis."""
+        parts = [(self.s1.envelope.system, self.s1.envelope.cost, self.s1.envelope.id)]
+        if self.s2 is not None:
+            parts.append((self.s2.envelope.system, self.s2.envelope.cost, self.s2.envelope.id))
+        return Cost.total(parts)
 
     @property
     def latency_ms(self) -> float:
@@ -165,7 +169,8 @@ class Gate:
                 s1_value=first.answers[self.question.name].value,
                 s2_value=None if second is None else second.answers[self.question.name].value,
                 signal=signal(first.answers[self.question.name], self.metric),
-                cost=result.cost,
+                cost=result.cost.amount,
+                cost_basis=result.cost.basis,
                 **extra,
             )
         return result

@@ -8,13 +8,14 @@ from __future__ import annotations
 
 import secrets
 import time
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
 from som import schemas
 
-CONTRACT_VERSION = "1.1.0"
-"""Version of the contracts this package implements; sent as ``system_version``."""
+CONTRACT_VERSION = "2.0.0"
+"""Version of the schemas this package produces; sent as ``contract_version`` and as the default ``system_version``."""
 
 SystemId = Literal["s1.decision", "s2.reasoning", "s3.search", "s4.agentic", "s5.self_evolving"]
 ConfidenceBasis = Literal[
@@ -26,7 +27,8 @@ ConfidenceBasis = Literal[
     "self_report",
     "none",
 ]
-CostBasis = Literal["billed", "list_price", "local"]
+CostBasis = Literal["provider_reported", "list_price", "local_measured", "unknown"]
+_BASIS_STRENGTH: dict[str, int] = {"provider_reported": 3, "list_price": 2, "local_measured": 1, "unknown": 0}
 Status = Literal["completed", "incomplete", "escalated", "failed"]
 
 _SCHEMA_FOR_SYSTEM = {
@@ -95,28 +97,58 @@ class Usage:
 @dataclass
 class CostItem:
     system: str
-    amount: float
+    amount: float | None
+    basis: CostBasis
     response_id: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
-        return _drop_none({"system": self.system, "amount": self.amount, "response_id": self.response_id})
+        data: dict[str, Any] = {"system": self.system, "amount": self.amount, "basis": self.basis}
+        if self.response_id is not None:
+            data["response_id"] = self.response_id
+        return data
 
 
 @dataclass
 class Cost:
-    """Cost of one call. ``basis`` says whether the amount was billed, priced from a rate card, or local."""
+    """Cost of one call under ``basis``: reported by the provider, priced from a rate card, measured locally, or
+    unknown (then ``amount`` is None)."""
 
-    amount: float
+    amount: float | None
     basis: CostBasis
     currency: str = "USD"
-    rate_card: str | None = None
+    rate_card: dict[str, str] | None = None
+    """``{"source": url, "retrieved_at": "YYYY-MM-DD"}`` for list-price and local amounts."""
     usage: Usage | None = None
     breakdown: list[CostItem] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        if (self.amount is None) != (self.basis == "unknown"):
+            raise ValueError("cost.amount must be None exactly when basis is 'unknown'")
+
+    @classmethod
+    def unknown(cls, usage: Usage | None = None) -> Cost:
+        return cls(amount=None, basis="unknown", usage=usage)
+
+    @classmethod
+    def total(cls, parts: Sequence[tuple[str, Cost, str | None]]) -> Cost:
+        """Sum ``(system, cost, response_id)`` parts. The total takes the weakest basis; any unknown part makes the
+        total unknown."""
+        if not parts:
+            raise ValueError("no cost parts")
+        basis = min((cost.basis for _, cost, _ in parts), key=lambda b: _BASIS_STRENGTH[b])
+        amounts = [cost.amount for _, cost, _ in parts]
+        amount = None if basis == "unknown" else sum(a for a in amounts if a is not None)
+        usage: Usage | None = None
+        for _, cost, _ in parts:
+            if cost.usage is not None:
+                usage = cost.usage if usage is None else usage + cost.usage
+        items = [CostItem(system, cost.amount, cost.basis, rid) for system, cost, rid in parts]
+        return cls(amount=amount, basis=basis, usage=usage, breakdown=items)
 
     def to_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {"amount": self.amount, "currency": self.currency, "basis": self.basis}
         if self.rate_card is not None:
-            data["rate_card"] = self.rate_card
+            data["rate_card"] = dict(self.rate_card)
         if self.usage is not None:
             data["usage"] = self.usage.to_dict()
         if self.breakdown:
@@ -228,6 +260,7 @@ class Envelope:
         data: dict[str, Any] = {
             "id": self.id,
             "object": "system.response",
+            "contract_version": CONTRACT_VERSION,
             "system": self.system,
             "system_version": self.system_version,
             "created_at": self.created_at,

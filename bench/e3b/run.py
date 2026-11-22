@@ -22,6 +22,7 @@ from bench.common.budget import Budget, BudgetExceeded
 from bench.common.cache import CacheMiss, JsonCache, answer_from_dict, answer_to_dict
 from bench.common.manifest import Manifest
 from bench.e3b.data import COMMIT, DOMAINS, MODELS, fetch, file_name, load
+from bench.e3b.discovery import discovery_rows as compute_discovery_rows
 from bench.e3b.extract import instances, to_trace, user_tools_only
 from bench.e3b.metrics import (
     aurc,
@@ -32,6 +33,7 @@ from bench.e3b.metrics import (
     summary_metrics,
     wilson,
 )
+from bench.e3b.sensitivity import sensitivity
 from som.compile import OpenAIQuestionWriter, mine, write_question
 from som.compile.mining import Example
 
@@ -39,6 +41,13 @@ ROOT = Path(__file__).parent
 RUN_ID = "tau2-768f3d8"
 TRAIN = "gpt-4.1"
 HELD_OUT = tuple(model for model in MODELS if model != TRAIN)
+
+_DRAFT_REVIEW = {
+    "retail/cancel_pending_order.branch": "Off target: asks about a lost item and tracking",
+    "retail/modify_pending_order_address.branch": "Off target: includes a jigsaw-puzzle request",
+    "airline/send_certificate.branch": "Overfits: describes a specific route and passenger count",
+    "airline/update_reservation_baggages.branch": "Off target: asks about changing flights",
+}
 
 # Archived false positives from the two prior committed reports (reviewed and
 # final-before-context). The initial run differed as noted in miner_history().
@@ -113,24 +122,28 @@ def miner_history(rows: list[dict[str, Any]], pooled: dict[str, Any]) -> list[st
     )
     fourth_b = sorted(f"{row['domain']}/{row['name']}" for row in rows if row["accepted"] and not row["judgement"])
     history = [
-        ("1 initial", 0.283, 0.750, first),
-        ("2 reviewed", 0.556, 0.750, second),
-        ("3 non-majority support", 0.288, 0.750, third),
-        ("4 earlier-tool-result context", 0.304, 0.700, fourth),
-        ("4b user-turn trace input (extraction fix)", pooled["precision"], pooled["recall"], fourth_b),
+        ("1 initial (a5a7697)", 0.283, 0.750, first),
+        ("2 reviewed (071a93d)", 0.556, 0.750, second),
+        ("3 non-majority support (88268b5)", 0.288, 0.750, third),
+        ("3b transcript input (3a1c51c; superseded during review)", 0.452, 0.700, None),
+        ("3b user-only input (3a1c51c; superseded during review)", 0.455, 0.750, None),
+        ("4 earlier-tool-result context (7d04a9e)", 0.304, 0.700, fourth),
+        ("4b user-turn input (7d04a9e + ac056dc)", pooled["precision"], pooled["recall"], fourth_b),
     ]
     lines = [
         "## Miner revision history",
         "",
         "All revisions follow frozen labels; revisions 2-4b occurred after results were observed. "
         "Revision 1 candidates are reconstructed from its mining log; revisions 2-4 from archived CSVs. "
+        "Revision 3b numbers are from independent review; its per-candidate FP lists were not archived. "
         "Revision 4b fixes trace extraction without changing the miner.",
         "",
         "| Revision | Precision | Recall | False-positive candidates |",
         "|---|---:|---:|---|",
     ]
     for name, precision, recall, candidates in history:
-        lines.append(f"| {name} | {precision:.3f} | {recall:.3f} | {', '.join(candidates) or 'none'} |")
+        fp_text = ", ".join(candidates) if candidates else ("not archived" if candidates is None else "none")
+        lines.append(f"| {name} | {precision:.3f} | {recall:.3f} | {fp_text} |")
     return lines
 
 
@@ -297,6 +310,12 @@ def writer_candidate(candidate: Any, episodes: list[Any]) -> Any:
     return replace(candidate, examples=examples, values=[json.loads(v) for v in values])
 
 
+def question_options(question: dict[str, Any]) -> str:
+    return (
+        ", ".join(str(choice["value"]).replace("|", " / ") for choice in question.get("choices", [])) or "true / false"
+    )
+
+
 def _flatten_summary(row: dict[str, Any], summary: dict[str, Any]) -> dict[str, Any]:
     for key, value in summary.items():
         if isinstance(value, dict):
@@ -315,7 +334,16 @@ def run(mode: str) -> None:
     manifest = Manifest("e3b", RUN_ID, {"tau2_commit": COMMIT, "mode": mode, "min_support": 10, "seed": 0})
     manifest.config["source_sha256"] = {
         name: hashlib.sha256((ROOT / name).read_bytes()).hexdigest()
-        for name in ("PROTOCOL.md", "decision_labels.yaml", "data.py", "extract.py", "metrics.py", "run.py")
+        for name in (
+            "PROTOCOL.md",
+            "decision_labels.yaml",
+            "data.py",
+            "extract.py",
+            "metrics.py",
+            "discovery.py",
+            "sensitivity.py",
+            "run.py",
+        )
     }
     mining_rows: list[dict[str, Any]] = []
     discovery_rows: list[dict[str, Any]] = []
@@ -326,6 +354,7 @@ def run(mode: str) -> None:
     summaries: list[dict[str, Any]] = []
     failures: list[str] = []
     curves: list[tuple[str, Any, Any]] = []
+    label_distributions: dict[str, dict[str, dict[str, int]]] = {}
     for domain in DOMAINS:
         if mode == "replay":
             for model in MODELS:
@@ -389,6 +418,11 @@ def run(mode: str) -> None:
             majority = Counter(train_values).most_common(1)[0][0] if train_values else None
             calibration_rows = [row for e in cal_episodes for row in instances(e, candidate)]
             eval_rows = [row for e in held for row in instances(e, candidate)]
+            label_distributions[label] = {
+                "writer_training": dict(Counter(train_values)),
+                "calibration": dict(Counter(str(row["teacher"]) for row in calibration_rows)),
+                "held_out": dict(Counter(str(row["teacher"]) for row in eval_rows)),
+            }
             for row in calibration_rows + eval_rows:
                 result = calls.decide(row["state"], question)
                 answer = answer_from_dict(result["answer"]) if "answer" in result else None
@@ -598,7 +632,75 @@ def run(mode: str) -> None:
             )
         )
         summaries[-1]["state_variant"] = "full"
+    sensitivity_results = sensitivity(all_rows + ablation_rows)
+    majority_by_decision = sensitivity_results["held_out_majority"]
+    for domain, candidate in [
+        *sorted({(row["domain"], row["candidate"]) for row in all_rows}),
+        ("pooled", "all"),
+    ]:
+        group = [r for r in all_rows if domain == "pooled" or (r["domain"], r["candidate"]) == (domain, candidate)]
+        predictions = [majority_by_decision[r["domain"]][r["candidate"]] for r in group]
+        sensitivity_summary = summary_metrics(
+            predictions,
+            [r["teacher"] for r in group],
+            [r["gold"] for r in group],
+            [f"{r['domain']}/{r['task_id']}" for r in group],
+            training_majority=None,
+        )
+        summaries.append(
+            _flatten_summary(
+                {
+                    "domain": domain,
+                    "candidate": candidate,
+                    "state_variant": "held-out-majority sensitivity",
+                    "threshold_coverage": None,
+                    "threshold_risk": None,
+                    "aurc": float("nan"),
+                    "aurc_ci": (float("nan"), float("nan")),
+                },
+                sensitivity_summary,
+            )
+        )
+    if ablation_rows:
+        pooled_ablation = summary_metrics(
+            [r["prediction"] for r in ablation_rows],
+            [r["teacher"] for r in ablation_rows],
+            [r["gold"] for r in ablation_rows],
+            [f"{r['domain']}/{r['task_id']}" for r in ablation_rows],
+            training_majority=None,
+        )
+        baseline = summary_metrics(
+            [r["majority"] for r in ablation_rows],
+            [r["teacher"] for r in ablation_rows],
+            [r["gold"] for r in ablation_rows],
+            [f"{r['domain']}/{r['task_id']}" for r in ablation_rows],
+            training_majority=None,
+        )
+        pooled_ablation["majority_teacher"] = baseline["teacher"]
+        pooled_ablation["majority_gold"] = baseline["gold"]
+        valid_ablation = [r for r in ablation_rows if r["prediction"] is not None and r["signal"] is not None]
+        ablated_signal = [r["signal"] for r in valid_ablation]
+        ablated_correct = [r["prediction"] == r["teacher"] for r in valid_ablation]
+        served_ablation = [r for r in ablation_rows if r["served"]]
+        ablation_errors = sum(r["prediction"] != r["teacher"] for r in served_ablation)
+        summaries.append(
+            _flatten_summary(
+                {
+                    "domain": "pooled",
+                    "candidate": "all",
+                    "state_variant": "user-and-tools-only",
+                    "threshold_coverage": len(served_ablation) / len(ablation_rows),
+                    "threshold_risk": ablation_errors / len(served_ablation) if served_ablation else None,
+                    "aurc": aurc(ablated_signal, ablated_correct),
+                    "aurc_ci": aurc_cluster_bootstrap(
+                        ablated_signal, ablated_correct, [f"{r['domain']}/{r['task_id']}" for r in valid_ablation]
+                    ),
+                },
+                pooled_ablation,
+            )
+        )
     summaries.extend(ablation_summaries)
+    discovery_breakdown = compute_discovery_rows(mining_rows)
     summaries.sort(key=lambda r: (r["domain"] == "pooled", r["domain"], r["candidate"], r["state_variant"]))
     curve_rows = [
         {"decision": label, "coverage": float(x), "risk": float(y)}
@@ -607,7 +709,7 @@ def run(mode: str) -> None:
     ]
     csv_write(directory / "risk_coverage.csv", curve_rows, fields=["decision", "coverage", "risk"])
     csv_write(directory / "mining_report.csv", mining_rows)
-    csv_write(directory / "discovery.csv", discovery_rows)
+    csv_write(directory / "discovery.csv", discovery_breakdown)
     csv_write(
         directory / "instances.csv",
         all_rows + ablation_rows,
@@ -635,11 +737,11 @@ def run(mode: str) -> None:
         fig, ax = plt.subplots()
         for label, x, y in curves:
             ax.plot(x, y, label=label)
-        ax.set(xlabel="Coverage", ylabel="Teacher error", xlim=(0, 1), ylim=(0, 1))
+        ax.set(xlabel="Coverage", ylabel="Error (teacher or gold)", xlim=(0, 1), ylim=(0, 1))
         if curves:
             ax.legend(fontsize="small")
         fig.tight_layout()
-        fig.savefig(directory / "risk_coverage.pdf")
+        fig.savefig(directory / "risk_coverage.pdf", metadata={"CreationDate": None})
         fig.savefig(directory / "risk_coverage.png", dpi=200)
         plt.close(fig)
     if mode == "record":
@@ -690,17 +792,25 @@ def run(mode: str) -> None:
         else:
             group = "Other supplied data or lists"
         fp_groups.setdefault(group, []).append(f"{row['domain']}/{row['name']}")
+    flight_distribution = label_distributions.get("airline/book_reservation.flight_type", {})
+    flight_held = flight_distribution.get("held_out", {})
+    flight_one_way_fraction = flight_held.get("one_way", 0) / sum(flight_held.values()) if flight_held else float("nan")
     lines = [
         "# E3b analysis",
         "",
         "## Discovery",
         "",
+        "| Domain | Method | Kind | TP | FP | FN | Precision (Wilson 95%) | Recall (Wilson 95%) |",
+        "|---|---|---|---:|---:|---:|---|---|",
         *[
-            f"- {r['domain']}: {r['tp']} TP, {r['fp']} FP, {r['fn']} FN; "
-            f"precision {r['precision']:.3f} (Wilson {r['precision_ci']}), "
-            f"recall {r['recall']:.3f} (Wilson {r['recall_ci']})."
-            for r in discovery_rows
+            f"| {r['domain']} | {r['method']} | {r['kind']} | {r['tp']} | {r['fp']} | {r['fn']} | "
+            f"{r['precision']:.3f} {r['precision_ci']} | {r['recall']:.3f} {r['recall_ci']} |"
+            for r in discovery_breakdown
         ],
+        "",
+        "On these tau2 traces the miner's recall comes predominantly from branch candidates; it does not beat "
+        "the accept-all-branches baseline, which attains the same pooled recall with higher precision. "
+        "Both baselines operate over the miner's emitted candidate universe, including rejected candidates.",
         "",
         *miner_history(mining_rows, discovery_rows[-1]),
         "",
@@ -747,18 +857,34 @@ def run(mode: str) -> None:
             f"served error {r['threshold_risk']}."
             for r in summaries
         ],
+        "Held-out-majority rows are sensitivity analyses fitted on the evaluation labels, not deployable baselines. "
+        "The writer-side majority is fitted on training traces.",
+        "",
+        f"Flight-type teacher-label distributions: {flight_distribution}. "
+        "Its eight calibration occurrences are all one_way, so the threshold was fitted on one class; "
+        f"the writer-side majority is round_trip whereas the held-out majority is one_way "
+        f"({flight_one_way_fraction:.1%} of held-out instances).",
+        "",
+        f"Pooled user-and-tools-only teacher agreement: {sensitivity_results['user_and_tools_only_teacher']}. "
+        f"Cancellation-reason states with the teacher value verbatim in prior assistant text: "
+        f"{sensitivity_results['cancellation_reason_assistant_echo_count']}/"
+        f"{sum(r['domain'] == 'retail' and r['candidate'] == 'cancel_pending_order.reason' for r in all_rows)}.",
+        "",
+        "Independent review reported identical miner outcomes for all 103 candidates when only pre-call user turns "
+        "were used in its check. The published run still uses the user-turn input described below.",
+        "",
         "",
         "## Written questions",
         "",
-        "| Decision | Instructions | Options |",
-        "|---|---|---|",
+        "| Decision | Instructions | Options | Inspection |",
+        "|---|---|---|---|",
         *[
             f"| {q['domain']}/{q['candidate']} | "
             f"{q['question']['instructions'].replace('|', ' / ')} | "
-            f"{', '.join(str(choice['value']).replace('|', ' / ') for choice in q['question'].get('choices', []))} |"
+            f"{question_options(q['question'])} | "
+            f"{_DRAFT_REVIEW.get(q['domain'] + '/' + q['candidate'], 'Not flagged; unvalidated')} |"
             for q in questions
             if "question" in q
-            and any(r["domain"] == q["domain"] and r["candidate"] == q["candidate"] for r in ablation_summaries)
         ],
         "",
         "The user-and-tools-only state is a post-hoc ablation: assistant transcript messages are removed "

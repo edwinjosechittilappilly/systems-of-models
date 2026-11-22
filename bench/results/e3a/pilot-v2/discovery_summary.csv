@@ -1,0 +1,2 @@
+discovery_precision,discovery_recall,discovery_true_positives,discovery_accepted,discovery_rejected,ambiguous_retrieval_count
+0.5,1.0,2,4,13,0

@@ -1,0 +1,40 @@
+{
+  "cache": {
+    "gpt-6.1-terra": {
+      "hits": 0,
+      "misses": 392
+    }
+  },
+  "config": {
+    "budget_cap_usd": 12,
+    "granularity": 4,
+    "mode": "record",
+    "sample_seed": 20261122,
+    "size": 100
+  },
+  "contract_version": "2.0.0",
+  "cost_usd": {
+    "gpt-6.1-terra": 0.2948116
+  },
+  "counts": {
+    "gpt-6.1-terra": 100
+  },
+  "data": {
+    "banking77-train.parquet": "8dc89b87a188509c42cce5a086e8f7c1ff4a225bdd9ae3f23e6cdfa5806e363a"
+  },
+  "experiment": "e3a",
+  "finished_at": "2026-11-22T22:14:36Z",
+  "git_dirty": true,
+  "git_sha": "3b777d728ceaa63bd6049ae49a162e38b761a58c",
+  "models": {
+    "gpt-6.1-terra": "gpt-6.1-terra"
+  },
+  "new_spend_usd": {
+    "openai": 0.294812
+  },
+  "notes": [],
+  "python": "3.12.9",
+  "run_id": "pilot-v2",
+  "som_version": "0.1.0.dev0",
+  "started_at": "2026-11-22T22:02:14Z"
+}

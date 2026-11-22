@@ -1,0 +1,2 @@
+model,n,department_correct,priority_correct,identity_correct,joint_correct,entry_correct,searched_policy,cost_usd,input_tokens,output_tokens,tool_calls,latency_ms,joint_ci_low,joint_ci_high
+gpt-6.1-terra,100,0.8,0.93,0.89,0.78,0.76,1.0,0.002948116,2012.61,189.29,4.99,7412.194110350247,0.6892964648501421,0.8499871761539459

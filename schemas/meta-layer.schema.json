@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/edwinjosechittilappilly/systems-of-models/main/schemas/meta-layer.schema.json",
   "title": "Meta-layer records: system proposals and version bumps",
-  "description": "The meta-layer sits above the grid. It reads contracts and traces, versions existing systems (`version_bump`) and proposes new ones (`system_proposal`), in the manner of an RFC/PEP process whose author may be a machine. Semver rules: major = contract break (migration required); minor = backward-compatible additions (optional fields, output types, enum values, adopted systems); patch = model or capability improvement with the contract unchanged.",
+  "description": "The meta-layer sits above the grid. It reads contracts and traces, versions existing systems (`version_bump`) and proposes new ones (`system_proposal`), in the manner of an RFC/PEP process whose author may be a machine. Semver rules: major = contract break (migration required); minor = backward-compatible additions (optional fields, output types, enum values, adopted systems); patch = a change behind an unchanged contract: a model or capability improvement, or the rollback of an earlier patch (contract 2.1.0).",
   "oneOf": [{ "$ref": "#/$defs/system_proposal" }, { "$ref": "#/$defs/version_bump" }],
   "$defs": {
     "author": {
@@ -127,8 +127,9 @@
     "additive_kinds": {
       "enum": ["field_added_optional", "output_type_added", "enum_value_added", "system_adopted"]
     },
-    "improvement_kinds": {
-      "enum": ["model_improved", "capability_distilled", "calibration_improved", "bug_fix"]
+    "patch_kinds": {
+      "description": "Changes behind an unchanged contract. `rollback` withdraws an earlier patch, e.g. a compiled decision demoted after monitoring detected a regression; it does not claim an improvement (added in contract 2.1.0).",
+      "enum": ["model_improved", "capability_distilled", "calibration_improved", "bug_fix", "rollback"]
     },
     "change": {
       "type": "object",
@@ -138,7 +139,7 @@
           "anyOf": [
             { "$ref": "#/$defs/breaking_kinds" },
             { "$ref": "#/$defs/additive_kinds" },
-            { "$ref": "#/$defs/improvement_kinds" }
+            { "$ref": "#/$defs/patch_kinds" }
           ]
         },
         "path": { "type": "string", "description": "JSON Pointer into the contract schema." },
@@ -192,7 +193,7 @@
               "then": {
                 "properties": {
                   "changes": {
-                    "items": { "properties": { "kind": { "anyOf": [{ "$ref": "#/$defs/additive_kinds" }, { "$ref": "#/$defs/improvement_kinds" }] } } },
+                    "items": { "properties": { "kind": { "anyOf": [{ "$ref": "#/$defs/additive_kinds" }, { "$ref": "#/$defs/patch_kinds" }] } } },
                     "contains": { "properties": { "kind": { "$ref": "#/$defs/additive_kinds" } } }
                   }
                 }
@@ -202,7 +203,7 @@
               "if": { "properties": { "bump": { "const": "patch" } } },
               "then": {
                 "properties": {
-                  "changes": { "items": { "properties": { "kind": { "$ref": "#/$defs/improvement_kinds" } } } }
+                  "changes": { "items": { "properties": { "kind": { "$ref": "#/$defs/patch_kinds" } } } }
                 }
               }
             }

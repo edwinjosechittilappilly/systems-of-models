@@ -107,7 +107,7 @@ def version_bump_record(
     from_version: str,
     to_version: str,
     description: str,
-    change_kind: Literal["model_improved", "capability_distilled", "calibration_improved", "bug_fix"],
+    change_kind: Literal["model_improved", "capability_distilled", "calibration_improved", "bug_fix", "rollback"],
     s5_response_ids: list[str],
 ) -> dict[str, Any]:
     """Return a validated meta-layer patch record linked to its S5 evidence."""

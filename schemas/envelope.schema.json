@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/edwinjosechittilappilly/systems-of-models/main/schemas/envelope.schema.json",
   "title": "Common response envelope",
-  "description": "Fields shared by every system response (contract 2.0.0). Each system schema composes this envelope with allOf and constrains `system`, `system_version` and `body`. Consumers MUST ignore unknown fields, because a minor version may add optional fields.",
+  "description": "Fields shared by every system response (contract 2.1.0). Each system schema composes this envelope with allOf and constrains `system`, `system_version` and `body`. Consumers MUST ignore unknown fields, because a minor version may add optional fields.",
   "type": "object",
   "required": [
     "id",

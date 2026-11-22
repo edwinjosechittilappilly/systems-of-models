@@ -1,9 +1,8 @@
 """Cached local embeddings and warm-up-only nearest-neighbour baseline.
 
-Embedding measurements replay the original local inference time, not the much
-shorter cache lookup time. They are not dollar charges: hardware and energy
-costs are not estimated. Keep embedding time separate from surrogate envelope
-latency when accounting for replayed calls.
+Embedding and surrogate measurements replay original local execution times,
+not the much shorter cache lookup time. They are not dollar charges: hardware
+and energy costs are not estimated.
 """
 
 from __future__ import annotations
@@ -14,10 +13,13 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from typing import Any
 
-from bench.common.cache import JsonCache
+from bench.common.cache import JsonCache, request_key
 from som.compile import EmbeddingSurrogate, ollama_embedder
+from som.questions import Question
+from som.systems import Decision, Input
 
 EMBEDDING_NAMESPACE = "e3a_embedding_embeddinggemma_v1"
+SURROGATE_TIMING_NAMESPACE = "e3a_surrogate_timings_v1"
 
 
 @dataclass(frozen=True)
@@ -49,6 +51,7 @@ class CachedEmbedder:
         self.cache = cache
         self.model = model
         self.embed = embed if embed is not None else ollama_embedder(model)
+        self.timing_cache = JsonCache(SURROGATE_TIMING_NAMESPACE, mode=cache.mode, directory=cache.path.parent)
         self.last_measurement = EmbeddingMeasurement()
         self.last_elapsed_ms = 0.0
         self.last_cpu_seconds = 0.0
@@ -97,9 +100,49 @@ def _validated_vector(rows: Sequence[Sequence[float]], count: int) -> list[list[
     return result
 
 
+class _MeasuredSurrogate(EmbeddingSurrogate):
+    """Recompute predictions but replay the original measured execution times."""
+
+    def __init__(self, embedder: CachedEmbedder, classes: Sequence[str]) -> None:
+        super().__init__(embedder, classes, name=f"ollama/{embedder.model}-logistic")
+        self._embedder = embedder
+        self._timings = embedder.timing_cache
+        self._fit_key: str | None = None
+
+    def _record_timing(self, key: dict[str, Any], latency: float, cpu: float) -> dict[str, float]:
+        measurement = self._embedder.last_measurement
+        return self._timings.get_or_call(
+            key,
+            lambda: {
+                "latency_ms": max(0.0, latency - self._embedder.last_elapsed_ms + measurement.latency_ms),
+                "cpu_seconds": max(0.0, cpu - self._embedder.last_cpu_seconds + measurement.cpu_seconds),
+            },
+        )
+
+    def fit(self, inputs: Sequence[Input], labels: Sequence[str]) -> _MeasuredSurrogate:
+        key = {"operation": "fit", "model": self._embedder.model, "classes": self.classes,
+               "inputs": inputs, "labels": labels}
+        super().fit(inputs, labels)
+        timing = self._record_timing(key, float(self.fit_metadata["latency_ms"]),
+                                     float(self.fit_metadata["cpu_seconds"]))
+        self.fit_metadata.update(latency_ms=str(timing["latency_ms"]), cpu_seconds=str(timing["cpu_seconds"]))
+        self._fit_key = request_key(key)
+        return self
+
+    def decide(self, input: Input, questions: Sequence[Question], *, trace_id: str | None = None) -> Decision:
+        decision = super().decide(input, questions, trace_id=trace_id)
+        key = {"operation": "decide", "fit": self._fit_key, "input": input,
+               "questions": [question.to_contract() for question in questions]}
+        timing = self._record_timing(key, decision.envelope.latency_ms,
+                                     float(decision.envelope.metadata["cpu_seconds"]))
+        decision.envelope.latency_ms = timing["latency_ms"]
+        decision.envelope.metadata["cpu_seconds"] = str(timing["cpu_seconds"])
+        return decision
+
+
 def make_surrogate(embedder: CachedEmbedder, classes: Sequence[str]) -> EmbeddingSurrogate:
-    """Construct the library logistic-regression surrogate; fit on teacher labels."""
-    return EmbeddingSurrogate(embedder, classes, name="ollama/embeddinggemma-logistic")
+    """Construct the library classifier with record/replay of local timing only."""
+    return _MeasuredSurrogate(embedder, classes)
 
 
 @dataclass(frozen=True)
@@ -130,6 +173,7 @@ class KnnCache:
         self._entries: list[tuple[list[float], str]] = []
         self.fit_latency_ms = 0.0
         self.fit_cpu_seconds = 0.0
+        self._state = request_key({"model": embedder.model, "epsilon": epsilon, "entries": []})
 
     def _nearest(self, vector: list[float]) -> tuple[str | None, float | None]:
         norm = math.sqrt(sum(x * x for x in vector))
@@ -170,8 +214,13 @@ class KnnCache:
             if sum(selected) / len(selected) <= self.epsilon:
                 self.threshold = threshold
                 break
-        self.fit_latency_ms = (time.perf_counter() - started) * 1000 - embedding_wall + self.embedder.last_measurement.latency_ms
-        self.fit_cpu_seconds = time.process_time() - cpu_started - embedding_cpu + self.embedder.last_measurement.cpu_seconds
+        latency = (time.perf_counter() - started) * 1000 - embedding_wall + self.embedder.last_measurement.latency_ms
+        cpu = time.process_time() - cpu_started - embedding_cpu + self.embedder.last_measurement.cpu_seconds
+        key = {"operation": "knn_fit", "model": self.embedder.model, "epsilon": self.epsilon,
+               "texts": texts, "labels": labels}
+        timing = self.embedder.timing_cache.get_or_call(key, lambda: {"latency_ms": latency, "cpu_seconds": cpu})
+        self.fit_latency_ms, self.fit_cpu_seconds = timing["latency_ms"], timing["cpu_seconds"]
+        self._state = request_key(key)
         return self.threshold
 
     def predict(self, text: str) -> KnnPrediction:
@@ -180,11 +229,14 @@ class KnnCache:
         embedding_wall = (time.perf_counter() - started) * 1000
         embedding_cpu = time.process_time() - cpu_started
         label, similarity = self._nearest(vector)
+        latency = (time.perf_counter() - started) * 1000 - embedding_wall + self.embedder.last_measurement.latency_ms
+        cpu = time.process_time() - cpu_started - embedding_cpu + self.embedder.last_measurement.cpu_seconds
+        key = {"operation": "knn_predict", "state": self._state, "text": text}
+        timing = self.embedder.timing_cache.get_or_call(key, lambda: {"latency_ms": latency, "cpu_seconds": cpu})
         return KnnPrediction(
             label, similarity,
             self.threshold is not None and similarity is not None and similarity >= self.threshold,
-            (time.perf_counter() - started) * 1000 - embedding_wall + self.embedder.last_measurement.latency_ms,
-            time.process_time() - cpu_started - embedding_cpu + self.embedder.last_measurement.cpu_seconds,
+            timing["latency_ms"], timing["cpu_seconds"],
         )
 
     def add(self, text: str, label: str) -> None:
@@ -194,7 +246,9 @@ class KnnCache:
         if self._entries and len(vector) != len(self._entries[0][0]):
             raise ValueError("embedding dimension differs from cache")
         self._entries.append((vector, label))
+        self._state = request_key({"previous": self._state, "text": text, "label": label})
 
     def invalidate(self) -> None:
         self._entries.clear()
         self.threshold = None
+        self._state = request_key({"model": self.embedder.model, "epsilon": self.epsilon, "entries": []})

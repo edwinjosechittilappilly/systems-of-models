@@ -73,6 +73,9 @@ def test_s2_can_say_nothing_fits_after_an_out_of_space_escalation():
     assert (result.served_by, result.in_scope, result.value) == ("s2", False, None)
     confident = som.Gate(s1_answering(0.99, fit=0.95), s2, TEAMS, fit=FITS)("double charge")
     assert (confident.served_by, confident.in_scope, confident.value) == ("s1", True, "billing")
+    # A fit accepted under a lenient fit_threshold is in scope, even below 0.5.
+    lenient = som.Gate(s1_answering(0.99, fit=0.4), s2, TEAMS, fit=FITS, fit_threshold=0.3)("double charge")
+    assert (lenient.served_by, lenient.in_scope, lenient.value) == ("s1", True, "billing")
 
 
 def test_refusal_escalates():

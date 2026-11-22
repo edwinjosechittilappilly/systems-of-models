@@ -10,6 +10,7 @@ import argparse
 import csv
 import hashlib
 import json
+import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
@@ -111,7 +112,7 @@ def collect(items: list[dict[str, Any]], providers: E3aProviders, *, workers: in
                 "status": "error",
                 "cost_usd": None,
                 "latency_ms": None,
-                "error": f"{type(exc).__name__}: {exc}",
+                "error": f"{type(exc).__name__}: " + re.sub(r"org-[A-Za-z0-9_-]+", "org-REDACTED", str(exc)),
             }
 
     if workers < 1:

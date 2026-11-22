@@ -135,3 +135,17 @@ def test_writer_stops_before_request_when_openai_reserve_is_exhausted(tmp_path):
     with pytest.raises(RuntimeError, match="reserve exhausted"):
         providers.writer({"samples": []})
     assert not client.calls
+
+
+def test_token_reservations_enforce_rolling_minute(monkeypatch):
+    from bench.e3a import providers as module
+
+    now = [0.0]
+    monkeypatch.setattr(module.time, "monotonic", lambda: now[0])
+    monkeypatch.setattr(module.time, "sleep", lambda delay: now.__setitem__(0, now[0] + delay))
+    window = module._TokenWindow(limit=60)
+    request = {"input": "x", "max_output_tokens": 1}
+    window.acquire(request)
+    assert now[0] == 0
+    window.acquire(request)
+    assert now[0] >= 60

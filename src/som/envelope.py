@@ -14,7 +14,7 @@ from typing import Any, Literal
 
 from som import schemas
 
-CONTRACT_VERSION = "2.0.0"
+CONTRACT_VERSION = "2.1.0"
 """Version of the schemas this package produces; sent as ``contract_version`` and as the default ``system_version``."""
 
 SystemId = Literal["s1.decision", "s2.reasoning", "s3.search", "s4.agentic", "s5.self_evolving"]

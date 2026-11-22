@@ -1,0 +1,39 @@
+# Fast, deterministic hygiene on `git commit` (install once: `uvx pre-commit install`) and in the CI `hygiene` job.
+# Every `rev` is a released tag; bump with `uvx pre-commit autoupdate --freeze` in a normal PR.
+minimum_pre_commit_version: "3.5.0"
+# Beads writes its own metadata; leave it byte-for-byte as bd produces it.
+exclude: ^\.beads/
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+        args: [--fix=lf]
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=1024]
+        exclude: (^|/)uv\.lock$
+      - id: detect-private-key
+      - id: check-yaml
+      - id: check-json
+      - id: check-toml
+
+  # Secrets in staged changes (locally) and the whole tree (CI). Allowlist for fake fixtures: .gitleaks.toml.
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.3
+    hooks:
+      - id: ruff-check
+      - id: ruff-format
+
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.7.12
+    hooks:
+      - id: actionlint

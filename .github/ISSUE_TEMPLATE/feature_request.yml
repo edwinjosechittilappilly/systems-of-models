@@ -1,0 +1,21 @@
+name: Feature or adapter request
+description: A new provider adapter, framework integration, contract field, or use case
+title: "feat: "
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: The workflow or decision you want to put behind a System 1 gate, or the provider you need.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: For a contract field, say whether it is additive (minor) or breaking (major) per schemas/README.md.
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Provider docs or prior art
+      description: Links to the API reference fields this would map.

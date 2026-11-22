@@ -1,0 +1,4 @@
+# Default reviewer for everything. Schema changes are contract changes: review them against the semver rules in
+# schemas/README.md.
+* @edwinjosechittilappilly
+/schemas/ @edwinjosechittilappilly

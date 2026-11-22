@@ -1,7 +1,7 @@
 """E4: the contracts exercised by real runs.
 
 1. Validation: every envelope recorded in the response caches (E1/E2/E3/demo) is validated against its system's
-   schema (contract 2.0.0), plus any S4/S5/meta-layer records written by E3a.
+   schema at the package's contract version.
 2. Field matrix: for each adapter, which envelope fields the provider returns natively, which the adapter derives
    by a documented rule, and which are unavailable.
 3. Round trip: for each recorded provider response, the share of its leaf fields whose values are recoverable from
@@ -313,7 +313,8 @@ def main() -> None:
     lines = [
         "# E4: contracts exercised",
         "",
-        f"Envelopes in the response caches: {total}; valid against contract 2.0.0: {valid}; invalid: {total - valid}.",
+        f"Envelopes in the response caches: {total}; valid against contract {som.CONTRACT_VERSION}: {valid}; "
+        f"invalid: {total - valid}.",
         "",
         "| namespace | system | envelopes | valid | cost bases |",
         "|---|---|---|---|---|",

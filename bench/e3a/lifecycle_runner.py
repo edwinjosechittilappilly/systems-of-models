@@ -236,6 +236,7 @@ def _compile(arm, selected, providers, cfg, index):
     if diagnostics is not None:
         diagnostics.append(
             {
+                "stream": cfg.get("stream"),
                 "arm": arm.name,
                 "ticket_index": index,
                 "generation": arm.generation,
@@ -362,6 +363,7 @@ def run_lifecycle(items, providers, config):
                 if cfg.get("diagnostics") is not None:
                     cfg["diagnostics"].append(
                         {
+                            "stream": cfg.get("stream"),
                             "arm": name,
                             "ticket_index": item["index"],
                             "generation": arm.generation,

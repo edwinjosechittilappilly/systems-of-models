@@ -3,6 +3,7 @@
 import numpy as np
 import pandas as pd
 import pytest
+
 from bench.e1_e2.analysis import score_items
 from bench.e1_e2.calibration import apply_isotonic, apply_temperature, fit_isotonic, fit_temperature
 from bench.e1_e2.revised import clinc_fit

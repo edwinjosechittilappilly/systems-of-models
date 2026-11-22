@@ -2,6 +2,7 @@
 
 import numpy as np
 import pytest
+
 from bench.e1_e2.metrics import cascade_sweep, choose_joint_threshold, choose_threshold, paired_aurc_difference
 
 

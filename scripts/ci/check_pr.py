@@ -110,7 +110,8 @@ def table_rows(content: str) -> list[list[str]]:
     return data
 
 
-def validate_title(title: str) -> list[Finding]:
+def validate_title(title: str, *, bot: bool = False) -> list[Finding]:
+    """Check the Conventional Commit title. Bots (Dependabot writes "Bump ...") skip only the lower-case rule."""
     findings: list[Finding] = []
     title = title or ""
     types = ", ".join(COMMIT_TYPES)
@@ -133,7 +134,7 @@ def validate_title(title: str) -> list[Finding]:
             )
         )
         return findings
-    if parsed.subject[0].isupper():
+    if parsed.subject[0].isupper() and not bot:
         findings.append(Finding("error", "title-case", "Subject must start with a lower-case letter."))
     if parsed.subject.rstrip().endswith("."):
         findings.append(Finding("error", "title-period", "Subject must not end with a period."))
@@ -272,8 +273,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         body = event_body if args.body_file is None else body
         author = author or event_author
 
-    body_skipped = args.skip_body or author in BOT_AUTHORS
-    findings = validate_title(title)
+    is_bot = author in BOT_AUTHORS
+    body_skipped = args.skip_body or is_bot
+    findings = validate_title(title, bot=is_bot)
     if not body_skipped:
         parsed = parse_title(title)
         findings += validate_body(body, breaking=bool(parsed and parsed.breaking))

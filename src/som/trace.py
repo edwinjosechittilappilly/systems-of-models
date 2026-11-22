@@ -10,6 +10,7 @@ Prompt and response text never goes into spans. The :class:`TraceStore` keeps wh
 
 from __future__ import annotations
 
+import copy
 import importlib
 import json
 import secrets
@@ -112,7 +113,8 @@ class TraceStore:
         self.path = Path(path) if path is not None else None
 
     def add(self, kind: str, **data: Any) -> dict[str, Any]:
-        record = {"kind": kind, "at": time.time(), **data}
+        """Record an event. Nested data is deep-copied, so later changes to the caller's objects do not leak in."""
+        record = {"kind": kind, "at": time.time(), **copy.deepcopy(data)}
         self.records.append(record)
         if self.path is not None:
             with self.path.open("a", encoding="utf-8") as handle:

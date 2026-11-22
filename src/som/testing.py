@@ -3,18 +3,24 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
+from datetime import date
 from typing import Any
 
 from som.envelope import Cost, Envelope, Implementation, SystemId, Usage
-from som.questions import Answer, Question
+from som.questions import Answer, Question, Refusal
 from som.systems import Decision, Input
 from som.trace import span
 
 AnswerFn = Callable[[Input, Question], Answer]
+_TODAY = date.today().isoformat()
 
 
 class FunctionDecider:
-    """A :class:`~som.systems.Decider` that answers with a Python function and charges a fixed cost per call."""
+    """A :class:`~som.systems.Decider` that answers with a Python function and charges a fixed cost per call.
+
+    As System 1 (the default) the function must return contract answers: probabilities on predicates and
+    choices, a probability per level on scores, or a :class:`~som.questions.Refusal`. As System 2 it may return bare
+    values (``ChoiceAnswer(name, choice)``)."""
 
     def __init__(
         self,
@@ -32,6 +38,10 @@ class FunctionDecider:
     def decide(self, input: Input, questions: Sequence[Question], *, trace_id: str | None = None) -> Decision:
         self.calls += 1
         answers = {q.name: self.answer(input, q) for q in questions}
+        if self.system == "s1.decision":
+            for answer in answers.values():
+                if not isinstance(answer, Refusal) and answer.top_probability is None:
+                    raise ValueError(f"System 1 answer {answer.name!r} needs probabilities (see FunctionDecider)")
         with span(f"decide {self.name}", trace_id=trace_id) as ref:
             body: dict[str, Any]
             if self.system == "s1.decision":
@@ -56,7 +66,7 @@ class FunctionDecider:
                 cost=Cost(
                     amount=self.cost_per_call,
                     basis="list_price",
-                    rate_card={"source": "fixed cost per call (som.testing.FunctionDecider)"},
+                    rate_card={"source": "fixed cost per call (som.testing.FunctionDecider)", "retrieved_at": _TODAY},
                     usage=Usage(),
                 ),
                 latency_ms=self.latency_ms,

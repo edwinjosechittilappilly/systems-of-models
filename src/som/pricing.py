@@ -88,9 +88,13 @@ def lookup(provider: str, model: str) -> RateCard:
     card = _CARDS.get((provider, model))
     if card is not None:
         return card
-    for (known_provider, known_model), known_card in _CARDS.items():
-        if known_provider == provider and re.fullmatch(re.escape(known_model) + r"-\d{4}-\d{2}-\d{2}", model):
-            return known_card
+    snapshot_of = [
+        (known_model, known_card)
+        for (known_provider, known_model), known_card in _CARDS.items()
+        if known_provider == provider and re.fullmatch(re.escape(known_model) + r"-\d{4}-\d{2}-\d{2}", model)
+    ]
+    if snapshot_of:  # the most specific registered model wins (gpt-5-mini-custom over gpt-5-mini)
+        return max(snapshot_of, key=lambda pair: len(pair[0]))[1]
     raise UnknownPriceError(f"no rate card for {provider}/{model}; pass rate_card= or call som.pricing.register")
 
 

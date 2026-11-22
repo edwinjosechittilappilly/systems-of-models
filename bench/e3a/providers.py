@@ -1,4 +1,4 @@
-""Cached E3a teacher, question writer, and Jev providers.
+"""Cached E3a teacher, question writer, and Jev providers.
 
 Replaying a cache never constructs an API client.  Costs on results are the
 original call costs; the shared budget tracks only new provider spend.

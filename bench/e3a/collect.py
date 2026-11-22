@@ -83,7 +83,7 @@ def items_for_stream(frame: pd.DataFrame, *, phase_limit: int | None = None) -> 
     return items, shift
 
 
-def collect(items: list[dict[str, Any]], providers: E3aProviders, *, workers: int = 8) -> list[dict[str, Any]]:
+def collect(items: list[dict[str, Any]], providers: E3aProviders, *, workers: int = 2) -> list[dict[str, Any]]:
     """Populate teacher results; any failed calls are returned with their exact error.
 
     The cache stores each paid Responses call, including unsuccessful complete
@@ -134,7 +134,7 @@ def main() -> None:
         default=1000,
         help="development tickets per pre/post phase; omit via the Python API for all rows",
     )
-    parser.add_argument("--workers", type=int, default=8)
+    parser.add_argument("--workers", type=int, default=2)
     args = parser.parse_args()
     out = ROOT / "results" / "e3a" / "dev-collection"
     prior = previous_openai_spend()

@@ -125,7 +125,7 @@ def main() -> None:
         default=None,
         help="dev tuning: first N tickets from each phase; omitted means the complete stream",
     )
-    parser.add_argument("--workers", type=int, default=8)
+    parser.add_argument("--workers", type=int, default=2)
     parser.add_argument("--warmup", type=int, default=300)
     parser.add_argument("--n-cal", type=int, default=250)
     parser.add_argument("--n-val", type=int, default=250)
@@ -339,6 +339,8 @@ def main() -> None:
             "Intervals are descriptive per-arm proportions, not paired hypothesis tests.",
             "Public-data contamination, synthetic policies and cohort marker, selective labels, "
             "teacher noise and unreconciled provider billing threaten validity.",
+            "E3a exposed the lack of a truthful meta-layer patch kind for an audit-triggered rollback; "
+            "contract 2.1.0 added `rollback` as a non-breaking patch kind.",
             "No E3 hypotheses are tested on development data." if args.streams == "dev" else "",
         ]
     )

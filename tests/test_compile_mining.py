@@ -130,11 +130,11 @@ def test_unique_retrieval_ids_are_not_decisions_or_determinants():
     report = mine(traces, min_support=2)
     rejected = {item.name: item for item in report.rejected}
     assert rejected["search.retrieval_choice"].reason == "free_text"
-    assert rejected["search.retrieval_choice"].support == 30
+    assert rejected["search.retrieval_choice"].support == 29
     assert "route.action" in {item.name for item in report.accepted}
 
 
-def test_many_valued_decision_uses_total_support_even_with_singleton_values():
+def test_many_valued_decision_counts_non_majority_support_even_with_singleton_values():
     traces = [
         AgentTrace(str(i), "ticket", [AgentStep("route", {"policy": f"policy-{i % 76 if i < 599 else 76}"}, None)])
         for i in range(600)
@@ -142,7 +142,7 @@ def test_many_valued_decision_uses_total_support_even_with_singleton_values():
     report = mine(traces, min_support=10)
     choice = next(item for item in report.accepted if item.name == "route.policy")
     assert len(choice.values) == 77
-    assert choice.support == 600
+    assert choice.support == 592
     assert sum(example.value == "policy-76" for example in choice.examples) == 1
 
 
@@ -196,6 +196,17 @@ def test_support_is_the_least_common_value_for_branches_and_arguments():
     for name in ("near_always.branch", "route.kind"):
         assert rejected[name].reason == "rare"
         assert rejected[name].support == 1
+
+
+def test_near_constant_argument_with_three_values_is_rare():
+    traces = [
+        AgentTrace(str(i), "ticket", [AgentStep("lookup", {"top_k": 10 if i == 0 else 3 if i == 1 else 5}, None)])
+        for i in range(1000)
+    ]
+    report = mine(traces, min_support=10)
+    rejected = {item.name: item for item in report.rejected}
+    assert rejected["lookup.top_k"].reason == "rare"
+    assert rejected["lookup.top_k"].support == 2
 
 
 def test_min_minority_can_be_lower_than_total_support():

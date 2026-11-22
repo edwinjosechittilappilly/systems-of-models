@@ -206,7 +206,9 @@ def mine(
             distinct.setdefault(key, example.value)
             counts[key] += 1
         candidate.values = list(distinct.values())
-        candidate.support = min(counts.values()) if len(distinct) <= 2 else len(candidate.examples)
+        # Support = observations that differ from the most common value. For two values this is the minority count;
+        # for many values it keeps singleton classes of a real judgement while rejecting near-constant arguments.
+        candidate.support = len(candidate.examples) - max(counts.values())
         if (
             candidate.kind == "tool_argument"
             and sum(_copied(example.value, example.input) for example in candidate.examples) / len(candidate.examples)
@@ -217,10 +219,10 @@ def mine(
             len(candidate.examples) >= 10 and len(distinct) / len(candidate.examples) >= max_distinct_ratio
         ):
             candidate.reason = "free_text"
-        elif candidate.support < (min_minority if len(distinct) == 2 else min_support):
-            candidate.reason = "rare"
         elif len(distinct) < 2:
             candidate.reason = "constant"
+        elif candidate.support < (min_minority if len(distinct) == 2 else min_support):
+            candidate.reason = "rare"
         else:
             for other in accepted:
                 if _dependent(candidate, other, min_support):

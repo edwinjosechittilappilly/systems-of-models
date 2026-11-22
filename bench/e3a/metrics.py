@@ -107,6 +107,7 @@ def summarize_streams(tickets: pd.DataFrame) -> pd.DataFrame:
                 "teacher_agreement": data["teacher_agreement"].mean(),
                 "coverage": coverage.mean(), "total_cost_usd": data["cost_usd"].sum(),
                 "cost_per_ticket_usd": data["cost_usd"].mean(),
+                "agent_calls": int(data["agent_calls"].sum()) if "agent_calls" in data else None,
                 "cumulative_excess_error": (baseline_accuracy - accuracy).sum(),
                 "postshift_cumulative_excess_error": (baseline_accuracy - accuracy)[post].sum() if shift is not None else None,
                 "promotions": int(data["promoted"].fillna(False).astype(bool).sum()),

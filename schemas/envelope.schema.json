@@ -323,7 +323,8 @@
           "type": "object",
           "description": "Where the prices behind a `list_price` or `local_measured` amount came from.",
           "required": [
-            "source"
+            "source",
+            "retrieved_at"
           ],
           "properties": {
             "source": {
@@ -366,6 +367,27 @@
               },
               "response_id": {
                 "type": "string"
+              }
+            },
+            "if": {
+              "properties": {
+                "basis": {
+                  "const": "unknown"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "amount": {
+                  "type": "null"
+                }
+              }
+            },
+            "else": {
+              "properties": {
+                "amount": {
+                  "type": "number"
+                }
               }
             }
           }

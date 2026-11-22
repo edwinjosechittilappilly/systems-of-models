@@ -6,7 +6,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Protocol, runtime_checkable
 
-from som.envelope import Envelope
+from som.envelope import Envelope, SystemId
 from som.questions import Answer, Question
 
 Input = str | Mapping[str, Any] | Sequence[Mapping[str, Any]]
@@ -33,6 +33,6 @@ class Decider(Protocol):
     """
 
     name: str
-    system: str
+    system: SystemId
 
     def decide(self, input: Input, questions: Sequence[Question], *, trace_id: str | None = None) -> Decision: ...

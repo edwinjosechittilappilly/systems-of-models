@@ -10,6 +10,7 @@ Prompt and response text never goes into spans. The :class:`TraceStore` keeps wh
 
 from __future__ import annotations
 
+import copy
 import importlib
 import json
 import secrets
@@ -30,30 +31,51 @@ except ImportError:
 _TRACER_NAME = "systems-of-models"
 
 
-def _current_trace_id() -> str | None:
-    if _otel is None:
-        return None
-    context = _otel.get_current_span().get_span_context()
-    return format(context.trace_id, "032x") if context.is_valid else None
+def _remote_parent(trace_id: str) -> Any:
+    """An OpenTelemetry context whose parent is a remote span in ``trace_id``, so a new span joins that trace."""
+    parent = _otel.SpanContext(
+        trace_id=int(trace_id, 16),
+        span_id=int(secrets.token_hex(8), 16),
+        is_remote=True,
+        trace_flags=_otel.TraceFlags(_otel.TraceFlags.SAMPLED),
+    )
+    return _otel.set_span_in_context(_otel.NonRecordingSpan(parent))
 
 
 @contextmanager
 def span(name: str, *, trace_id: str | None = None) -> Iterator[TraceRef]:
     """Open a span for one system call and yield its :class:`TraceRef`.
 
-    Reuses ``trace_id`` when given (to keep a cascade in one trace), else the current OpenTelemetry trace, else a
-    fresh random one.
+    The span joins the current OpenTelemetry span if there is one; otherwise it joins ``trace_id`` when given (so the
+    calls of one cascade share a trace); otherwise it starts a new trace. Without OpenTelemetry the same rule applies
+    to the generated IDs.
     """
     if _otel is not None:
-        tracer = _otel.get_tracer(_TRACER_NAME)
-        with tracer.start_as_current_span(name) as otel_span:
-            context = otel_span.get_span_context()
-            if context.is_valid:
-                yield TraceRef(trace_id=format(context.trace_id, "032x"), span_id=format(context.span_id, "016x"))
+        current = _otel.get_current_span().get_span_context()
+        context = None if current.is_valid or trace_id is None else _remote_parent(trace_id)
+        with _otel.get_tracer(_TRACER_NAME).start_as_current_span(name, context=context) as otel_span:
+            ids = otel_span.get_span_context()
+            if ids.is_valid:
+                yield TraceRef(trace_id=format(ids.trace_id, "032x"), span_id=format(ids.span_id, "016x"))
                 return
-            yield TraceRef(trace_id=trace_id or secrets.token_hex(16), span_id=secrets.token_hex(8))
+            # No SDK configured: the API hands out invalid no-op spans, so fall through to generated IDs.
+            inherited = format(current.trace_id, "032x") if current.is_valid else None
+            yield TraceRef(trace_id=inherited or trace_id or secrets.token_hex(16), span_id=secrets.token_hex(8))
             return
-    yield TraceRef(trace_id=trace_id or _current_trace_id() or secrets.token_hex(16), span_id=secrets.token_hex(8))
+    yield TraceRef(trace_id=trace_id or secrets.token_hex(16), span_id=secrets.token_hex(8))
+
+
+def annotate_gate(served_by: str, escalation_reason: str | None) -> None:
+    """Record a gate's outcome on the current (gate) span."""
+    if _otel is None:
+        return
+    current = _otel.get_current_span()
+    if not current.is_recording():
+        return
+    attributes: dict[str, Any] = {"som.gate.served_by": served_by}
+    if escalation_reason is not None:
+        attributes["som.escalation.reason"] = escalation_reason
+    current.set_attributes(attributes)
 
 
 def annotate(envelope: Envelope, operation: str) -> None:
@@ -91,7 +113,8 @@ class TraceStore:
         self.path = Path(path) if path is not None else None
 
     def add(self, kind: str, **data: Any) -> dict[str, Any]:
-        record = {"kind": kind, "at": time.time(), **data}
+        """Record an event. Nested data is deep-copied, so later changes to the caller's objects do not leak in."""
+        record = {"kind": kind, "at": time.time(), **copy.deepcopy(data)}
         self.records.append(record)
         if self.path is not None:
             with self.path.open("a", encoding="utf-8") as handle:

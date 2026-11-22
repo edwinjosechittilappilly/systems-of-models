@@ -6,36 +6,49 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, Literal
 
-from som.envelope import Cost, Escalation, Threshold
+from som.envelope import Cost, Escalation, SystemId, Threshold
 from som.questions import Answer, Predicate, PredicateAnswer, Question, Refusal
 from som.systems import Decider, Decision, Input
-from som.trace import TraceStore
+from som.trace import TraceStore, annotate_gate, span
 
 Metric = Literal["probability", "confidence", "margin"]
 Mode = Literal["gate", "shadow"]
 
 
 def breakeven_rate(s1_cost: float, s2_cost: float) -> float:
-    """Escalation rate below which a gate is cheaper than calling System 2 for everything: ``1 - c1/c2``.
+    """List-price break-even escalation rate ``1 - c1/c2``: below it, a gate is cheaper than always calling S2.
 
-    Assumes every request pays ``s1_cost`` and every escalated request costs the same ``s2_cost`` as an average
-    request. Escalated requests are often longer and harder, so measure the realised rate instead of trusting this.
+    Assumes escalated requests cost as much as an average request. They are usually longer and harder; use
+    :func:`usage_weighted_breakeven` with measured costs instead.
     """
     if s2_cost <= 0:
         raise ValueError("s2_cost must be positive")
     return 1.0 - s1_cost / s2_cost
 
 
+def usage_weighted_breakeven(
+    mean_s1: float, mean_s2: float, mean_s2_escalated: float, *, overhead_per_request: float = 0.0
+) -> float:
+    """Break-even escalation rate from measured costs: ``(E[C2] - E[C1] - O/N) / E[C2 | escalated]``.
+
+    ``mean_s2`` is the average S2 cost over all requests (the always-S2 baseline), ``mean_s2_escalated`` the average
+    over the requests the gate actually escalates, and ``overhead_per_request`` any amortised extra (shadow calls,
+    audits, compilation).
+    """
+    if mean_s2_escalated <= 0:
+        raise ValueError("mean_s2_escalated must be positive")
+    return (mean_s2 - mean_s1 - overhead_per_request) / mean_s2_escalated
+
+
 def signal(answer: Answer, metric: Metric) -> float | None:
-    """The number a gate compares with its threshold."""
+    """The number a gate compares with its threshold; None means "escalate"."""
     if isinstance(answer, Refusal):
         return None
     if metric == "probability":
         return answer.top_probability
     if metric == "confidence":
         return answer.confidence
-    margin = getattr(answer, "margin", None)
-    return margin if margin is not None else answer.top_probability
+    return answer.margin
 
 
 @dataclass
@@ -50,7 +63,14 @@ class GateResult:
 
     @property
     def value(self) -> Any:
+        """The served answer's value; None when the serving system refused (see :attr:`refused`)."""
         return self.answer.value
+
+    @property
+    def refused(self) -> bool:
+        """True when no system produced an in-space answer (S1 escalated and S2 also refused). Callers must handle
+        this case: route to a person, retry with more context, or fail the request."""
+        return isinstance(self.answer, Refusal)
 
     @property
     def cost(self) -> Cost:
@@ -135,42 +155,50 @@ class Gate:
         return None
 
     @property
-    def s2_system(self) -> str:
+    def s2_system(self) -> SystemId:
         return self.s2.system
 
     def __call__(self, input: Input, *, metadata: Mapping[str, str] | None = None) -> GateResult:
         questions: list[Question] = [self.question] + ([self.fit] if self.fit is not None else [])
-        first = self.s1.decide(input, questions)
-        trace_id = first.envelope.trace_ref.trace_id
-        escalation = self._check(first)
-        second: Decision | None = None
-        if escalation is not None or self.mode == "shadow":
-            second = self.s2.decide(input, [self.question], trace_id=trace_id)
-        if escalation is not None and second is not None:
-            escalation.performed = True
-            escalation.downstream_response_id = second.envelope.id
-            escalation.prior_answers = [a.to_contract() for n, a in first.answers.items() if n != self.question.name]
-            first.envelope.status = "escalated"
-            first.envelope.escalation = escalation
-        served = second if second is not None else first
-        served_by: Literal["s1", "s2"] = "s1" if second is None else "s2"
+        with span(f"gate {self.question.name}") as gate_ref:
+            trace_id = gate_ref.trace_id
+            first = self.s1.decide(input, questions, trace_id=trace_id)
+            escalation = self._check(first)
+            second: Decision | None = None
+            if escalation is not None or self.mode == "shadow":
+                second = self.s2.decide(input, [self.question], trace_id=trace_id)
+            if escalation is not None and second is not None:
+                escalation.performed = True
+                escalation.downstream_response_id = second.envelope.id
+                escalation.prior_answers = [
+                    a.to_contract() for n, a in first.answers.items() if n != self.question.name
+                ]
+                first.envelope.status = "escalated"
+                first.envelope.escalation = escalation
+            served = second if second is not None else first
+            served_by: Literal["s1", "s2"] = "s1" if second is None else "s2"
+            annotate_gate(served_by, escalation.reason if escalation is not None else None)
+        extra = dict(metadata or {})
+        for decision in (first, second):
+            if decision is not None:
+                decision.envelope.metadata.update(extra)
         result = GateResult(served.answers[self.question.name], served_by, first, second, escalation)
         if self.store is not None:
-            extra = dict(metadata or {})
-            self.store.add_envelope(first.envelope, role="s1", question=self.question.name, **extra)
+            self.store.add_envelope(first.envelope, role="s1", question=self.question.name, metadata=extra)
             if second is not None:
-                self.store.add_envelope(second.envelope, role="s2", question=self.question.name, **extra)
+                self.store.add_envelope(second.envelope, role="s2", question=self.question.name, metadata=extra)
             self.store.add(
                 "gate",
                 question=self.question.name,
                 trace_id=trace_id,
                 served_by=served_by,
                 value=result.value,
+                refused=result.refused,
                 s1_value=first.answers[self.question.name].value,
                 s2_value=None if second is None else second.answers[self.question.name].value,
                 signal=signal(first.answers[self.question.name], self.metric),
                 cost=result.cost.amount,
                 cost_basis=result.cost.basis,
-                **extra,
+                metadata=extra,
             )
         return result

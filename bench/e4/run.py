@@ -337,8 +337,8 @@ def main() -> None:
         "Round trip (share of informative native leaves recoverable from the envelope):",
         "",
         *[
-            f"- {r['adapter']}: {r['recovered']}/{r['native_leaves']} ({r['recovered_share']}); dropped e.g. "
-            f"{r['dropped_examples']}"
+            f"- {r['adapter']}: {r['recovered']}/{r['native_leaves']} ({r['recovered_share']})"
+            + (f"; dropped e.g. {r['dropped_examples']}" if r["dropped_examples"] else "; nothing dropped")
             for r in trips
         ],
         "",

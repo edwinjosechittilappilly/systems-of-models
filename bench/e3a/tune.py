@@ -42,6 +42,8 @@ def main() -> None:
     args = parser.parse_args()
     manifest = json.loads((DEV / "manifest.json").read_text())
     cfg = manifest["config"]
+    dev_control = pd.read_csv(ROOT / "tasks" / "streams" / "dev_control.csv")
+    warmup_classes = int(dev_control.iloc[: cfg["warmup"]]["intent"].nunique())
     baseline, effect, coverage, details = measured_effect()
     if baseline >= cfg["epsilon"]:
         raise RuntimeError("development pre-shift teacher disagreement exceeds the proposed risk target")
@@ -102,7 +104,8 @@ inference is a limitation.
 
 - Warm-up W={cfg["warmup"]}; disjoint calibration and validation windows n_cal={cfg["n_cal"]},
   n_val={cfg["n_val"]}; risk target epsilon={cfg["epsilon"]}; per-stream alpha={cfg["alpha"]};
-  max one promotion attempt per compilation.
+  max one promotion attempt per compilation. The dev warm-up contains {warmup_classes} distinct
+  gold intents; these labels are used only to assess diversity, never provided to the miner or writer.
 - Calibration rule `{cfg["tau_rule"]}`; margin rule uses empirical calibration error at most
   0.6 epsilon; an independent one-sided Clopper-Pearson validation bound controls promotion.
   Recompilation allocates alpha / [2(g+1)(g+2)] to each decision in generation g=0,1,... .

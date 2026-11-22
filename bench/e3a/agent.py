@@ -122,16 +122,21 @@ class Agent:
                 response = self.client.responses.create(**payload)
                 elapsed = (time.perf_counter() - before) * 1000
                 data = response.model_dump(mode="json", by_alias=True, exclude_none=True)
-                u = data.get("usage") or {}
-                priced = Usage(
-                    input_tokens=u.get("input_tokens", 0),
-                    output_tokens=u.get("output_tokens", 0),
-                    cached_tokens=(u.get("input_tokens_details") or {}).get("cached_tokens", 0),
-                )
-                new_cost.append(lookup("openai", self.model).cost(priced).amount)
+                u = data.get("usage")
+                if isinstance(u, dict) and "input_tokens" in u and "output_tokens" in u:
+                    priced = Usage(
+                        input_tokens=u["input_tokens"],
+                        output_tokens=u["output_tokens"],
+                        cached_tokens=(u.get("input_tokens_details") or {}).get("cached_tokens", 0),
+                    )
+                    new_cost.append(lookup("openai", self.model).cost(priced).amount)
+                else:
+                    new_cost.append(None)
                 return {"response": data, "latency_ms": elapsed}
 
             recorded = self.cache.get_or_call(payload, call)
+            if new_cost and new_cost[0] is None:
+                raise RuntimeError("OpenAI returned no usage; paid cost is unknown")
             if new_cost:
                 self.budget.charge("openai", new_cost[0])
             response = recorded["response"]
@@ -141,7 +146,9 @@ class Agent:
                 self.actual_model = actual_model
             if actual_model != self.actual_model:
                 raise RuntimeError(f"model changed within run: {self.actual_model} -> {actual_model}")
-            u = response.get("usage") or {}
+            u = response.get("usage")
+            if not isinstance(u, dict) or "input_tokens" not in u or "output_tokens" not in u:
+                raise RuntimeError("cached OpenAI response has no usage; cost is unknown")
             usage += Usage(
                 input_tokens=u.get("input_tokens", 0),
                 output_tokens=u.get("output_tokens", 0),

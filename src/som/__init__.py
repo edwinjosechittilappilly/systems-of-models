@@ -14,17 +14,21 @@ Every call also yields an :class:`Envelope` that validates against the bundled J
 
 from importlib.metadata import version
 
-from som.adapters import OpenAIChat, OpenAIDecisions, OpenAIResponses, TypeSafe
+from som.adapters import Anthropic, Gemini, OpenAIChat, OpenAIDecisions, OpenAIResponses, TypeSafe
+from som.aio import AsyncGate
 from som.envelope import CONTRACT_VERSION, Cost, Envelope, Escalation, TraceRef, Usage
 from som.gate import Gate, GateResult, breakeven_rate
 from som.questions import Choice, ChoiceAnswer, Predicate, PredicateAnswer, Refusal, Score, ScoreAnswer
 from som.systems import Decider, Decision
 from som.trace import TraceStore
+from som.wrap import envelope_of, wrap
 
 __version__ = version("systems-of-models")
 
 __all__ = [
     "CONTRACT_VERSION",
+    "Anthropic",
+    "AsyncGate",
     "Choice",
     "ChoiceAnswer",
     "Cost",
@@ -32,6 +36,7 @@ __all__ = [
     "Decision",
     "Envelope",
     "Escalation",
+    "Gemini",
     "Gate",
     "GateResult",
     "OpenAIChat",
@@ -48,4 +53,6 @@ __all__ = [
     "Usage",
     "__version__",
     "breakeven_rate",
+    "envelope_of",
+    "wrap",
 ]

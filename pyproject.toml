@@ -46,6 +46,12 @@ anthropic = [
 gemini = [
     "google-genai>=1.0",
 ]
+langchain = [
+    "langchain-core>=0.3",
+]
+mcp = [
+    "mcp>=1.2",
+]
 otel = [
     "opentelemetry-api>=1.30",
 ]

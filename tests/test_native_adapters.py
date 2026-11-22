@@ -1,8 +1,13 @@
 """Offline tests using response shapes from the Anthropic and Google Gen AI SDKs."""
 
+import inspect
 from types import SimpleNamespace as NS
 
 import pytest
+from anthropic._models import validate_type
+from anthropic.resources.messages import Messages
+from anthropic.types.message_create_params import MessageCreateParamsNonStreaming
+from google.genai.types import GenerateContentConfig
 
 from som import Choice, Predicate, Score
 from som.adapters.anthropic import Anthropic
@@ -36,6 +41,8 @@ def test_anthropic_messages_structured_output_and_usage():
     adapter = Anthropic("claude", client=NS(messages=NS(create=create)), rate_card=CARD, max_tokens=500)
     decision = adapter.decide("refund", QUESTIONS)
     request = calls[0]
+    inspect.signature(Messages.create).bind(None, **request)
+    validate_type(type_=MessageCreateParamsNonStreaming, value=request)
     assert request["model"] == "claude" and request["max_tokens"] == 500
     assert request["messages"][0]["role"] == "user" and "refund" in request["messages"][0]["content"]
     schema = request["output_config"]["format"]["schema"]
@@ -63,6 +70,21 @@ def test_anthropic_cache_creation_is_not_mispriced_and_truncation_refuses():
     assert decision.envelope.cost.basis == "unknown" and decision.envelope.cost.usage.input_tokens == 15
     assert all(isinstance(answer, Refusal) for answer in decision.answers.values())
     assert all(answer.reason == "out_of_answer_space" for answer in decision.answers.values())
+    decision.envelope.validate()
+
+
+def test_anthropic_context_window_exceeded_is_incomplete():
+    response = {
+        "content": [{"type": "text", "text": '{"team":'}],
+        "stop_reason": "model_context_window_exceeded",
+        "usage": {},
+    }
+    adapter = Anthropic("claude", client=NS(messages=NS(create=lambda **_: response)), rate_card=CARD)
+    decision = adapter.decide("input", QUESTIONS)
+    assert decision.envelope.status == "incomplete"
+    assert all(
+        isinstance(answer, Refusal) and answer.reason == "out_of_answer_space" for answer in decision.answers.values()
+    )
     decision.envelope.validate()
 
 
@@ -100,6 +122,7 @@ def test_gemini_generate_content_structured_output_and_thinking_usage():
     adapter = Gemini("gemini", client=NS(models=NS(generate_content=generate_content)), rate_card=CARD)
     decision = adapter.decide("refund", QUESTIONS)
     request = calls[0]
+    GenerateContentConfig.model_validate(request["config"])
     assert request["model"] == "gemini" and "refund" in request["contents"]
     assert request["config"]["response_mime_type"] == "application/json"
     assert request["config"]["response_json_schema"]["required"] == ["team", "fits", "urgency"]
@@ -111,8 +134,9 @@ def test_gemini_generate_content_structured_output_and_thinking_usage():
     envelope.validate()
 
 
-def test_gemini_blocked_response_refuses_without_inventing_output():
-    response = {"candidates": [], "prompt_feedback": {"block_reason": "SAFETY"}, "usage_metadata": {}}
+@pytest.mark.parametrize("block_reason", ["SAFETY", "MODEL_ARMOR", "JAILBREAK"])
+def test_gemini_blocked_response_refuses_without_inventing_output(block_reason):
+    response = {"candidates": [], "prompt_feedback": {"block_reason": block_reason}, "usage_metadata": {}}
     adapter = Gemini("gemini", client=NS(models=NS(generate_content=lambda **_: response)), rate_card=CARD)
     decision = adapter.decide("input", QUESTIONS)
     assert decision.envelope.status == "incomplete"
@@ -121,7 +145,10 @@ def test_gemini_blocked_response_refuses_without_inventing_output():
     decision.envelope.validate()
 
 
-@pytest.mark.parametrize("finish_reason", ["SAFETY", "RECITATION", "BLOCKLIST", "PROHIBITED_CONTENT", "SPII"])
+@pytest.mark.parametrize(
+    "finish_reason",
+    ["SAFETY", "RECITATION", "BLOCKLIST", "PROHIBITED_CONTENT", "SPII", "MODEL_ARMOR", "IMAGE_RECITATION"],
+)
 def test_gemini_candidate_policy_refusal_overrides_returned_answers(finish_reason):
     response = {
         "candidates": [{"content": {"parts": [{"text": TEXT}]}, "finish_reason": NS(value=finish_reason)}],

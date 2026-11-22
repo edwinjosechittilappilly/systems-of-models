@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Mapping, Sequence
+from threading import Lock
+from weakref import WeakValueDictionary
 
 from som.gate import Gate, GateResult
 from som.systems import Input
@@ -20,18 +22,26 @@ class AsyncGate:
         if max_concurrency < 1:
             raise ValueError("max_concurrency must be positive")
         self.gate = gate
-        self._semaphore = asyncio.Semaphore(max_concurrency)
+        self._max_concurrency = max_concurrency
+        self._semaphores: WeakValueDictionary[asyncio.AbstractEventLoop, asyncio.Semaphore] = WeakValueDictionary()
+        self._semaphores_lock = Lock()
 
     async def __call__(self, input: Input, *, metadata: Mapping[str, str] | None = None) -> GateResult:
-        await self._semaphore.acquire()
+        loop = asyncio.get_running_loop()
+        with self._semaphores_lock:
+            semaphore = self._semaphores.get(loop)
+            if semaphore is None:
+                semaphore = asyncio.Semaphore(self._max_concurrency)
+                self._semaphores[loop] = semaphore
+        await semaphore.acquire()
         try:
             task = asyncio.create_task(asyncio.to_thread(self.gate, input, metadata=metadata))
         except BaseException:
-            self._semaphore.release()
+            semaphore.release()
             raise
 
         def release(completed: asyncio.Task[GateResult]) -> None:
-            self._semaphore.release()
+            semaphore.release()
             if not completed.cancelled():
                 completed.exception()
 

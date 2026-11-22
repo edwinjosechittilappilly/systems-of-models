@@ -88,7 +88,16 @@ class Gemini:
                 "SPII",
                 "IMAGE_SAFETY",
                 "IMAGE_PROHIBITED_CONTENT",
-            } or block_reason in {"SAFETY", "BLOCKLIST", "PROHIBITED_CONTENT", "IMAGE_SAFETY"}
+                "MODEL_ARMOR",
+                "IMAGE_RECITATION",
+            } or block_reason in {
+                "SAFETY",
+                "BLOCKLIST",
+                "PROHIBITED_CONTENT",
+                "IMAGE_SAFETY",
+                "MODEL_ARMOR",
+                "JAILBREAK",
+            }
             result = envelope(
                 system="s2.reasoning",
                 body=s2_body(text, parsed, reasoning_tokens=thoughts, effort=None),

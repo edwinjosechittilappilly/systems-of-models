@@ -1,5 +1,6 @@
 import asyncio
 import threading
+import time
 
 import pytest
 
@@ -98,3 +99,17 @@ def test_cancelled_call_holds_slot_until_worker_finishes():
             release.set()
 
     asyncio.run(exercise())
+
+
+def test_async_gate_can_be_reused_under_contention_across_event_loops():
+    def answer(_input, question):
+        time.sleep(0.03)
+        return ChoiceAnswer(question.name, "billing", {"billing": 1.0})
+
+    gate = AsyncGate(Gate(FunctionDecider(answer), make_gate().s2, QUESTION), max_concurrency=1)
+
+    async def exercise():
+        return await gate.batch(["one", "two", "three"])
+
+    for _ in range(2):
+        assert [result.value for result in asyncio.run(exercise())] == ["billing"] * 3

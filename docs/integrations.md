@@ -17,7 +17,11 @@ The result is a `GateResult`, including the served answer, decisions and cost. `
 
 ## MCP
 
-Install `systems-of-models[mcp]` and start the official FastMCP server:
+Install the official MCP SDK using the optional extra and start the server:
+
+```sh
+pip install 'systems-of-models[mcp]'
+```
 
 ```sh
 som mcp-serve --s1 typesafe:jev-1.14.0
@@ -33,3 +37,13 @@ Set the provider credentials in the environment. The `decide` tool accepts `inpu
 ```
 
 A tool call makes a provider request and may incur a charge. `SOM_S1` sets the default S1 model; `--s1` overrides it.
+
+## Native reasoning adapters
+
+Install `systems-of-models[anthropic]` or `systems-of-models[gemini]` to use
+`som.Anthropic(model)` or `som.Gemini(model)` as an S2 decider. Provider credentials
+must be configured for the respective SDK, or an initialized client can be passed
+as `client=`. Provider pricing is not built in: pass a verified `rate_card` to
+estimate cost, otherwise the envelope reports an unknown cost.
+
+See [wrap](wrap.md) for OpenAI client observability and its supported surfaces.

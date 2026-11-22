@@ -11,17 +11,18 @@ import secrets
 import threading
 import time
 import warnings
+import weakref
 from collections import OrderedDict
 from collections.abc import Mapping
 from contextlib import suppress
-from typing import Any
+from typing import Any, cast
 
 from som.adapters._common import envelope, price, s2_body
 from som.envelope import Cost, Envelope, SystemId, TraceRef, Usage
-from som.trace import TraceStore, annotate, span
+from som.trace import TraceStore, _otel, annotate
 
 _CACHE_SIZE = 1024
-_cache: OrderedDict[str, tuple[object, Envelope]] = OrderedDict()
+_cache: OrderedDict[str, tuple[weakref.ReferenceType[Any] | None, Envelope]] = OrderedDict()
 _lock = threading.Lock()
 
 
@@ -42,7 +43,7 @@ def envelope_of(response: object) -> Envelope | None:
                 _cache.move_to_end(response_id)
                 return _cache[response_id][1]
             for key, (observed, result) in reversed(_cache.items()):
-                if observed is response:
+                if observed is not None and observed() is response:
                     _cache.move_to_end(key)
                     return result
     except Exception:
@@ -50,12 +51,44 @@ def envelope_of(response: object) -> Envelope | None:
     return None
 
 
+class _Observation:
+    """A detached span: it never becomes the caller's current span."""
+
+    def __init__(self, model: Any) -> None:
+        self.started = time.perf_counter()
+        self.otel_span: Any = None
+        self.ref = TraceRef(trace_id=secrets.token_hex(16), span_id=secrets.token_hex(8))
+        if _otel is not None:
+            try:
+                current = _otel.get_current_span().get_span_context()
+                self.otel_span = _otel.get_tracer("systems-of-models").start_span(f"chat openai/{model}")
+                ids = self.otel_span.get_span_context()
+                if ids.is_valid:
+                    self.ref = TraceRef(trace_id=format(ids.trace_id, "032x"), span_id=format(ids.span_id, "016x"))
+                elif current.is_valid:
+                    self.ref = TraceRef(trace_id=format(current.trace_id, "032x"), span_id=self.ref.span_id)
+            except Exception:
+                pass
+
+    def end(self, result: Envelope | None = None) -> None:
+        if self.otel_span is not None:
+            try:
+                if result is not None:
+                    with _otel.use_span(self.otel_span, end_on_exit=False):
+                        annotate(result, "chat")
+            except Exception:
+                pass
+            finally:
+                with suppress(Exception):
+                    self.otel_span.end()
+
+
 def _record(
     target: object,
     response: Any,
     request: Mapping[str, Any],
     endpoint: str,
-    started: float,
+    observation: _Observation,
     store: TraceStore | None,
     incomplete: bool,
 ) -> None:
@@ -83,62 +116,71 @@ def _record(
                 cost = Cost.unknown(usage)
         response_id = _get(response, "id")
         status = _get(response, "status")
+        choices = _get(response, "choices") or ()
+        chat_incomplete = endpoint == "chat" and any(
+            _get(choice, "finish_reason") in ("length", "content_filter") for choice in choices
+        )
 
         def build(ref: TraceRef) -> Envelope:
             system: SystemId = "s2.reasoning"
             return envelope(
                 system=system,
-                body=s2_body("", None, reasoning_tokens=None, effort=None),
+                body=s2_body("", None, reasoning_tokens=usage.reasoning_tokens if usage else None, effort=None),
                 cost=cost,
-                latency_ms=(time.perf_counter() - started) * 1000,
+                latency_ms=(time.perf_counter() - observation.started) * 1000,
                 trace_ref=ref,
                 provider="openai",
                 model=model,
                 endpoint="POST /v1/chat/completions" if endpoint == "chat" else "POST /v1/responses",
-                status="incomplete" if incomplete or status in ("incomplete", "failed", "cancelled") else "completed",
+                status="incomplete"
+                if incomplete or chat_incomplete or status in ("incomplete", "failed", "cancelled")
+                else "completed",
                 response_id=response_id if isinstance(response_id, str) else None,
             )
 
-        result = None
-        try:
-            with span(f"chat openai/{model}") as ref:
-                result = build(ref)
-                with suppress(Exception):
-                    annotate(result, "chat")
-        except Exception:
-            pass
-        if result is None:
-            result = build(TraceRef(trace_id=secrets.token_hex(16), span_id=secrets.token_hex(8)))
+        result = build(observation.ref)
         key = response_id if isinstance(response_id, str) and response_id else result.id
+        observed: weakref.ReferenceType[Any] | None = None
+        if _get(target, "id") != key:
+            with suppress(TypeError):
+                observed = weakref.ref(target)
         with _lock:
-            _cache[key] = (target, result)
+            _cache[key] = (observed, result)
             _cache.move_to_end(key)
             while len(_cache) > _CACHE_SIZE:
                 _cache.popitem(last=False)
         if store is not None:
             with suppress(Exception):
                 store.add_envelope(result)
-        with suppress(Exception):
-            annotate(result, "chat")
+        observation.end(result)
     except Exception:
-        # A telemetry backend, malformed provider object or warning-as-error must
-        # never affect the application using the wrapped SDK.
-        pass
+        # Telemetry must never affect the provider's result or exception.
+        observation.end()
 
 
 class _Stream:
     def __init__(
-        self, stream: Any, request: Mapping[str, Any], endpoint: str, started: float, store: TraceStore | None
+        self,
+        stream: Any,
+        request: Mapping[str, Any],
+        endpoint: str,
+        observation: _Observation,
+        store: TraceStore | None,
     ) -> None:
         self._stream = stream
         self._request = request
         self._endpoint = endpoint
-        self._started = started
+        self._observation = observation
         self._store = store
         self._response: Any = None
         self._finished = False
         self._terminal = False
+        self._incomplete = False
         self._iterator: Any = None
+
+    @property  # type: ignore[misc]  # Proxy class is intentionally read-only.
+    def __class__(self) -> type:
+        return cast(type, self._stream.__class__)
 
     def __getattr__(self, name: str) -> Any:
         return getattr(self._stream, name)
@@ -152,6 +194,11 @@ class _Stream:
                 if event_type in ("response.completed", "response.incomplete", "response.failed"):
                     self._terminal = event_type == "response.completed"
             elif self._endpoint == "chat":
+                if any(
+                    _get(choice, "finish_reason") in ("length", "content_filter")
+                    for choice in (_get(event, "choices") or ())
+                ):
+                    self._incomplete = True
                 # The final usage chunk also carries the response id and model.
                 if self._response is None or _get(event, "usage") is not None:
                     self._response = event
@@ -163,7 +210,19 @@ class _Stream:
     def _finish(self, incomplete: bool) -> None:
         if not self._finished:
             self._finished = True
-            _record(self, self._response, self._request, self._endpoint, self._started, self._store, incomplete)
+            _record(
+                self,
+                self._response,
+                self._request,
+                self._endpoint,
+                self._observation,
+                self._store,
+                incomplete or self._incomplete,
+            )
+
+    def __del__(self) -> None:
+        with suppress(Exception):
+            self._finish(not self._terminal)
 
     def __iter__(self) -> _Stream:
         if self._iterator is None:
@@ -242,22 +301,50 @@ class _Resource:
     def __init__(self, resource: Any, store: TraceStore | None, endpoint: str) -> None:
         self._resource, self._store, self._endpoint = resource, store, endpoint
 
+    @property  # type: ignore[misc]  # Proxy class is intentionally read-only.
+    def __class__(self) -> type:
+        return cast(type, self._resource.__class__)
+
     def __getattr__(self, name: str) -> Any:
         return getattr(self._resource, name)
 
     def create(self, *args: Any, **kwargs: Any) -> Any:
-        started = time.perf_counter()
-        result = self._resource.create(*args, **kwargs)
-        if inspect.isawaitable(result):
+        create = self._resource.create
+        if inspect.iscoroutinefunction(inspect.unwrap(create)):
+            result = create(*args, **kwargs)
 
             async def observe() -> Any:
-                response = await result
-                return self._after(response, kwargs, started, asynchronous=True)
+                observation = _Observation(kwargs.get("model", "unknown"))
+                try:
+                    response = await result
+                except BaseException:
+                    observation.end()
+                    raise
+                return self._after(response, kwargs, observation, asynchronous=True)
 
             return observe()
-        return self._after(result, kwargs, started, asynchronous=False)
+        observation = _Observation(kwargs.get("model", "unknown"))
+        try:
+            result = create(*args, **kwargs)
+        except BaseException:
+            observation.end()
+            raise
+        if inspect.isawaitable(result):
 
-    def _after(self, response: Any, request: Mapping[str, Any], started: float, *, asynchronous: bool) -> Any:
+            async def observe_result() -> Any:
+                try:
+                    response = await result
+                except BaseException:
+                    observation.end()
+                    raise
+                return self._after(response, kwargs, observation, asynchronous=True)
+
+            return observe_result()
+        return self._after(result, kwargs, observation, asynchronous=False)
+
+    def _after(
+        self, response: Any, request: Mapping[str, Any], observation: _Observation, *, asynchronous: bool
+    ) -> Any:
         try:
             if request.get("stream"):
                 if self._endpoint == "chat" and not _get(request, "stream_options", "include_usage"):
@@ -266,10 +353,10 @@ class _Resource:
                             "Chat streams need stream_options={'include_usage': True} to report usage.", stacklevel=3
                         )
                 cls = _AsyncStream if asynchronous else _Stream
-                return cls(response, request, self._endpoint, started, self._store)
-            _record(response, response, request, self._endpoint, started, self._store, False)
+                return cls(response, request, self._endpoint, observation, self._store)
+            _record(response, response, request, self._endpoint, observation, self._store, False)
         except Exception:
-            pass
+            observation.end()
         return response
 
 
@@ -277,6 +364,10 @@ class _Chat:
     def __init__(self, chat: Any, store: TraceStore | None) -> None:
         self._chat = chat
         self.completions = _Resource(chat.completions, store, "chat")
+
+    @property  # type: ignore[misc]  # Proxy class is intentionally read-only.
+    def __class__(self) -> type:
+        return cast(type, self._chat.__class__)
 
     def __getattr__(self, name: str) -> Any:
         return getattr(self._chat, name)
@@ -287,6 +378,17 @@ class _Client:
         self._client = client
         self.responses = _Resource(client.responses, store, "responses")
         self.chat = _Chat(client.chat, store)
+        self._store = store
+
+    @property  # type: ignore[misc]  # Proxy class is intentionally read-only.
+    def __class__(self) -> type:
+        return cast(type, self._client.__class__)
+
+    def copy(self, *args: Any, **kwargs: Any) -> _Client:
+        return _Client(self._client.copy(*args, **kwargs), self._store)
+
+    def with_options(self, *args: Any, **kwargs: Any) -> _Client:
+        return _Client(self._client.with_options(*args, **kwargs), self._store)
 
     def __getattr__(self, name: str) -> Any:
         return getattr(self._client, name)

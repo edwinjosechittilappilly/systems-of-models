@@ -40,10 +40,12 @@ def test_breakeven_reports_conditional_cost_and_savings(capsys: pytest.CaptureFi
 
 
 def test_breakeven_rejects_invalid_cost() -> None:
-    with pytest.raises(ValueError, match="positive"):
+    with pytest.raises(SystemExit) as error:
         cli.main(["breakeven", "--c1", "0", "--c2", "0"])
-    with pytest.raises(SystemExit):
+    assert error.value.code == 2
+    with pytest.raises(SystemExit) as error:
         cli.main(["breakeven", "--c1", "nan", "--c2", "1"])
+    assert error.value.code == 2
 
 
 def test_ask_prints_s1_envelope(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
@@ -53,6 +55,22 @@ def test_ask_prints_s1_envelope(monkeypatch: pytest.MonkeyPatch, capsys: pytest.
     envelope = json.loads(capsys.readouterr().out)
     assert envelope["system"] == "s1.decision"
     assert envelope["body"]["answers"][0]["choice"] == "billing"
+
+
+def test_ask_rejects_bad_choice() -> None:
+    with pytest.raises(SystemExit) as error:
+        cli.main(["ask", "text", "--choice", "bad", "--s1", "typesafe:model"])
+    assert error.value.code == 2
+
+
+def test_ask_strips_choice_options(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    def answer(_input: Any, question: Any) -> ChoiceAnswer:
+        assert question.values == ["billing", "cards"]
+        return ChoiceAnswer(question.name, "billing", {"billing": 0.9, "cards": 0.1})
+
+    monkeypatch.setattr(cli, "configured_decider", lambda _spec: FunctionDecider(answer))
+    assert cli.main(["ask", "text", "--choice", "team=billing, cards", "--s1", "typesafe:model"]) == 0
+    assert json.loads(capsys.readouterr().out)["body"]["answers"][0]["choice"] == "billing"
 
 
 def test_demo_replays_recorded_gate_results(capsys: pytest.CaptureFixture[str]) -> None:
@@ -103,7 +121,52 @@ def test_mcp_rejects_duplicate_questions_and_choices() -> None:
 
 
 def test_mcp_server_exposes_decide_tool() -> None:
-    pytest.importorskip("mcp.server.fastmcp")
     system = FunctionDecider(lambda _input, q: PredicateAnswer(q.name, 0.5))
     tools = asyncio.run(create_server(system).list_tools())
     assert [tool.name for tool in tools] == ["decide"]
+    schema = tools[0].input_schema
+    questions = schema["properties"]["questions"]
+    assert questions["minItems"] == 1
+    assert questions["maxItems"] == 32
+    serialized = json.dumps(schema)
+    for field in ("predicate", "choice", "score", "instructions", "choices", "levels", "label", "description"):
+        assert field in serialized
+
+
+def test_mcp_server_validates_and_reports_actionable_errors() -> None:
+    from mcp.server.mcpserver.exceptions import ToolError
+
+    system = FunctionDecider(lambda _input, q: PredicateAnswer(q.name, 0.5))
+    server = create_server(system)
+    predicate = {"type": "predicate", "name": "p", "instructions": "Question?"}
+    with pytest.raises(ToolError, match="unique"):
+        asyncio.run(server.call_tool("decide", {"input": "text", "questions": [predicate, predicate]}))
+    choice = {
+        "type": "choice",
+        "name": "c",
+        "instructions": "Choose",
+        "choices": [{"value": "a"}, {"value": "a"}],
+    }
+    with pytest.raises(ToolError, match="distinct"):
+        asyncio.run(server.call_tool("decide", {"input": "text", "questions": [choice]}))
+    with pytest.raises(ToolError):
+        asyncio.run(server.call_tool("decide", {"input": "text", "questions": [predicate] * 33}))
+    with pytest.raises(ToolError):
+        asyncio.run(server.call_tool("decide", {"input": {"text": "x" * 65_536}, "questions": [predicate]}))
+    with pytest.raises(ToolError):
+        asyncio.run(server.call_tool("decide", {"input": "text", "questions": [{**choice, "choices": []}]}))
+
+
+def test_mcp_server_calls_real_tool() -> None:
+    system = FunctionDecider(lambda _input, q: PredicateAnswer(q.name, 0.85))
+    server = create_server(system)
+    result = asyncio.run(
+        server.call_tool(
+            "decide",
+            {
+                "input": "charged twice",
+                "questions": [{"type": "predicate", "name": "refund", "instructions": "Refund?"}],
+            },
+        )
+    )
+    assert result.structured_content["answers"]["refund"]["probability"] == 0.85

@@ -12,7 +12,7 @@ from importlib.resources import files
 from pathlib import Path
 
 from som import __version__, schemas
-from som.gate import breakeven_rate
+from som.gate import breakeven_rate, usage_weighted_breakeven
 from som.integrations.mcp import configured_decider, create_server
 from som.questions import Choice
 
@@ -36,6 +36,10 @@ def _cmd_validate(args: argparse.Namespace) -> int:
     return 1 if errors else 0
 
 
+class _CliError(ValueError):
+    """Invalid command-line arguments detected after parsing."""
+
+
 def _nonnegative(value: str) -> float:
     number = float(value)
     if not math.isfinite(number) or number < 0:
@@ -52,10 +56,10 @@ def _rate(value: str) -> float:
 
 def _cmd_breakeven(args: argparse.Namespace) -> int:
     if args.c2 == 0 or (args.escalated_c2 is not None and args.escalated_c2 == 0):
-        raise ValueError("System 2 costs must be positive")
+        raise _CliError("System 2 costs must be positive")
     list_rate = breakeven_rate(args.c1, args.c2)
     escalated = args.c2 if args.escalated_c2 is None else args.escalated_c2
-    weighted_rate = (args.c2 - args.c1 - args.overhead) / escalated
+    weighted_rate = usage_weighted_breakeven(args.c1, args.c2, escalated, overhead_per_request=args.overhead)
     print(f"List-price break-even escalation rate: {list_rate:.2%}")
     print(f"Usage-weighted break-even escalation rate: {weighted_rate:.2%}")
     if args.escalation_rate is not None:
@@ -67,10 +71,14 @@ def _cmd_breakeven(args: argparse.Namespace) -> int:
 
 def _cmd_ask(args: argparse.Namespace) -> int:
     name, separator, values = args.choice.partition("=")
-    options = values.split(",")
+    name = name.strip()
+    options = [option.strip() for option in values.split(",")]
     if not separator or not name or any(not option for option in options):
-        raise ValueError("--choice must be name=option1,option2,...")
-    question = Choice(name, f"Which {name} best fits the input?", options)
+        raise _CliError("--choice must be name=option1,option2,...")
+    try:
+        question = Choice(name, f"Which {name} best fits the input?", options)
+    except ValueError as error:
+        raise _CliError(str(error)) from error
     decision = configured_decider(args.s1).decide(args.text, [question])
     print(json.dumps(decision.envelope.to_dict(), ensure_ascii=False))
     return 0
@@ -144,8 +152,12 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
-    return int(args.func(args))
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    try:
+        return int(args.func(args))
+    except _CliError as error:
+        parser.error(str(error))
 
 
 if __name__ == "__main__":

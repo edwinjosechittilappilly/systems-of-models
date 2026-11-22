@@ -92,7 +92,9 @@ class Anthropic:
                 provider="anthropic",
                 model=returned,
                 endpoint="POST /v1/messages",
-                status="incomplete" if _get(response, "stop_reason") in ("max_tokens", "refusal") else "completed",
+                status="incomplete"
+                if _get(response, "stop_reason") in ("max_tokens", "refusal", "model_context_window_exceeded")
+                else "completed",
                 response_id=_get(response, "id"),
             )
             annotate(result, "chat")

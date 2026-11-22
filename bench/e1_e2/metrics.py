@@ -119,6 +119,6 @@ def paired_aurc_difference(probability, confidence, correct, *, resamples=2000, 
     p, c, y = np.asarray(probability, float), np.asarray(confidence, float), np.asarray(correct, bool)
     if not (len(p) == len(c) == len(y)) or not len(p):
         raise ValueError("Inputs must be nonempty and paired by item")
-    if not (np.isfinite(p).all() and np.isfinite(c).all()):
-        raise ValueError("Compare signals on the same items with observed values")
+    if np.isnan(p).any() or np.isnan(c).any() or np.isposinf(p).any() or np.isposinf(c).any():
+        raise ValueError("Signals must be finite or negative infinity for an unavailable answer")
     return bootstrap(lambda idx: aurc(p[idx], y[idx]) - aurc(c[idx], y[idx]), len(p), resamples=resamples, seed=seed)

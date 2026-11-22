@@ -3,6 +3,7 @@
 import numpy as np
 import pytest
 
+from bench.common.stats import risk_coverage
 from bench.e1_e2.metrics import cascade_sweep, choose_joint_threshold, choose_threshold, paired_aurc_difference
 
 
@@ -63,3 +64,13 @@ def test_missing_gate_signal_escalates_even_at_zero_threshold():
 def test_paired_aurc_identical_signals_have_zero_difference():
     point, low, high = paired_aurc_difference([0.2, 0.8, 0.5], [0.2, 0.8, 0.5], [False, True, True], resamples=30)
     assert (point, low, high) == (0.0, 0.0, 0.0)
+
+
+def test_paired_aurc_ranks_refusals_last_without_dropping_them():
+    point, low, high = paired_aurc_difference(
+        [0.9, -np.inf, 0.1], [0.9, -np.inf, 0.1], [True, False, False], resamples=30
+    )
+    assert (point, low, high) == (0.0, 0.0, 0.0)
+    coverage, risk = risk_coverage([0.9, -np.inf, 0.1], [True, False, False])
+    np.testing.assert_allclose(coverage, [1 / 3, 2 / 3, 1])
+    np.testing.assert_allclose(risk, [0, 0.5, 2 / 3])

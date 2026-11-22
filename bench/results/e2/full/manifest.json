@@ -138,6 +138,7 @@
     "openai": 8.632364,
     "typesafe": 0.0
   },
+  "som_git_sha": "c9c67108b537477477becde840398a66c482f3ee",
   "usage_weighted_cost_usd": {
     "banking77/decisions/calibration": 0.15163220000000002,
     "banking77/decisions/test": 0.30311920000000003,

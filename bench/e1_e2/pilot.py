@@ -18,6 +18,7 @@ import pandas as pd
 from bench.common.budget import Budget, BudgetExceeded
 from bench.common.cache import CachedDecider, JsonCache
 from bench.common.data import DATA_DIR, label_names, load
+from bench.e1_e2.legacy import ArchivedPredicate
 
 import som
 
@@ -56,7 +57,7 @@ def questions(dataset):
     ]
     if dataset == "clinc150":
         result.append(
-            som.Predicate(
+            ArchivedPredicate(
                 "fit",
                 "Does the request match one of the listed intents?",
                 true_means="The request matches a listed intent.",

@@ -44,7 +44,8 @@ def with_signals(frame):
 def plot_save(fig, root, name):
     fig.tight_layout()
     for ext in ("pdf", "png"):
-        fig.savefig(root / f"{name}.{ext}", dpi=180)
+        metadata = {"CreationDate": None} if ext == "pdf" else None
+        fig.savefig(root / f"{name}.{ext}", dpi=180, metadata=metadata)
     plt.close(fig)
 
 
@@ -164,6 +165,12 @@ def e1(raw, root):
                         else np.nan,
                         "s2_cost_all": float(teacher.cost.mean()),
                         "escalation_rate": float(escalate.mean()),
+                        "s1_served_predicted_oos": int(np.sum((~escalate) & (test.prediction == "oos")))
+                        if dataset == "clinc150" and not sensitivity
+                        else None,
+                        "s1_served_gold_oos_errors": int(np.sum((~escalate) & (test.gold == "oos") & ~test.correct))
+                        if dataset == "clinc150" and not sensitivity
+                        else None,
                     }
                 )
                 if metric == "top_probability" and not sensitivity:
@@ -194,10 +201,10 @@ def _choice_matrix(frame, labels):
     return np.array(valid), np.asarray(probabilities), np.asarray(gold, dtype=int)
 
 
-def score_items(frame, probabilities, labels, dataset, system, question, method):
+def score_items(frame, probabilities, labels, dataset, system, question, method, *, winner=None):
     """Keep sufficient per-item statistics to audit calibration metrics without huge vectors."""
     index = np.arange(len(labels))
-    winner = probabilities.argmax(axis=1)
+    winner = probabilities.argmax(axis=1) if winner is None else np.asarray(winner, dtype=int)
     p_gold = probabilities[index, labels]
     result = pd.DataFrame(
         {
@@ -235,10 +242,10 @@ def e2(raw, root):
             cal = with_signals(sub[sub.split == "calibration"])
             test = with_signals(sub[sub.split == "test"])
             for metric in ("top_probability", "confidence", "margin"):
-                valid = np.isfinite(test[metric].to_numpy(float))
-                if not valid.any():
-                    continue
-                signal, correct = test.loc[valid, metric].to_numpy(float), test.loc[valid, "correct"].to_numpy(bool)
+                observed = test[metric].to_numpy(float)
+                valid = np.isfinite(observed)
+                signal = np.where(valid, observed, -np.inf)
+                correct = test.correct.to_numpy(bool) & valid
                 coverage, risk = risk_coverage(signal, correct)
                 for c, r in zip(coverage, risk, strict=True):
                     curves.append({"dataset": dataset, "system": system, "metric": metric, "coverage": c, "risk": r})
@@ -249,26 +256,31 @@ def e2(raw, root):
                         "question": "gate",
                         "method": metric,
                         "n": len(correct),
+                        "n_missing_signals": int((~valid).sum()),
                         "aurc": aurc(signal, correct),
                     }
                 )
                 ax.plot(coverage, risk, label=f"{dataset} {system} {metric}")
-            valid = np.isfinite(test.top_probability.to_numpy(float)) & np.isfinite(test.confidence.to_numpy(float))
-            if valid.any():
-                point, low, high = paired_aurc_difference(
-                    test.loc[valid, "top_probability"], test.loc[valid, "confidence"], test.loc[valid, "correct"]
-                )
-                differences.append(
-                    {
-                        "dataset": dataset,
-                        "system": system,
-                        "n": int(valid.sum()),
-                        "difference": point,
-                        "ci_low": low,
-                        "ci_high": high,
-                        "h2_pass": high < 0,
-                    }
-                )
+            p = test.top_probability.to_numpy(float)
+            c = test.confidence.to_numpy(float)
+            valid = np.isfinite(p) & np.isfinite(c)
+            point, low, high = paired_aurc_difference(
+                np.where(valid, p, -np.inf),
+                np.where(valid, c, -np.inf),
+                test.correct.to_numpy(bool) & valid,
+            )
+            differences.append(
+                {
+                    "dataset": dataset,
+                    "system": system,
+                    "n": len(test),
+                    "n_missing_signals": int((~valid).sum()),
+                    "difference": point,
+                    "ci_low": low,
+                    "ci_high": high,
+                    "h2_pass": high < 0,
+                }
+            )
             ci, cp, cy = _choice_matrix(cal, labels)
             ti, tp, ty = _choice_matrix(test, labels)
             if len(ci) and len(ti):
@@ -280,7 +292,7 @@ def e2(raw, root):
                     "isotonic": apply_isotonic(tp, isotonic),
                 }
                 for name, p in variants.items():
-                    winner = p.argmax(axis=1)
+                    winner = tp.argmax(axis=1) if name == "isotonic" else p.argmax(axis=1)
                     conf, correct = p[np.arange(len(p)), winner], winner == ty
                     scores.append(
                         {
@@ -295,7 +307,9 @@ def e2(raw, root):
                             "temperature": temp if name == "temperature" else np.nan,
                         }
                     )
-                    scored_items.append(score_items(test.iloc[ti], p, ty, dataset, system, "choice_in_scope", name))
+                    scored_items.append(
+                        score_items(test.iloc[ti], p, ty, dataset, system, "choice_in_scope", name, winner=winner)
+                    )
                     if name == "raw":
                         for group in np.array_split(np.argsort(conf, kind="stable"), min(15, len(conf))):
                             reliability.append(
@@ -330,7 +344,7 @@ def e2(raw, root):
                         ("temperature", apply_temperature(tp, temp)),
                         ("isotonic", apply_isotonic(tp, iso)),
                     ):
-                        winner = p.argmax(axis=1)
+                        winner = tp.argmax(axis=1) if name == "isotonic" else p.argmax(axis=1)
                         conf = p[np.arange(len(p)), winner]
                         scores.append(
                             {
@@ -342,10 +356,13 @@ def e2(raw, root):
                                 "ece": ece(conf, winner == ty),
                                 "brier": brier(p, ty),
                                 "nll": nll(p, ty),
+                                "temperature": temp if name == "temperature" else np.nan,
                                 "oos_auroc": auroc(p[:, 0], ty == 0) if len(set(ty)) == 2 else np.nan,
                             }
                         )
-                        scored_items.append(score_items(tfit, p, ty, dataset, system, "fit_predicate", name))
+                        scored_items.append(
+                            score_items(tfit, p, ty, dataset, system, "fit_predicate", name, winner=winner)
+                        )
     pd.DataFrame(scores).to_csv(root / "metrics.csv", index=False, lineterminator="\n")
     pd.DataFrame(differences).to_csv(root / "h2.csv", index=False, lineterminator="\n")
     for (dataset, system, metric), group in pd.DataFrame(curves).groupby(["dataset", "system", "metric"]):
@@ -373,6 +390,7 @@ def analyse(raw, budget, cache_stats, *, mode):
     scores, diffs = e2(raw, roots[1])
     manifest = {
         "models": {f"{d}/{s}": list(g.model.unique()) for (d, s), g in raw.groupby(["dataset", "system"])},
+        "som_git_sha": "c9c67108b537477477becde840398a66c482f3ee",
         "data_sha256": json.loads((DATA_DIR / "CHECKSUMS.json").read_text()),
         "counts": raw.groupby(["dataset", "system", "split"]).size().to_dict(),
         "usage_weighted_cost_usd": raw.groupby(["dataset", "system", "split"]).cost.sum().to_dict(),
@@ -386,6 +404,10 @@ def analyse(raw, budget, cache_stats, *, mode):
         path = root / "manifest.json"
         if mode != "replay" or not path.exists():
             path.write_text(json.dumps(manifest, indent=2, sort_keys=True, default=str) + "\n")
+        else:
+            existing = json.loads(path.read_text())
+            existing["som_git_sha"] = manifest["som_git_sha"]
+            path.write_text(json.dumps(existing, indent=2, sort_keys=True, default=str) + "\n")
     notes = (
         "\n\nBanking77 and CLINC choice-only sensitivity threshold rule: "
         + RULE
@@ -404,6 +426,9 @@ def analyse(raw, budget, cache_stats, *, mode):
         "The original CLINC fit question referred to a list it could not see because Jev evaluates questions "
         "independently. That predicate is invalid: only its accompanying Choice answers may be reused. "
         "We reran the S1 predicates with the full intent list, and reran S2 with Choice and corrected predicate. "
+        "The archived fit prompt did not include the true/false criteria in its contract instructions: "
+        "Jev received the criteria separately, while OpenAI did not. The gpt-6-luna legacy Choice answers "
+        "came from the same request as the invalid predicate. "
         "For CLINC, both thresholds are selected jointly on calibration to maximize served coverage subject to "
         "selective accuracy >= A2 - 0.01; ties choose smallest choice threshold then smallest fit threshold. "
         "The grid comprises observed calibration signal values, without interpolation; test cost uses the "
@@ -442,9 +467,27 @@ def analyse(raw, budget, cache_stats, *, mode):
         + (", ".join(fallbacks) if fallbacks else "none")
         + "."
     )
+    clinc_primary = [
+        x
+        for x in selected
+        if x["dataset"] == "clinc150" and x["metric"] == "top_probability" and x["gate_policy"] == "fit_and_choice"
+    ]
+    oos_notes = "\n".join(
+        f"- {x['system']}: {x['s1_served_predicted_oos']} S1-served OOS predictions; "
+        f"{x['s1_served_gold_oos_errors']} gold OOS items served by S1 were wrong."
+        for x in clinc_primary
+    )
+    finding += (
+        "\n\nAt the selected CLINC fit thresholds, S1 never serves an OOS prediction; all its OOS "
+        "judgements escalate:\n"
+        + oos_notes
+        + "\nCLINC calibration contains 100/3100 OOS items (3.2%) versus 1000/5500 (18.2%) in test; "
+        "calibration and test coverage are not directly comparable."
+    )
     h2_note = (
-        "\n\nSurprise: probability and vendor confidence produced identical AURCs on all four paired "
-        "comparisons; H2 is not supported."
+        "\n\nVendor confidence is a strictly monotone function of top probability on all observed values, "
+        "so the identical AURCs are by construction; H2 is not supported. Refusals and unavailable signals "
+        "are assigned negative infinity, ranked last and counted as errors in both paired curves."
         if diffs and all(x["difference"] == 0 for x in diffs)
         else ""
     )

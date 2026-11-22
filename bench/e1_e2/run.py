@@ -97,7 +97,7 @@ def baseline(mode, raw):
         group.to_csv(root / f"supervised_sweep_{dataset}_{metric}.csv", index=False, lineterminator="\n")
     with (root / "ANALYSIS.md").open("a") as handle:
         handle.write(
-            "\n\n## Supervised embedding ceiling\n\n"
+            "\n## Supervised embedding ceiling\n\n"
             + pd.DataFrame(summaries).to_string(index=False)
             + "\n\nThe classifier is trained on train data excluding Banking77 calibration; "
             "CLINC uses its train split. "

@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 from bench.common.data import label_names
+from bench.e1_e2.legacy import ArchivedPredicate
 from bench.e1_e2.pilot import questions
-
-import som
 
 
 def clinc_fit(system):
@@ -14,7 +13,7 @@ def clinc_fit(system):
         instructions = {"question": "Does the request match any of these intents?", "intents": intents}
     else:
         instructions = "Does the request match any of these intents? " + "; ".join(intents)
-    return som.Predicate(
+    return ArchivedPredicate(
         "fit",
         instructions,
         true_means="The request matches a listed intent.",

@@ -21,7 +21,7 @@ def apply_temperature(probabilities, temperature):
     if not np.isfinite(temperature) or temperature <= 0:
         raise ValueError("Temperature must be positive")
     p = _probabilities(probabilities)
-    logits = np.log(np.clip(p, 1e-12, 1)) / temperature
+    logits = np.log(np.clip(p, 1e-6, 1)) / temperature
     logits -= logits.max(axis=1, keepdims=True)
     weights = np.exp(logits)
     return weights / weights.sum(axis=1, keepdims=True)
@@ -36,7 +36,7 @@ def fit_temperature(probabilities, labels):
 
     def loss(log_temperature):
         calibrated = apply_temperature(p, np.exp(log_temperature))
-        return -np.log(np.clip(calibrated[np.arange(len(p)), labels], 1e-12, 1)).mean()
+        return -np.log(np.clip(calibrated[np.arange(len(p)), labels], 1e-6, 1)).mean()
 
     result = minimize_scalar(loss, bounds=(-6, 6), method="bounded")
     if not result.success:

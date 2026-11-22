@@ -113,3 +113,11 @@ def instances(episode: Episode, candidate: Candidate) -> list[dict[str, Any]]:
         if turn.role == "assistant":
             prior_calls.extend(turn.tool_calls)
     return rows
+
+
+def user_tools_only(state: dict[str, Any]) -> dict[str, Any]:
+    """Remove assistant transcript text while retaining the identical bounded tool results."""
+    return {
+        "transcript": [message for message in state["transcript"] if message["role"] == "user"],
+        "tool_results": state["tool_results"],
+    }

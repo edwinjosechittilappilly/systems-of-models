@@ -44,6 +44,41 @@ retail/cancel_pending_order.reason (gold),0.9882352941176471,0.02777777777777777
 retail/cancel_pending_order.reason (gold),0.9921568627450981,0.02766798418972332
 retail/cancel_pending_order.reason (gold),0.996078431372549,0.027559055118110236
 retail/cancel_pending_order.reason (gold),1.0,0.027450980392156862
+retail/cancel_pending_order.reason (user-and-tools-only),0.7721518987341772,0.0
+retail/cancel_pending_order.reason (user-and-tools-only),0.8164556962025317,0.0
+retail/cancel_pending_order.reason (user-and-tools-only),0.8259493670886076,0.0
+retail/cancel_pending_order.reason (user-and-tools-only),0.8291139240506329,0.0
+retail/cancel_pending_order.reason (user-and-tools-only),0.8354430379746836,0.0
+retail/cancel_pending_order.reason (user-and-tools-only),0.8449367088607594,0.0
+retail/cancel_pending_order.reason (user-and-tools-only),0.8481012658227848,0.0
+retail/cancel_pending_order.reason (user-and-tools-only),0.8544303797468354,0.0
+retail/cancel_pending_order.reason (user-and-tools-only),0.8607594936708861,0.003676470588235294
+retail/cancel_pending_order.reason (user-and-tools-only),0.8734177215189873,0.0036231884057971015
+retail/cancel_pending_order.reason (user-and-tools-only),0.8765822784810127,0.0036101083032490976
+retail/cancel_pending_order.reason (user-and-tools-only),0.8829113924050633,0.007168458781362007
+retail/cancel_pending_order.reason (user-and-tools-only),0.8860759493670886,0.007142857142857143
+retail/cancel_pending_order.reason (user-and-tools-only),0.8924050632911392,0.014184397163120567
+retail/cancel_pending_order.reason (user-and-tools-only),0.8987341772151899,0.017605633802816902
+retail/cancel_pending_order.reason (user-and-tools-only),0.9018987341772152,0.017543859649122806
+retail/cancel_pending_order.reason (user-and-tools-only),0.9050632911392406,0.02097902097902098
+retail/cancel_pending_order.reason (user-and-tools-only),0.9113924050632911,0.024305555555555556
+retail/cancel_pending_order.reason (user-and-tools-only),0.9145569620253164,0.02422145328719723
+retail/cancel_pending_order.reason (user-and-tools-only),0.9240506329113924,0.023972602739726026
+retail/cancel_pending_order.reason (user-and-tools-only),0.930379746835443,0.027210884353741496
+retail/cancel_pending_order.reason (user-and-tools-only),0.9367088607594937,0.033783783783783786
+retail/cancel_pending_order.reason (user-and-tools-only),0.9430379746835443,0.03691275167785235
+retail/cancel_pending_order.reason (user-and-tools-only),0.9493670886075949,0.03666666666666667
+retail/cancel_pending_order.reason (user-and-tools-only),0.9525316455696202,0.036544850498338874
+retail/cancel_pending_order.reason (user-and-tools-only),0.9556962025316456,0.03642384105960265
+retail/cancel_pending_order.reason (user-and-tools-only),0.9620253164556962,0.039473684210526314
+retail/cancel_pending_order.reason (user-and-tools-only),0.9651898734177216,0.04262295081967213
+retail/cancel_pending_order.reason (user-and-tools-only),0.9746835443037974,0.045454545454545456
+retail/cancel_pending_order.reason (user-and-tools-only),0.9778481012658228,0.045307443365695796
+retail/cancel_pending_order.reason (user-and-tools-only),0.9810126582278481,0.04516129032258064
+retail/cancel_pending_order.reason (user-and-tools-only),0.990506329113924,0.051118210862619806
+retail/cancel_pending_order.reason (user-and-tools-only),0.9936708860759493,0.050955414012738856
+retail/cancel_pending_order.reason (user-and-tools-only),0.9968354430379747,0.05396825396825397
+retail/cancel_pending_order.reason (user-and-tools-only),1.0,0.05379746835443038
 airline/book_reservation.flight_type,0.8739495798319328,0.0
 airline/book_reservation.flight_type,0.9831932773109243,0.0
 airline/book_reservation.flight_type,0.9915966386554622,0.0
@@ -52,6 +87,13 @@ airline/book_reservation.flight_type (gold),0.8543689320388349,0.0
 airline/book_reservation.flight_type (gold),0.9805825242718447,0.0
 airline/book_reservation.flight_type (gold),0.9902912621359223,0.0
 airline/book_reservation.flight_type (gold),1.0,0.0
+airline/book_reservation.flight_type (user-and-tools-only),0.773109243697479,0.0
+airline/book_reservation.flight_type (user-and-tools-only),0.9159663865546218,0.0
+airline/book_reservation.flight_type (user-and-tools-only),0.9411764705882353,0.0
+airline/book_reservation.flight_type (user-and-tools-only),0.9747899159663865,0.0
+airline/book_reservation.flight_type (user-and-tools-only),0.9831932773109243,0.0
+airline/book_reservation.flight_type (user-and-tools-only),0.9915966386554622,0.0
+airline/book_reservation.flight_type (user-and-tools-only),1.0,0.0
 pooled,0.8160919540229885,0.0
 pooled,0.8758620689655172,0.0
 pooled,0.8919540229885058,0.002577319587628866

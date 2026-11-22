@@ -1,7 +1,7 @@
 """Offline examples of tau2 trace conversion and decision extraction."""
 
 from bench.e3b.data import Episode, ToolCall, Turn
-from bench.e3b.extract import instances, to_trace
+from bench.e3b.extract import instances, to_trace, user_tools_only
 from som.compile import Candidate
 
 
@@ -116,3 +116,14 @@ def test_state_bounds_old_context_and_large_values_without_exposing_future():
     assert len(row["state"]["transcript"]) == 20
     assert all(len(message["content"]) <= 2000 for message in row["state"]["transcript"])
     assert len(row["state"]["tool_results"][0]["result"]["truncated_json"]) == 2000
+
+
+def test_user_tools_only_removes_assistant_text_without_changing_tools_or_original():
+    state = instances(episode(), Candidate("tool_argument", "change.mode", "change", "mode"))[0]["state"]
+    ablated = user_tools_only(state)
+    assert ablated["transcript"] == [
+        {"role": "user", "content": "Please help"},
+        {"role": "user", "content": "Please cancel"},
+    ]
+    assert ablated["tool_results"] == state["tool_results"]
+    assert len(state["transcript"]) == 3

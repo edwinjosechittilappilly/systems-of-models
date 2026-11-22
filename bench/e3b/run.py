@@ -22,7 +22,7 @@ from bench.common.budget import Budget, BudgetExceeded
 from bench.common.cache import CacheMiss, JsonCache, answer_from_dict, answer_to_dict
 from bench.common.manifest import Manifest
 from bench.e3b.data import COMMIT, DOMAINS, MODELS, fetch, file_name, load
-from bench.e3b.extract import instances, to_trace
+from bench.e3b.extract import instances, to_trace, user_tools_only
 from bench.e3b.metrics import (
     aurc,
     aurc_cluster_bootstrap,
@@ -228,6 +228,8 @@ def run(mode: str) -> None:
     discovery_rows: list[dict[str, Any]] = []
     questions: list[dict[str, Any]] = []
     all_rows: list[dict[str, Any]] = []
+    ablation_rows: list[dict[str, Any]] = []
+    ablation_summaries: list[dict[str, Any]] = []
     summaries: list[dict[str, Any]] = []
     failures: list[str] = []
     curves: list[tuple[str, Any, Any]] = []
@@ -311,6 +313,7 @@ def run(mode: str) -> None:
             for row in eval_rows:
                 row["threshold"] = threshold if math.isfinite(threshold) else None
                 row["served"] = row["signal"] is not None and row["signal"] >= threshold
+                row["state_variant"] = "full"
                 row["majority"] = majority
             all_rows.extend(eval_rows)
             valid = [r for r in eval_rows if r["prediction"] is not None and r["signal"] is not None]
@@ -362,6 +365,80 @@ def run(mode: str) -> None:
             summaries[-1]["threshold_gold_n"] = len(served_gold)
             summaries[-1]["threshold_gold_risk"] = gold_errors / len(served_gold) if served_gold else None
             summaries[-1]["threshold_gold_risk_ci"] = wilson(gold_errors, len(served_gold))
+            summaries[-1]["state_variant"] = "full"
+            # Post-hoc ablation: the same task slice, questions and threshold rule.
+            ablated_cal = [{**row, "state": user_tools_only(row["state"])} for row in calibration_rows]
+            ablated_eval = [{**row, "state": user_tools_only(row["state"])} for row in eval_rows]
+            for row in ablated_cal + ablated_eval:
+                result = calls.decide(row["state"], question)
+                answer = answer_from_dict(result["answer"]) if "answer" in result else None
+                row["prediction"] = answer.value if answer else None
+                row["signal"] = answer.top_probability if answer else None
+                row["error"] = (
+                    result.get("error", "") if answer is None else ("refusal" if answer.value is None else "")
+                )
+                row["state_variant"] = "user-and-tools-only"
+            valid_cal_ablated = [r for r in ablated_cal if r["prediction"] is not None and r["signal"] is not None]
+            tau_ablated = calibrate_threshold(
+                [r["signal"] for r in valid_cal_ablated],
+                [r["prediction"] == r["teacher"] for r in valid_cal_ablated],
+            )
+            for row in ablated_eval:
+                row["threshold"] = tau_ablated if math.isfinite(tau_ablated) else None
+                row["served"] = row["signal"] is not None and row["signal"] >= tau_ablated
+            ablation_rows.extend(ablated_eval)
+            valid_ablated = [r for r in ablated_eval if r["prediction"] is not None and r["signal"] is not None]
+            confidence_ablated = [r["signal"] for r in valid_ablated]
+            correct_ablated = [r["prediction"] == r["teacher"] for r in valid_ablated]
+            coverage_ablated, risk_ablated = risk_coverage(confidence_ablated, correct_ablated)
+            if len(coverage_ablated):
+                curves.append((f"{label} (user-and-tools-only)", coverage_ablated, risk_ablated))
+            served_ablated = [r for r in ablated_eval if r["served"]]
+            errors_ablated = sum(r["prediction"] != r["teacher"] for r in served_ablated)
+            gold_served_ablated = [r for r in served_ablated if r["gold"] is not None]
+            gold_errors_ablated = sum(r["prediction"] != r["gold"] for r in gold_served_ablated)
+            gold_valid_ablated = [r for r in valid_ablated if r["gold"] is not None]
+            summary_ablated = summary_metrics(
+                [r["prediction"] for r in ablated_eval],
+                [r["teacher"] for r in ablated_eval],
+                [r["gold"] for r in ablated_eval],
+                [f"{domain}/{r['task_id']}" for r in ablated_eval],
+                training_majority=majority,
+            )
+            ablation_summaries.append(
+                _flatten_summary(
+                    {
+                        "domain": domain,
+                        "candidate": candidate.name,
+                        "state_variant": "user-and-tools-only",
+                        "calibration_n": len(valid_cal_ablated),
+                        "threshold": tau_ablated if math.isfinite(tau_ablated) else None,
+                        "threshold_coverage": len(served_ablated) / len(ablated_eval) if ablated_eval else None,
+                        "threshold_coverage_ci": wilson(len(served_ablated), len(ablated_eval)),
+                        "threshold_risk": errors_ablated / len(served_ablated) if served_ablated else None,
+                        "threshold_risk_ci": wilson(errors_ablated, len(served_ablated)),
+                        "threshold_gold_n": len(gold_served_ablated),
+                        "threshold_gold_risk": gold_errors_ablated / len(gold_served_ablated)
+                        if gold_served_ablated
+                        else None,
+                        "threshold_gold_risk_ci": wilson(gold_errors_ablated, len(gold_served_ablated)),
+                        "aurc": aurc(confidence_ablated, correct_ablated),
+                        "aurc_ci": aurc_cluster_bootstrap(
+                            confidence_ablated, correct_ablated, [f"{domain}/{r['task_id']}" for r in valid_ablated]
+                        ),
+                        "gold_aurc": aurc(
+                            [r["signal"] for r in gold_valid_ablated],
+                            [r["prediction"] == r["gold"] for r in gold_valid_ablated],
+                        ),
+                        "gold_aurc_ci": aurc_cluster_bootstrap(
+                            [r["signal"] for r in gold_valid_ablated],
+                            [r["prediction"] == r["gold"] for r in gold_valid_ablated],
+                            [f"{domain}/{r['task_id']}" for r in gold_valid_ablated],
+                        ),
+                    },
+                    summary_ablated,
+                )
+            )
     totals = {key: sum(row[key] for row in discovery_rows) for key in ("candidates", "tp", "fp", "fn")}
     totals["precision"] = totals["tp"] / (totals["tp"] + totals["fp"]) if totals["tp"] + totals["fp"] else float("nan")
     totals["recall"] = totals["tp"] / (totals["tp"] + totals["fn"]) if totals["tp"] + totals["fn"] else float("nan")
@@ -427,6 +504,9 @@ def run(mode: str) -> None:
                 pooled,
             )
         )
+        summaries[-1]["state_variant"] = "full"
+    summaries.extend(ablation_summaries)
+    summaries.sort(key=lambda r: (r["domain"] == "pooled", r["domain"], r["candidate"], r["state_variant"]))
     curve_rows = [
         {"decision": label, "coverage": float(x), "risk": float(y)}
         for label, coverage, risk in curves
@@ -437,9 +517,10 @@ def run(mode: str) -> None:
     csv_write(directory / "discovery.csv", discovery_rows)
     csv_write(
         directory / "instances.csv",
-        all_rows,
+        all_rows + ablation_rows,
         fields=[
             "domain",
+            "state_variant",
             "candidate",
             "episode_id",
             "model",
@@ -480,6 +561,7 @@ def run(mode: str) -> None:
         "candidates": len(mining_rows),
         "questions": len(questions),
         "instances": len(all_rows),
+        "ablation_instances": len(ablation_rows),
         "failures": len(failures),
     }
     manifest.cost_usd = dict(calls.costs)
@@ -514,7 +596,7 @@ def run(mode: str) -> None:
         "## Evaluation",
         "",
         *[
-            f"- {r['domain']}/{r['candidate']}: n={r['n']}; teacher accuracy "
+            f"- {r['domain']}/{r['candidate']} ({r['state_variant']} state): n={r['n']}; teacher accuracy "
             f"{r['teacher_accuracy']:.3f} (Wilson {r['teacher_wilson_ci']}, "
             f"task-bootstrap {r['teacher_cluster_bootstrap_ci']}); gold accuracy "
             f"{r['gold_accuracy']:.3f} (n={r['gold_n']}, Wilson {r['gold_wilson_ci']}, "
@@ -524,6 +606,23 @@ def run(mode: str) -> None:
             f"served error {r['threshold_risk']}."
             for r in summaries
         ],
+        "",
+        "## Written questions",
+        "",
+        "| Decision | Instructions | Options |",
+        "|---|---|---|",
+        *[
+            f"| {q['domain']}/{q['candidate']} | "
+            f"{q['question']['instructions'].replace('|', ' / ')} | "
+            f"{', '.join(str(choice['value']).replace('|', ' / ') for choice in q['question'].get('choices', []))} |"
+            for q in questions
+            if "question" in q
+            and any(r["domain"] == q["domain"] and r["candidate"] == q["candidate"] for r in ablation_summaries)
+        ],
+        "",
+        "The user-and-tools-only state is a post-hoc ablation: assistant transcript messages are removed "
+        "from the same bounded prefix, tool results are unchanged, and the same calibration tasks and error rule "
+        "are used to select a new threshold for that state.",
         "",
         "## Failures and limitations",
         "",

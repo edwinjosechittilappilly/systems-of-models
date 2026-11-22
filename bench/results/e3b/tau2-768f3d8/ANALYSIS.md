@@ -8,9 +8,20 @@
 
 ## Evaluation
 
-- retail/cancel_pending_order.reason: n=316; teacher accuracy 0.959 (Wilson (0.9308963457270263, 0.975802870407354), task-bootstrap (0.8958288043478261, 1.0)); gold accuracy 0.973 (n=255, Wilson (0.944431452164825, 0.98664041359431), task-bootstrap (0.9212876043039087, 1.0)); majority teacher 0.750; AURC 0.003 (task-bootstrap (0.0, 0.014227732363409459)); calibrated coverage 0.9683544303797469, served error 0.026143790849673203.
-- airline/book_reservation.flight_type: n=119; teacher accuracy 1.000 (Wilson (0.9687283197580606, 1.0), task-bootstrap (1.0, 1.0)); gold accuracy 1.000 (n=103, Wilson (0.964045241771352, 1.0), task-bootstrap (1.0, 1.0)); majority teacher 0.395; AURC 0.000 (task-bootstrap (0.0, 0.0)); calibrated coverage 0.8739495798319328, served error 0.0.
-- pooled/all: n=435; teacher accuracy 0.970 (Wilson (0.9495461582509453, 0.982453295718405), task-bootstrap (0.9215140075820858, 1.0)); gold accuracy 0.980 (n=358, Wilson (0.9601956937304009, 0.9904969138031786), task-bootstrap (0.9442721920519718, 1.0)); majority teacher 0.653; AURC 0.001 (task-bootstrap (0.0, 0.007515276021030582)); calibrated coverage 0.9425287356321839, served error 0.01951219512195122.
+- airline/book_reservation.flight_type (full state): n=119; teacher accuracy 1.000 (Wilson (0.9687283197580606, 1.0), task-bootstrap (1.0, 1.0)); gold accuracy 1.000 (n=103, Wilson (0.964045241771352, 1.0), task-bootstrap (1.0, 1.0)); majority teacher 0.395; AURC 0.000 (task-bootstrap (0.0, 0.0)); calibrated coverage 0.8739495798319328, served error 0.0.
+- airline/book_reservation.flight_type (user-and-tools-only state): n=119; teacher accuracy 1.000 (Wilson (0.9687283197580606, 1.0), task-bootstrap (1.0, 1.0)); gold accuracy 1.000 (n=103, Wilson (0.964045241771352, 1.0), task-bootstrap (1.0, 1.0)); majority teacher 0.395; AURC 0.000 (task-bootstrap (0.0, 0.0)); calibrated coverage 0.773109243697479, served error 0.0.
+- retail/cancel_pending_order.reason (full state): n=316; teacher accuracy 0.959 (Wilson (0.9308963457270263, 0.975802870407354), task-bootstrap (0.8958288043478261, 1.0)); gold accuracy 0.973 (n=255, Wilson (0.944431452164825, 0.98664041359431), task-bootstrap (0.9212876043039087, 1.0)); majority teacher 0.750; AURC 0.003 (task-bootstrap (0.0, 0.014227732363409459)); calibrated coverage 0.9683544303797469, served error 0.026143790849673203.
+- retail/cancel_pending_order.reason (user-and-tools-only state): n=316; teacher accuracy 0.946 (Wilson (0.9155433184757538, 0.9661435054894023), task-bootstrap (0.8743783371472159, 0.9969230769230769)); gold accuracy 0.973 (n=255, Wilson (0.944431452164825, 0.98664041359431), task-bootstrap (0.9212876043039087, 1.0)); majority teacher 0.750; AURC 0.004 (task-bootstrap (0.00011595429240439212, 0.02095908834926149)); calibrated coverage 0.9936708860759493, served error 0.050955414012738856.
+- pooled/all (full state): n=435; teacher accuracy 0.970 (Wilson (0.9495461582509453, 0.982453295718405), task-bootstrap (0.9215140075820858, 1.0)); gold accuracy 0.980 (n=358, Wilson (0.9601956937304009, 0.9904969138031786), task-bootstrap (0.9442721920519718, 1.0)); majority teacher 0.653; AURC 0.001 (task-bootstrap (0.0, 0.007515276021030582)); calibrated coverage 0.9425287356321839, served error 0.01951219512195122.
+
+## Written questions
+
+| Decision | Instructions | Options |
+|---|---|---|
+| retail/cancel_pending_order.reason | Identify the reason for the requested cancellation from the conversation. Use the customer's stated or confirmed reason; if none is stated, predict based on context. | no longer needed, ordered by mistake |
+| airline/book_reservation.flight_type | Classify the flight itinerary relevant to the current request as "round_trip" if it includes outbound and return travel, or "one_way" if it travels in one direction without a return. Connecting flights do not by themselves make a trip round-trip. | one_way, round_trip |
+
+The user-and-tools-only state is a post-hoc ablation: assistant transcript messages are removed from the same bounded prefix, tool results are unchanged, and the same calibration tasks and error rule are used to select a new threshold for that state.
 
 ## Failures and limitations
 

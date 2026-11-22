@@ -2,6 +2,7 @@
 
 import pandas as pd
 import pytest
+
 from bench.common.labels import BANKING77, CLINC150
 from bench.tasks.policy import generate_policy
 from bench.tasks.streams import (

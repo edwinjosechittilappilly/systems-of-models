@@ -88,11 +88,15 @@ class Agent:
         client: Any = None,
         max_steps: int = 8,
         instructions: str = PROMPT,
+        sample: int = 0,
     ) -> None:
         self.model, self.cache, self.budget, self.store = model, cache, budget, store
         self.client = client or OpenAI(max_retries=0)
         self.max_steps = max_steps
         self.actual_model: str | None = None
+        if sample < 0:
+            raise ValueError("sample must be nonnegative")
+        self.sample = sample
         self.instructions = instructions
 
     def run(self, text: str, env: SupportEnvironment) -> Envelope:
@@ -114,7 +118,7 @@ class Agent:
             }
             new_cost: list[float | None] = []
 
-            def call(payload: dict[str, Any] = payload) -> dict[str, Any]:
+            def call(payload: dict[str, Any] = payload, new_cost: list[float | None] = new_cost) -> dict[str, Any]:
                 # Reserve headroom before each paid request.
                 if self.budget.spent.get("openai", 0.0) + 1.0 > self.budget.caps["openai"]:
                     raise RuntimeError("OpenAI budget reserve exhausted")
@@ -134,7 +138,8 @@ class Agent:
                     new_cost.append(None)
                 return {"response": data, "latency_ms": elapsed}
 
-            recorded = self.cache.get_or_call(payload, call)
+            cache_key = payload if self.sample == 0 else {"sample": self.sample, "request": payload}
+            recorded = self.cache.get_or_call(cache_key, call)
             if new_cost and new_cost[0] is None:
                 raise RuntimeError("OpenAI returned no usage; paid cost is unknown")
             if new_cost:

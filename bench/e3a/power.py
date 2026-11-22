@@ -14,6 +14,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 
 from bench.common.stats import wilson
+
 from som.compile import CompiledDecision
 from som.questions import ChoiceAnswer, Refusal
 
@@ -87,9 +88,12 @@ def _trajectory(
             audits_at_shift = decision.audit_count
         served = covered_rng.random() < coverage
         error = error_rng.random() < baseline_error + (severity if ticket >= pre_shift_horizon else 0.0)
-        if decision.route(answer if served else refusal) == "serve" and decision.should_audit(audit_rng):
-            if decision.record_audit(answer, wrong if error else answer):
-                return ticket, decision.audit_count - audits_at_shift if ticket >= pre_shift_horizon else None
+        if (
+            decision.route(answer if served else refusal) == "serve"
+            and decision.should_audit(audit_rng)
+            and decision.record_audit(answer, wrong if error else answer)
+        ):
+            return ticket, decision.audit_count - audits_at_shift if ticket >= pre_shift_horizon else None
     return None, None
 
 
@@ -132,8 +136,14 @@ def simulate_power(
     for _ in range(repetitions):
         trial_seed = seeds.getrandbits(128)
         common = dict(
-            epsilon=epsilon, alpha=alpha, baseline_error=baseline_error, coverage=coverage,
-            audit_rate=audit_rate, pre_shift_horizon=pre_shift_horizon, horizon=horizon, seed=trial_seed,
+            epsilon=epsilon,
+            alpha=alpha,
+            baseline_error=baseline_error,
+            coverage=coverage,
+            audit_rate=audit_rate,
+            pre_shift_horizon=pre_shift_horizon,
+            horizon=horizon,
+            seed=trial_seed,
         )
         ticket, audit_delay = _trajectory(**common, severity=severity)
         control_ticket, _ = _trajectory(**common, severity=0.0)
@@ -144,10 +154,16 @@ def simulate_power(
         audit_delays.append(audit_delay if detected else None)
     detections = sum(delay is not None for delay in delays)
     return PowerResult(
-        audit_rate=audit_rate, repetitions=repetitions, power=detections / repetitions,
-        confidence_interval=wilson(detections, repetitions), false_alarm=controls / repetitions,
-        false_alarm_confidence_interval=wilson(controls, repetitions), pre_shift_false_alarms=pre_false,
-        misses=repetitions - detections, detection_delays=tuple(delays), audit_detection_delays=tuple(audit_delays),
+        audit_rate=audit_rate,
+        repetitions=repetitions,
+        power=detections / repetitions,
+        confidence_interval=wilson(detections, repetitions),
+        false_alarm=controls / repetitions,
+        false_alarm_confidence_interval=wilson(controls, repetitions),
+        pre_shift_false_alarms=pre_false,
+        misses=repetitions - detections,
+        detection_delays=tuple(delays),
+        audit_detection_delays=tuple(audit_delays),
     )
 
 
@@ -176,10 +192,20 @@ def find_minimum_audit_rate(
     candidates = sorted(set(rates))
     if not candidates or any(not 0 <= rate <= 1 for rate in candidates):
         raise ValueError("rates must be a nonempty collection of probabilities")
-    results = tuple(simulate_power(
-        severity=severity, epsilon=epsilon, alpha=alpha, baseline_error=baseline_error,
-        coverage=coverage, horizon=horizon, audit_rate=rate, seed=seed, repetitions=repetitions,
-        pre_shift_horizon=pre_shift_horizon,
-    ) for rate in candidates)
+    results = tuple(
+        simulate_power(
+            severity=severity,
+            epsilon=epsilon,
+            alpha=alpha,
+            baseline_error=baseline_error,
+            coverage=coverage,
+            horizon=horizon,
+            audit_rate=rate,
+            seed=seed,
+            repetitions=repetitions,
+            pre_shift_horizon=pre_shift_horizon,
+        )
+        for rate in candidates
+    )
     minimum = next((result.audit_rate for result in results if result.confidence_interval[0] >= target), None)
     return AuditRateSearch(minimum_rate=minimum, results=results)

@@ -1,4 +1,5 @@
 import pytest
+
 from bench.common.labels import BANKING77
 from bench.tasks.environment import PolicyKB, SupportEnvironment, augment_ticket
 from bench.tasks.policy import generate_policy, load_policy

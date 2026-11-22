@@ -13,16 +13,12 @@ from __future__ import annotations
 
 import pandas as pd
 
-
 _TRUTH = {("retrieval_choice", "search_policy"), ("branch", "verify_identity")}
 
 
 def discovery_rows(report):
     """Return all candidate rows, including rejections, with frozen truth labels."""
-    return [
-        {**row, "is_true": (row["kind"], row["tool"]) in _TRUTH}
-        for row in report.to_rows()
-    ]
+    return [{**row, "is_true": (row["kind"], row["tool"]) in _TRUTH} for row in report.to_rows()]
 
 
 def discovery_summary(report):
@@ -55,8 +51,19 @@ def summarize_streams(tickets: pd.DataFrame) -> pd.DataFrame:
     are differences from the shift and first ticket, respectively. Undefined
     quantities are None (and become empty cells on CSV export).
     """
-    required = {"ticket_index", "shift_at", "arm", "stream", "gold_joint_correct",
-                "teacher_agreement", "served_by", "cost_usd", "demoted", "audited", "promoted"}
+    required = {
+        "ticket_index",
+        "shift_at",
+        "arm",
+        "stream",
+        "gold_joint_correct",
+        "teacher_agreement",
+        "served_by",
+        "cost_usd",
+        "demoted",
+        "audited",
+        "promoted",
+    }
     missing = required - set(tickets.columns)
     if missing:
         raise ValueError(f"Missing ticket columns: {sorted(missing)}")
@@ -68,7 +75,9 @@ def summarize_streams(tickets: pd.DataFrame) -> pd.DataFrame:
         if len(shifts) > 1 or (len(shifts) and stream_data["shift_at"].isna().any()):
             raise ValueError(f"Inconsistent shift_at for stream {stream!r}")
         shift = shifts[0] if len(shifts) else None
-        reference = stream_data[stream_data["arm"] == "always_agent"].sort_values("ticket_index").set_index("ticket_index")
+        reference = (
+            stream_data[stream_data["arm"] == "always_agent"].sort_values("ticket_index").set_index("ticket_index")
+        )
         if reference.empty:
             raise ValueError(f"Missing always_agent for stream {stream!r}")
         for arm, data in stream_data.groupby("arm", sort=True, dropna=False):
@@ -85,13 +94,14 @@ def summarize_streams(tickets: pd.DataFrame) -> pd.DataFrame:
             coverage = data["served_by"].ne("agent").astype(float)
             accuracy = data["gold_joint_correct"].astype(float)
             baseline_accuracy = reference["gold_joint_correct"].astype(float)
-            rolling_ok = (accuracy.rolling(100, min_periods=100).mean() >=
-                          baseline_accuracy.rolling(100, min_periods=100).mean() - 0.02)
+            rolling_ok = (
+                accuracy.rolling(100, min_periods=100).mean()
+                >= baseline_accuracy.rolling(100, min_periods=100).mean() - 0.02
+            )
             coverage_ok = coverage.rolling(100, min_periods=100).mean() >= 0.5
             good = rolling_ok & coverage_ok & post
             runs = good.rolling(200, min_periods=200).sum()
-            ends = [i for i, value in enumerate(runs) if value == 200 and
-                    idx[i] - idx[i - 199] == 199]
+            ends = [i for i, value in enumerate(runs) if value == 200 and idx[i] - idx[i - 199] == 199]
             recovery = idx[ends[0] - 199] if ends else None
             savings = (reference["cost_usd"].astype(float) - data["cost_usd"].astype(float)).cumsum()
             deficit_seen = False
@@ -101,25 +111,36 @@ def summarize_streams(tickets: pd.DataFrame) -> pd.DataFrame:
                 if saving > 0 or (deficit_seen and saving >= 0):
                     amortization = ticket
                     break
-            rows.append({
-                "stream": stream, "arm": arm, "tickets": len(data), "shift_at": shift,
-                "joint_accuracy": accuracy.mean(),
-                "teacher_agreement": data["teacher_agreement"].mean(),
-                "coverage": coverage.mean(), "total_cost_usd": data["cost_usd"].sum(),
-                "cost_per_ticket_usd": data["cost_usd"].mean(),
-                "agent_calls": int(data["agent_calls"].sum()) if "agent_calls" in data else None,
-                "cumulative_excess_error": (baseline_accuracy - accuracy).sum(),
-                "postshift_cumulative_excess_error": (baseline_accuracy - accuracy)[post].sum() if shift is not None else None,
-                "promotions": int(data["promoted"].fillna(False).astype(bool).sum()),
-                "demotions": int(demoted.sum()), "audits": int(audited.sum()),
-                "false_demotions": false_alarms,
-                "detection_ticket": detection,
-                "detection_delay_tickets": detection - shift if detection is not None else None,
-                "detection_delay_audits": int(audited[(idx >= shift) & (idx <= detection)].sum()) if detection is not None else None,
-                "detection_miss": detection is None if shift is not None else None,
-                "recovery_ticket": recovery,
-                "recovery_delay_tickets": recovery - shift if recovery is not None else None,
-                "amortization_ticket": amortization,
-                "amortization_horizon_tickets": amortization - idx[0] if amortization is not None else None,
-            })
+            rows.append(
+                {
+                    "stream": stream,
+                    "arm": arm,
+                    "tickets": len(data),
+                    "shift_at": shift,
+                    "joint_accuracy": accuracy.mean(),
+                    "teacher_agreement": data["teacher_agreement"].mean(),
+                    "coverage": coverage.mean(),
+                    "total_cost_usd": data["cost_usd"].sum(),
+                    "cost_per_ticket_usd": data["cost_usd"].mean(),
+                    "agent_calls": int(data["agent_calls"].sum()) if "agent_calls" in data else None,
+                    "cumulative_excess_error": (baseline_accuracy - accuracy).sum(),
+                    "postshift_cumulative_excess_error": (baseline_accuracy - accuracy)[post].sum()
+                    if shift is not None
+                    else None,
+                    "promotions": int(data["promoted"].fillna(False).astype(bool).sum()),
+                    "demotions": int(demoted.sum()),
+                    "audits": int(audited.sum()),
+                    "false_demotions": false_alarms,
+                    "detection_ticket": detection,
+                    "detection_delay_tickets": detection - shift if detection is not None else None,
+                    "detection_delay_audits": int(audited[(idx >= shift) & (idx <= detection)].sum())
+                    if detection is not None
+                    else None,
+                    "detection_miss": detection is None if shift is not None else None,
+                    "recovery_ticket": recovery,
+                    "recovery_delay_tickets": recovery - shift if recovery is not None else None,
+                    "amortization_ticket": amortization,
+                    "amortization_horizon_tickets": amortization - idx[0] if amortization is not None else None,
+                }
+            )
     return pd.DataFrame(rows)

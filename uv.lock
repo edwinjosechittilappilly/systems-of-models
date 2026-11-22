@@ -4341,6 +4341,13 @@ openai = [
 otel = [
     { name = "opentelemetry-api" },
 ]
+surrogate = [
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
+    { name = "numpy", version = "2.5.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+    { name = "scikit-learn", version = "1.7.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "scikit-learn", version = "1.9.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+]
 
 [package.dev-dependencies]
 bench = [
@@ -4384,11 +4391,13 @@ requires-dist = [
     { name = "langchain-core", marker = "python_full_version >= '3.11' and extra == 'langchain'", specifier = ">=1.8.4" },
     { name = "langchain-core", marker = "python_full_version < '3.11' and extra == 'langchain'", specifier = ">=0.3" },
     { name = "mcp", marker = "extra == 'mcp'", specifier = ">=2.3.0" },
+    { name = "numpy", marker = "extra == 'surrogate'", specifier = ">=1.26" },
     { name = "openai", marker = "extra == 'openai'", specifier = ">=3.57.0" },
     { name = "opentelemetry-api", marker = "extra == 'otel'", specifier = ">=1.30" },
     { name = "referencing", specifier = ">=0.35" },
+    { name = "scikit-learn", marker = "extra == 'surrogate'", specifier = ">=1.5" },
 ]
-provides-extras = ["openai", "anthropic", "gemini", "langchain", "mcp", "otel"]
+provides-extras = ["openai", "anthropic", "gemini", "langchain", "mcp", "otel", "surrogate"]
 
 [package.metadata.requires-dev]
 bench = [

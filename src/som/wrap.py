@@ -43,10 +43,13 @@ def envelope_of(response: object) -> Envelope | None:
             if isinstance(response_id, str) and response_id in _cache:
                 _cache.move_to_end(response_id)
                 return _cache[response_id][1]
-            for key, (observed, result) in reversed(list(_cache.items())):
+            # Snapshot: a stream collected inside this loop may record itself and change the cache.
+            entries: list[tuple[str, tuple[weakref.ReferenceType[Any] | None, Envelope]]] = list(_cache.items())
+            for key, (observed, result) in reversed(entries):
                 if observed is not None and observed() is response:
                     _cache.move_to_end(key)
-                    return result
+                    found: Envelope = result
+                    return found
     except Exception:
         return None
     return None

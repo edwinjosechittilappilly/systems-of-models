@@ -53,6 +53,18 @@ and joint teacher agreement are reported separately.
   n_val=400; risk target epsilon=0.15; per-stream alpha=0.05;
   max one promotion attempt per compilation. The dev warm-up contains 77 distinct
   gold intents; these labels are used only to assess diversity, never provided to the miner or writer.
+  With complete shadow labels the first promotion is recorded on ticket index 1,099;
+  the earliest compiled service is index 1,100. Thus at most 100 tickets can be
+  compiled before the shift at 1,200, and fewer will be served when the gate
+  escalates, mappings are missing or promotion is delayed or fails. An optimistic
+  dev bootstrap projects about 45 served tickets in those 100 opportunities:
+  351/500 promotion replicates, with mean 64.6% threshold coverage among promoted
+  replicates, resampled from the 569 matched shadow observations. This assumes
+  promotion at the earliest opportunity and that all 100 post-promotion tickets
+  resemble that selected matched pool; missing mappings and delays can lower it.
+  It is not a measured full-lifecycle estimate.
+  H4 therefore primarily measures post-shift behaviour of decisions promoted
+  shortly before the shift.
 - The question writer receives at most 20 sampled trace examples and at most 2,048 output tokens.
   Choice questions request only name/instructions; branch questions additionally request true/false
   descriptions. A malformed or incomplete structured response gets one retry using a different
@@ -101,10 +113,9 @@ and joint teacher agreement are reported separately.
   may differ and are reported.
   Pseudorandom operations use base seed 20261122 plus the evaluation stream seed (11, 23 or 37);
   the same stream seed is used for paired shift conditions.
-- H3 cost bound X=100% of always-agent cost/ticket, the development control ratio rounded up
-  to the next five percentage points. kNN uses prior-only sequential warm-up predictions and the
-  lowest similarity threshold with empirical error at most epsilon; audit disagreement invalidates
-  the cache. This is a tuning rule, not a risk guarantee.
+- kNN uses prior-only sequential warm-up predictions and the lowest similarity threshold
+  with empirical error at most epsilon; audit disagreement invalidates the cache.
+  This is a tuning rule, not a risk guarantee.
 - The fixed developer question is: "Which policy title best matches the customer's request? Select
   the most directly applicable policy." Its choice descriptions are the original frozen policy
   titles; it sees no routing fields. The config-hash arm recompiles when the KB hash changes.
@@ -144,9 +155,19 @@ joint error and audit counts; a failure to promote is not a zero-error success.
 The guarantee depends on the sampling and stationarity assumptions and does not
 establish gold correctness or a post-shift risk guarantee.
 
-H3 (primary): on tickets 600-1,199, S1-question plus audit is non-inferior to always-agent in
-paired joint gold accuracy by a 2-point margin, using a ticket-cluster bootstrap pooled across seeds,
-and costs at most X% of always-agent per ticket.
+H3 (primary): on control tickets 1,200–2,399, S1-question plus audit is non-inferior
+to always-agent in paired joint gold accuracy by a 2-point margin, using a
+seed-stratified ticket-cluster bootstrap. Report the served subset separately;
+it is selected and descriptive, not the primary estimand. H3 has no cost condition.
+
+As a secondary analysis, replay S1 audit/demotion at audit rates 0.10, 0.30,
+0.60 and 1.00 on the same teacher trajectories. For each rate report cost per
+ticket relative to always-agent, shift detection delay and misses, and no-shift
+false demotions. At 1.00 every compiled ticket is also audited by the agent, so
+this arm tests risk control rather than savings. After all primary arms finish,
+secondary replays share the teacher trajectories but may make new S1 and writer
+calls; those costs are booked to the corresponding arm. They use the same hard
+budget limits and stop with a recorded reason if a cap prevents completion.
 
 H4 (primary): for 15% restructure, S1 plus audit/demotion has lower cumulative excess
 error over tickets 1,200-2,399 than refit-only and escalation-only monitoring. For every ticket,

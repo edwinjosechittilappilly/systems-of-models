@@ -27,6 +27,7 @@ from som.questions import Choice, ChoiceAnswer, Predicate, PredicateAnswer, Refu
 
 ARMS = ("s1_audit", "s1_refit", "surrogate_audit", "surrogate_refit", "escalation_only", "oracle_audit")
 FACTORIAL = ARMS[:4]
+SECONDARY_AUDIT_RATES = {"s1_audit_0.1": 0.1, "s1_audit_0.3": 0.3, "s1_audit_0.6": 0.6}
 
 
 def _teacher_labels(item):
@@ -319,7 +320,7 @@ def _compile(arm, selected, providers, cfg, index):
             alpha=alpha,
             n_cal=cfg["n_cal"],
             n_val=cfg["n_val"],
-            audit_rate=cfg["audit_rate"],
+            audit_rate=SECONDARY_AUDIT_RATES.get(arm.name, cfg["audit_rate"]),
             metric=cfg["metric"],
             max_promotion_attempts=cfg["max_promotion_attempts"],
             tau_rule=cfg["tau_rule"],
@@ -353,12 +354,14 @@ def _joint_reference(model, answer, labels, identity_map):
 
 
 def run_lifecycle(items, providers, config):
-    """Simulate six arms; return arm-name to chronological per-ticket rows.
+    """Simulate lifecycle arms; return arm-name to chronological per-ticket rows.
 
     Required config: ``embedder``. Optional ``diagnostics`` is a list populated
     with full mining candidate rows and ambiguity/discovery statistics.
     Refit cadence never interrupts a shadow attempt: a due refit is deferred
     until the next epoch after all current shadow windows have completed.
+    Secondary-only replay takes the primary factorial training budget by ticket
+    index, so it cannot alter the primary arms' training-label allocation.
     """
     cfg = {
         "warmup": 200,
@@ -377,7 +380,9 @@ def run_lifecycle(items, providers, config):
     }
     if cfg["warmup"] < 1 or cfg["refit_interval"] < 1:
         raise ValueError("warmup and refit_interval must be positive")
-    arms = {name: _Arm(name, random.Random(cfg["seed"])) for name in ARMS}
+    secondary_only = cfg.get("secondary_only", False)
+    arm_names = SECONDARY_AUDIT_RATES if secondary_only else ARMS
+    arms = {name: _Arm(name, random.Random(cfg["seed"])) for name in arm_names}
     for pos, item in enumerate(items):
         epoch = pos >= cfg["warmup"] and (pos - cfg["warmup"]) % cfg["refit_interval"] == 0
         compiled = {}
@@ -422,7 +427,11 @@ def run_lifecycle(items, providers, config):
                 }
                 filter_timing = _cached_timing(cfg, filter_key, filter_timing)
                 pool_counts[name] = (len(pools[name]), missing, unmatched, raw_timing, filter_timing)
-            budget = min(len(pools[name]) for name in FACTORIAL)
+            budget = (
+                cfg["primary_training_budgets"][item["index"]]
+                if secondary_only
+                else min(len(pools[name]) for name in FACTORIAL)
+            )
             for name, arm in arms.items():
                 if name.endswith("_refit"):
                     arm.pending = True
@@ -540,7 +549,7 @@ def run_lifecycle(items, providers, config):
             audit = (
                 can_serve
                 and name not in ("s1_refit", "surrogate_refit", "escalation_only")
-                and arm.rng.random() < cfg["audit_rate"]
+                and arm.rng.random() < SECONDARY_AUDIT_RATES.get(name, cfg["audit_rate"])
             )
             teacher_needed = not can_serve or audit
             labels = None

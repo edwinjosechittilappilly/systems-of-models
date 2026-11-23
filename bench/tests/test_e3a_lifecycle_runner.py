@@ -165,6 +165,39 @@ def test_real_mining_shadow_promotion_and_audit_are_paired_and_costed(monkeypatc
     assert all("ambiguous_retrieval_count" in item and item["candidates"] for item in diagnostics)
 
 
+def test_secondary_audit_rates_replay_paired_teacher_and_primary_label_budget(monkeypatch):
+    monkeypatch.setattr("bench.e3a.lifecycle_runner.make_surrogate", lambda embedder, classes: Surrogate())
+    providers = SimpleNamespace(s1=Decider(), writer=Writer())
+    items = prepared(80)
+    settings = {
+        "warmup": 8,
+        "min_support": 1,
+        "n_cal": 2,
+        "n_val": 2,
+        "epsilon": 0.9,
+        "alpha": 0.9,
+        "tau_rule": "margin",
+        "audit_rate": 1,
+        "refit_interval": 100,
+        "embedder": None,
+    }
+    primary = run_lifecycle(items, providers, settings)
+    secondary = run_lifecycle(
+        items, providers, {**settings, "secondary_only": True, "primary_training_budgets": {8: 8}}
+    )
+    assert set(secondary) == {"s1_audit_0.1", "s1_audit_0.3", "s1_audit_0.6"}
+    audited = []
+    for name in ("s1_audit_0.1", "s1_audit_0.3", "s1_audit_0.6"):
+        rows = secondary[name]
+        assert rows[8]["training_label_count"] == 8
+        assert [row["promoted"] for row in rows] == [row["promoted"] for row in primary["s1_audit"]]
+        assert all(row["cost_audit"] == 0.1 and row["agent_calls"] == 1 for row in rows if row["audited"])
+        assert all(row["gold_joint_correct"] for row in rows)
+        audited.append({row["ticket_index"] for row in rows if row["audited"]})
+    assert audited[0] and audited[0] < audited[1] < audited[2]
+    assert audited[2] < {row["ticket_index"] for row in primary["s1_audit"] if row["audited"]}
+
+
 def test_refit_waits_for_shadow_window_to_finish(monkeypatch):
     monkeypatch.setattr("bench.e3a.lifecycle_runner.make_surrogate", lambda embedder, classes: Surrogate())
     providers = SimpleNamespace(s1=Decider(), writer=Writer())

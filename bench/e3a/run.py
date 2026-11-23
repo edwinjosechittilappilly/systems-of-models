@@ -142,9 +142,6 @@ def main() -> None:
     )
     parser.add_argument("--tau-rule", choices=("upper_bound", "margin"), default="margin")
     parser.add_argument("--seed", type=int, default=20261122)
-    parser.add_argument(
-        "--cost-bound-percent", type=float, default=None, help="evaluation requires the preregistered H3 cost bound"
-    )
     args = parser.parse_args()
     if args.streams != "dev" and (args.dev_condition or args.dev_run_id != "dev-tuning"):
         parser.error("development condition and run id apply only to development")
@@ -154,8 +151,6 @@ def main() -> None:
         parser.error("evaluation requires preregistration approval and --allow-eval")
     if args.streams == "eval" and args.phase_limit is not None:
         parser.error("evaluation streams must not be truncated")
-    if args.streams == "eval" and (args.cost_bound_percent is None or args.cost_bound_percent <= 0):
-        parser.error("evaluation requires the preregistered --cost-bound-percent")
     if args.streams == "eval" and (args.epsilon != 0.15 or args.audit_rate != 1.0):
         parser.error("evaluation requires the selected epsilon 0.15 and audit rate 1.0")
     if args.streams == "eval" and args.metric not in (None, "probability"):
@@ -163,7 +158,7 @@ def main() -> None:
     if args.metric is None:
         args.metric = "probability"
     from bench.e3a.baselines import run_baseline
-    from bench.e3a.lifecycle_runner import run_lifecycle
+    from bench.e3a.lifecycle_runner import FACTORIAL, SECONDARY_AUDIT_RATES, run_lifecycle
 
     names = (
         (tuple(args.dev_condition) if args.dev_condition else DEV_STREAMS) if args.streams == "dev" else EVAL_STREAMS
@@ -188,6 +183,7 @@ def main() -> None:
     discovery: list[dict[str, Any]] = []
     writer_failures: list[dict[str, Any]] = []
     variance_overhead = 0.0
+    secondary_inputs = []
     for name in names:
         stream_seed = args.seed + int(name.split("_")[1]) if name.startswith("seed_") else args.seed
         path = ROOT / "tasks" / "streams" / f"{name}.csv"
@@ -237,10 +233,17 @@ def main() -> None:
         }
         visible = name.endswith("_visible")
         if not visible:
-            for arm, arm_rows in run_lifecycle(items, providers, settings).items():
+            primary = run_lifecycle(items, providers, settings)
+            for arm, arm_rows in primary.items():
                 for row in arm_rows:
                     row.update(stream=name, shift_at=shift_at, arm=arm)
                 rows.extend(arm_rows)
+            budgets = {
+                row["ticket_index"]: min(primary[arm][pos]["training_available_labels"] for arm in FACTORIAL)
+                for pos, row in enumerate(primary[FACTORIAL[0]])
+                if row["training_available_labels"] is not None
+            }
+            secondary_inputs.append((name, shift_at, items, settings, budgets))
         baseline_arms = (
             ("fixed_gate_config_hash",) if visible else ("fixed_gate", "fixed_gate_config_hash", "knn_cache")
         )
@@ -329,6 +332,74 @@ def main() -> None:
         manifest.counts[name] = len(items)
         if writer_failures:
             pd.DataFrame(writer_failures).to_csv(directory / "writer_failures.csv", index=False, lineterminator="\n")
+    if args.streams == "eval":
+        from bench.e3a.hypotheses import evaluate
+
+        h3, h4 = evaluate(pd.DataFrame(all_rows), seed=args.seed)
+        pd.DataFrame(h3).to_csv(directory / "h3.csv", index=False, lineterminator="\n")
+        pd.DataFrame(h4).to_csv(directory / "h4.csv", index=False, lineterminator="\n")
+    # Replay after all primary streams, retaining their exact paired teacher draws.
+    replay_caches = {
+        "teacher": providers.agent_cache,
+        "s1": providers.s1.cache,
+        "writer": providers.writer.cache,
+        "mining_timings": mining_timing,
+    }
+    replay_start = {key: (cache.hits, cache.misses) for key, cache in replay_caches.items()}
+    replay_error = None
+    try:
+        for name, shift_at, items, settings, budgets in secondary_inputs:
+            replay_settings = {
+                **settings,
+                "secondary_only": True,
+                "primary_training_budgets": budgets,
+                "timing_cache": None,
+            }
+            replay = run_lifecycle(items, providers, replay_settings)
+            by_index = {item["index"]: item for item in items}
+            for arm, arm_rows in replay.items():
+                for row in arm_rows:
+                    row.update(stream=name, shift_at=shift_at, arm=arm)
+                    teacher = by_index[row["ticket_index"]]["teacher"]
+                    route = row.get("route") or {}
+                    row["teacher_agreement"] = (
+                        route.get("department") == teacher.route.get("department")
+                        and route.get("priority") == teacher.route.get("priority")
+                        and row.get("verified") == teacher.verified
+                    ) if teacher.route else None
+                    teacher_entry = None
+                    for event in teacher.events:
+                        if event["tool"] == "route_ticket":
+                            break
+                        if event["tool"] == "get_policy":
+                            teacher_entry = event["entry_id"]
+                    predicted = row.get("predicted_entry")
+                    verify = row.get("predicted_verify")
+                    row["d1_teacher_agreement"] = (
+                        predicted == teacher_entry if predicted is not None and teacher_entry is not None else None
+                    )
+                    row["d2_teacher_agreement"] = verify == teacher.verified if verify is not None else None
+                    row["joint_decision_agreement"] = (
+                        predicted == teacher_entry and verify == teacher.verified
+                        if predicted is not None and verify is not None and teacher_entry is not None else None
+                    )
+                    for part in ("s1", "agent", "shadow", "audit", "writer", "mining", "embedding"):
+                        row[f"{part}_cost_usd"] = row.pop(f"cost_{part}")
+                pd.DataFrame(arm_rows).to_csv(directory / f"{name}_{arm}.csv", index=False, lineterminator="\n")
+                all_rows.extend(arm_rows)
+    except Exception as exc:
+        replay_error = {"type": type(exc).__name__, "message": str(exc)}
+        raise
+    finally:
+        replay_cache = {
+            key: {"hits": cache.hits - replay_start[key][0], "misses": cache.misses - replay_start[key][1]}
+            for key, cache in replay_caches.items()
+        }
+        (directory / "secondary_replay_cache.json").write_text(
+            json.dumps({"caches": replay_cache, "error": replay_error}, indent=2) + "\n"
+        )
+    if writer_failures:
+        pd.DataFrame(writer_failures).to_csv(directory / "writer_failures.csv", index=False, lineterminator="\n")
     if discovery:
         summaries = []
         candidates = []
@@ -347,12 +418,19 @@ def main() -> None:
     result = pd.DataFrame(all_rows)
     summary = summarize_streams(result)
     summary.to_csv(directory / "summary.csv", index=False, lineterminator="\n")
+    for stream, part in summary.groupby("stream"):
+        part.to_csv(directory / f"{stream}_summary.csv", index=False, lineterminator="\n")
+    audit_rates = {**SECONDARY_AUDIT_RATES, "s1_audit": args.audit_rate}
+    audit_curve = summary[summary["arm"].isin(audit_rates)].copy()
+    audit_curve["audit_rate"] = audit_curve["arm"].map(audit_rates)
+    reference_costs = summary[summary["arm"] == "always_agent"].set_index("stream")["cost_per_ticket_usd"]
+    audit_curve["always_agent_cost_per_ticket_usd"] = audit_curve["stream"].map(reference_costs)
+    denominator = audit_curve["always_agent_cost_per_ticket_usd"].where(
+        audit_curve["always_agent_cost_per_ticket_usd"] != 0
+    )
+    audit_curve["cost_ratio_vs_always_agent"] = audit_curve["cost_per_ticket_usd"] / denominator
+    audit_curve.to_csv(directory / "audit_rate_curve.csv", index=False, lineterminator="\n")
     if args.streams == "eval":
-        from bench.e3a.hypotheses import evaluate
-
-        h3, h4 = evaluate(result, cost_bound_percent=args.cost_bound_percent, seed=args.seed)
-        pd.DataFrame(h3).to_csv(directory / "h3.csv", index=False, lineterminator="\n")
-        pd.DataFrame(h4).to_csv(directory / "h4.csv", index=False, lineterminator="\n")
         summary[summary["arm"].isin(["s1_audit", "surrogate_audit", "s1_refit", "surrogate_refit"])].to_csv(
             directory / "h5_exploratory.csv", index=False, lineterminator="\n"
         )
@@ -389,6 +467,11 @@ def main() -> None:
         "",
         f"Mode: {args.mode}; parameters: `{json.dumps(config, sort_keys=True)}`.",
         "Costs are token-usage list-price estimates; local hardware and energy are not priced.",
+        "Secondary audit-rate arms replay shared teacher trajectories after all primary arms. "
+        "Divergent recompilations and questions can require uncached writer or S1 calls; "
+        "secondary_replay_cache.json records observed cache hits and misses.",
+        "audit_rate_curve.csv reports per-stream cost ratios, detection delays and misses, "
+        "and control false demotions for each audit rate.",
         "",
     ]
     for _, row in summary.iterrows():

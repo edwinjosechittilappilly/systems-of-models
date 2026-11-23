@@ -87,11 +87,12 @@ def test_resume_rejects_original_directory_and_overlaps(tmp_path, monkeypatch, o
     assert marker.read_text() == "original"
 
 
-def test_resume_reconstructs_first_two_before_live_work(tmp_path, monkeypatch):
+@pytest.mark.parametrize("completed_count", [2, 4])
+def test_resume_reconstructs_completed_streams_before_live_work(tmp_path, monkeypatch, completed_count):
     from bench.e3a import baselines, lifecycle_runner
 
     monkeypatch.setattr(run, "ROOT", tmp_path)
-    original = tmp_path / "results" / "e3a" / "evaluation"
+    original = tmp_path / "results" / "e3a" / ("evaluation" if completed_count == 2 else "evaluation-resumed")
     original.mkdir(parents=True)
     tasks = tmp_path / "tasks"
     (tasks / "streams").mkdir(parents=True)
@@ -99,10 +100,15 @@ def test_resume_reconstructs_first_two_before_live_work(tmp_path, monkeypatch):
         (tasks / filename).write_text("{}")
     for name in run.EVAL_STREAMS:
         (tasks / "streams" / f"{name}.csv").write_text("value\n1\n")
-    for name in run.RESUMED_STREAMS:
+    completed_names = run.EVAL_STREAMS[:completed_count]
+    if completed_count != 2:
+        (original / "manifest.json").write_text(json.dumps({"counts": dict.fromkeys(completed_names, 1)}))
+    for name in completed_names:
         (original / name).mkdir()
         (original / name / "trace").write_text(name)
         (original / f"{name}_summary.csv").write_text("original summary\n")
+        for arm in (*lifecycle_runner.ARMS, "always_agent", "fixed_gate", "fixed_gate_config_hash", "knn_cache"):
+            (original / f"{name}_{arm}.csv").write_text("original arm\n")
     (original / "seed_11_control_teacher_variance.csv").write_text("original variance\n")
 
     class Cache:
@@ -135,7 +141,7 @@ def test_resume_reconstructs_first_two_before_live_work(tmp_path, monkeypatch):
         modes.append(
             (items[0]["index"], providers.agent_cache.mode, providers.s1.cache.mode, providers.writer.cache.mode)
         )
-        if len(modes) == 3:
+        if len(modes) == completed_count + 1:
             raise Stop
         return []
 
@@ -149,7 +155,8 @@ def test_resume_reconstructs_first_two_before_live_work(tmp_path, monkeypatch):
     monkeypatch.setattr(run, "collect", collect)
     monkeypatch.setattr(run, "teacher_variance", lambda *args, **kwargs: ([], 1.0))
     monkeypatch.setattr(run, "always_agent", lambda *args: [])
-    monkeypatch.setattr(run, "_verify_reconstructed_primary", lambda *args: None)
+    verified = []
+    monkeypatch.setattr(run, "_verify_reconstructed_primary", lambda table, source, name, arms: verified.append(name))
     monkeypatch.setattr(baselines, "run_baseline", lambda *args, **kwargs: [])
 
     def lifecycle(items, providers, settings):
@@ -173,15 +180,47 @@ def test_resume_reconstructs_first_two_before_live_work(tmp_path, monkeypatch):
             "--allow-eval",
             "--output-dir",
             str(output),
+            *(["--resume-from", str(original)] if completed_count != 2 else []),
         ],
     )
     with pytest.raises(Stop):
         run.main()
-    assert modes == [(0, "replay", "replay", "replay")] * 2 + [(0, "record", "record", "record")]
-    for name in run.RESUMED_STREAMS:
+    assert modes == [(0, "replay", "replay", "replay")] * completed_count + [(0, "record", "record", "record")]
+    assert verified == list(completed_names)
+    for name in completed_names:
         assert (output / f"{name}_summary.csv").read_text() == "original summary\n"
         assert (output / name / "trace").read_text() == name
     assert (output / "seed_11_control_teacher_variance.csv").read_text() == "original variance\n"
+    assert json.loads((output / "manifest.json").read_text())["counts"] == dict.fromkeys(completed_names, 1)
+    if completed_count == 4:
+        modes.clear()
+        verified.clear()
+        resumed_again = tmp_path / "resumed-again"
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "run",
+                "--resume-eval",
+                "--streams",
+                "eval",
+                "--mode",
+                "record",
+                "--allow-eval",
+                "--resume-from",
+                str(output),
+                "--output-dir",
+                str(resumed_again),
+            ],
+        )
+        with pytest.raises(Stop):
+            run.main()
+        assert modes == [(0, "replay", "replay", "replay")] * 4 + [(0, "record", "record", "record")]
+        assert verified == list(completed_names)
+        for name in completed_names:
+            assert (resumed_again / f"{name}_summary.csv").read_bytes() == (
+                original / f"{name}_summary.csv"
+            ).read_bytes()
 
 
 def test_reconstructed_primary_requires_all_arms_and_identical_non_timing_data(tmp_path):
@@ -198,3 +237,47 @@ def test_reconstructed_primary_requires_all_arms_and_identical_non_timing_data(t
     path.unlink()
     with pytest.raises(RuntimeError, match="missing original primary artifact"):
         run._verify_reconstructed_primary(table, tmp_path, "seed_11_control", {"a"})
+
+
+@pytest.mark.parametrize(
+    ("counts", "missing_arm", "error"),
+    [
+        ({"seed_11_control": 1, "seed_11_clinc": 1}, False, "non-contiguous"),
+        ({"seed_11_control": 2}, False, "completed count"),
+        ({"seed_11_control": 1}, True, "missing completed primary artifacts"),
+    ],
+)
+def test_resume_rejects_incomplete_source_before_live_work(tmp_path, monkeypatch, counts, missing_arm, error):
+    from bench.e3a.lifecycle_runner import ARMS
+
+    monkeypatch.setattr(run, "ROOT", tmp_path)
+    source = tmp_path / "source"
+    source.mkdir()
+    (source / "manifest.json").write_text(json.dumps({"counts": counts}))
+    streams = tmp_path / "tasks" / "streams"
+    streams.mkdir(parents=True)
+    (streams / "seed_11_control.csv").write_text("value\n1\n")
+    (source / "seed_11_control").mkdir()
+    for arm in (*ARMS, "always_agent", "fixed_gate", "fixed_gate_config_hash", "knn_cache"):
+        if not missing_arm or arm != "always_agent":
+            (source / f"seed_11_control_{arm}.csv").write_text("original\n")
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "run",
+            "--resume-eval",
+            "--streams",
+            "eval",
+            "--mode",
+            "record",
+            "--allow-eval",
+            "--resume-from",
+            str(source),
+            "--output-dir",
+            str(tmp_path / "output"),
+        ],
+    )
+    with pytest.raises(RuntimeError, match=error):
+        run.main()
+    assert not (tmp_path / "output").exists()

@@ -1,6 +1,10 @@
 """Generate a post-run E3a report without model calls or modification of run artifacts.
 
-Run from the repository root: python -m bench.e3a.eval_analysis
+Run from the repository root, passing both retained stops explicitly for the resumed evaluation:
+
+    python -m bench.e3a.eval_analysis --input-dir bench/results/e3a/evaluation-resumed \\
+        --stop-history bench/results/e3a/evaluation-resumed/budget_stop.json \\
+        --stop-history bench/results/e3a/evaluation/budget_stop.json
 """
 
 from __future__ import annotations
@@ -126,7 +130,13 @@ def report(directory: Path, stop_history: tuple[Path, ...] = ()) -> str:
     else:
         lines.append("- Manifest unavailable; frozen configuration, run completion and spend cannot be verified.")
     stops = []
-    for path in (*stop_history, directory / "budget_stop.json"):
+    paths = (*stop_history, directory / "budget_stop.json")
+    seen = set()
+    for path in paths:
+        resolved = path.resolve()
+        if resolved in seen:
+            continue
+        seen.add(resolved)
         if not path.exists() and path == directory / "budget_stop.json":
             continue
         try:
@@ -151,6 +161,17 @@ def report(directory: Path, stop_history: tuple[Path, ...] = ()) -> str:
             "proxy cap was raised to $8.00 (about $14.24 billed at the observed ratio). The previous $0.05 "
             "unpriced-call reservation is conservatively retained. This proxy cannot guarantee the actual billed "
             "cap; dashboard billing must be monitored separately."
+        )
+    if any(
+        isinstance(stop, dict)
+        and "openai: budget reserved for unpriced call" in str(stop.get("error", "")).lower()
+        and "503" in str(stop.get("error", ""))
+        for stop in stops
+    ):
+        lines.append(
+            "- OpenAI 503 stop deviation: model access verification failed and interrupted evaluation. "
+            "The $1.00 unpriced-call reservation is retained; it is not evidence of actual provider billing. "
+            "Actual billing for the failed call is unknown."
         )
     replay = directory / "secondary_replay_cache.json"
     if replay.exists():
@@ -523,7 +544,7 @@ def main():
         type=Path,
         action="append",
         default=[],
-        help="include a previous budget_stop.json (repeatable for resumed runs)",
+        help="include a retained budget_stop.json (repeatable; current input stop is also included automatically)",
     )
     args = parser.parse_args()
     text = report(args.input_dir, tuple(args.stop_history))

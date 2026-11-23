@@ -180,6 +180,7 @@ def main() -> None:
     writer_failures: list[dict[str, Any]] = []
     variance_overhead = 0.0
     for name in names:
+        stream_seed = args.seed + int(name.split("_")[1]) if name.startswith("seed_") else args.seed
         path = ROOT / "tasks" / "streams" / f"{name}.csv"
         manifest.data[path.name] = hashlib.sha256(path.read_bytes()).hexdigest()
         frame = pd.read_csv(path)
@@ -193,7 +194,9 @@ def main() -> None:
             manifest.write()
             raise RuntimeError(manifest.notes[-1])
         if args.streams == "eval" and name.endswith("_control"):
-            variance_rows, overhead = teacher_variance(items, providers, seed=args.seed, size=100, workers=args.workers)
+            variance_rows, overhead = teacher_variance(
+                items, providers, seed=stream_seed, size=100, workers=args.workers
+            )
             pd.DataFrame(variance_rows).to_csv(directory / f"{name}_teacher_variance.csv", index=False)
             variance_overhead += overhead
         shift_at = None if name.endswith("_control") else shift
@@ -208,7 +211,7 @@ def main() -> None:
             "refit_interval": args.refit_interval,
             "metric": args.metric,
             "tau_rule": args.tau_rule,
-            "seed": args.seed,
+            "seed": stream_seed,
             "embedder": embedder,
             "min_support": 5,
             "diagnostics": discovery,
@@ -241,7 +244,7 @@ def main() -> None:
                     epsilon=args.epsilon,
                     alpha=args.alpha,
                     audit_rate=args.audit_rate,
-                    seed=args.seed,
+                    seed=stream_seed,
                     embedder=embedder,
                     tau_rule=args.tau_rule,
                 )

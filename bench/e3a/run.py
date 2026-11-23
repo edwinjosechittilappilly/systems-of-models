@@ -14,6 +14,7 @@ import hashlib
 import io
 import json
 import re
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -31,6 +32,8 @@ from bench.e3a.variance import teacher_variance
 
 ROOT = Path(__file__).resolve().parents[1]
 EVAL_STREAMS = tuple(f"seed_{seed}_{kind}" for seed in (11, 23, 37) for kind in ("control", "restructure_15", "clinc"))
+RESUMED_STREAMS = EVAL_STREAMS[:2]
+TYPESAFE_CAP = 8.00
 
 
 def always_agent(items: list[dict[str, Any]], stream: str, shift_at: int | None) -> list[dict[str, Any]]:
@@ -116,19 +119,41 @@ def plot_results(rows: pd.DataFrame, summary: pd.DataFrame, directory: Path) -> 
     plt.close(fig)
 
 
+def _comparison_csv(handle: Any) -> tuple[str, list[str]]:
+    rows = list(csv.reader(handle))
+    if not rows:
+        return "", []
+    excluded = [name for name in rows[0] if "latency" in name or "cpu_seconds" in name]
+    keep = [index for index, name in enumerate(rows[0]) if name not in excluded]
+    output = io.StringIO(newline="")
+    writer = csv.writer(output, lineterminator="\n")
+    writer.writerows([[row[index] for index in keep] for row in rows])
+    return output.getvalue(), excluded
+
+
+def _verify_reconstructed_primary(table: pd.DataFrame, original: Path, name: str, arms: set[str]) -> None:
+    """Fail closed before live work if any completed primary arm changed."""
+    observed = set(table["arm"].unique())
+    if observed != arms:
+        raise RuntimeError(
+            f"{name}: reconstructed primary arms differ: expected {sorted(arms)}, got {sorted(observed)}"
+        )
+    for arm, rows in table.groupby("arm", sort=True):
+        path = original / f"{name}_{arm}.csv"
+        if not path.is_file():
+            raise RuntimeError(f"{name}: missing original primary artifact {path.name}")
+        with path.open(newline="", encoding="utf-8") as handle:
+            recorded, _ = _comparison_csv(handle)
+        reconstructed, _ = _comparison_csv(io.StringIO(rows.to_csv(index=False, lineterminator="\n")))
+        if recorded != reconstructed:
+            raise RuntimeError(f"{name}: reconstructed primary arm {arm} differs from {path.name}")
+
+
 def _comparison_text(path: Path) -> tuple[str | None, list[str]]:
     """Return comparable content without changing the recorded artifact."""
     if path.suffix == ".csv":
         with path.open(newline="", encoding="utf-8") as handle:
-            rows = list(csv.reader(handle))
-        if not rows:
-            return "", []
-        excluded = [name for name in rows[0] if "latency" in name or "cpu_seconds" in name]
-        keep = [index for index, name in enumerate(rows[0]) if name not in excluded]
-        output = io.StringIO(newline="")
-        writer = csv.writer(output, lineterminator="\n")
-        writer.writerows([[row[index] for index in keep] for row in rows])
-        return output.getvalue(), excluded
+            return _comparison_csv(handle)
     if path.name in ("s5-records.jsonl", "meta-records.jsonl"):
         excluded = {"latency_ms", "created_at"}
 
@@ -238,6 +263,11 @@ def main() -> None:
     parser.add_argument("--dev-condition", action="append", choices=DEV_STREAMS, default=None)
     parser.add_argument("--dev-run-id", default="dev-tuning")
     parser.add_argument("--mode", choices=("record", "replay"), default="replay")
+    parser.add_argument(
+        "--resume-eval",
+        action="store_true",
+        help="reconstruct the two completed evaluation streams from cache before continuing",
+    )
     parser.add_argument("--allow-eval", action="store_true", help="requires prior preregistration approval")
     parser.add_argument(
         "--phase-limit",
@@ -280,10 +310,31 @@ def main() -> None:
         parser.error("evaluation requires the selected epsilon 0.15 and audit rate 1.0")
     if args.streams == "eval" and args.metric not in (None, "probability"):
         parser.error("evaluation requires the E2-selected probability metric")
+    if args.resume_eval and (args.streams != "eval" or args.mode != "record"):
+        parser.error("--resume-eval requires --streams eval --mode record")
+    if args.resume_eval and args.output_dir is None:
+        parser.error("--resume-eval requires a distinct, empty --output-dir")
+    if args.resume_eval:
+        original = (ROOT / "results" / "e3a" / "evaluation").resolve()
+        output = args.output_dir.resolve()
+        if output == original or original in output.parents or output in original.parents:
+            parser.error("--resume-eval output must not overlap the original evaluation directory")
+        if output.exists() and (not output.is_dir() or any(output.iterdir())):
+            parser.error("--resume-eval output directory must be empty")
+        if (args.warmup, args.n_cal, args.n_val, args.alpha, args.refit_interval, args.tau_rule, args.seed) != (
+            300,
+            400,
+            400,
+            0.05,
+            200,
+            "margin",
+            20261122,
+        ):
+            parser.error("--resume-eval requires the original evaluation parameters")
     if args.metric is None:
         args.metric = "probability"
     from bench.e3a.baselines import run_baseline
-    from bench.e3a.lifecycle_runner import FACTORIAL, SECONDARY_AUDIT_RATES, run_lifecycle
+    from bench.e3a.lifecycle_runner import ARMS, FACTORIAL, SECONDARY_AUDIT_RATES, run_lifecycle
 
     names = (
         (tuple(args.dev_condition) if args.dev_condition else DEV_STREAMS) if args.streams == "dev" else EVAL_STREAMS
@@ -298,12 +349,34 @@ def main() -> None:
     for filename in ("banking_policy_4.json", "banking_policy_12.json", "clinc_map.json"):
         source = ROOT / "tasks" / filename
         manifest.data[filename] = hashlib.sha256(source.read_bytes()).hexdigest()
-    budget = JournaledBudget({"openai": 75.0, "typesafe": 5.0}, initial={"openai": previous_openai_spend()})
+    budget = JournaledBudget({"openai": 75.0, "typesafe": TYPESAFE_CAP}, initial={"openai": previous_openai_spend()})
     if budget.spent.get("openai", 0.0) < 15.1003 or budget.spent.get("typesafe", 0.0) < 1.8431:
         raise RuntimeError("budget journal does not include the recorded $15.1003 OpenAI and $1.8431 TypeSafe spend")
     providers = E3aProviders(args.mode, budget)
     embedder = CachedEmbedder(JsonCache(EMBEDDING_NAMESPACE, mode=args.mode))
     mining_timing = JsonCache("e3a_mining_timing_v1", mode=args.mode)
+    caches = (
+        providers.agent_cache,
+        providers.s1.cache,
+        providers.writer.cache,
+        embedder.cache,
+        embedder.timing_cache,
+        mining_timing,
+    )
+    if args.resume_eval:
+        for cache in caches:
+            cache.mode = "replay"
+        # Copy the completed artifacts verbatim; reconstruction below restores
+        # in-memory records and paired teacher selections without rewriting them.
+        for name in RESUMED_STREAMS:
+            artifacts = list(original.glob(f"{name}_*"))
+            stream_dir = original / name
+            if not artifacts or not stream_dir.is_dir():
+                raise RuntimeError(f"missing original completed artifacts for {name}")
+            for artifact in artifacts:
+                if artifact.is_file():
+                    shutil.copy2(artifact, directory / artifact.name)
+            shutil.copytree(stream_dir, directory / name)
     all_rows: list[dict[str, Any]] = []
     s5_records: list[dict[str, Any]] = []
     meta_records: list[dict[str, Any]] = []
@@ -312,6 +385,10 @@ def main() -> None:
     variance_overhead = 0.0
     secondary_inputs = []
     for name in names:
+        reconstructing = args.resume_eval and name in RESUMED_STREAMS
+        if args.resume_eval and name == EVAL_STREAMS[2]:
+            for cache in caches:
+                cache.mode = "record"
         stream_seed = args.seed + int(name.split("_")[1]) if name.startswith("seed_") else args.seed
         path = ROOT / "tasks" / "streams" / f"{name}.csv"
         manifest.data[path.name] = hashlib.sha256(path.read_bytes()).hexdigest()
@@ -332,9 +409,10 @@ def main() -> None:
             variance_rows, overhead = teacher_variance(
                 items, providers, seed=stream_seed, size=100, workers=args.workers
             )
-            pd.DataFrame(variance_rows).to_csv(
-                directory / f"{name}_teacher_variance.csv", index=False, lineterminator="\n"
-            )
+            if not reconstructing:
+                pd.DataFrame(variance_rows).to_csv(
+                    directory / f"{name}_teacher_variance.csv", index=False, lineterminator="\n"
+                )
             variance_overhead += overhead
         shift_at = None if name.endswith("_control") else shift
         rows = always_agent(items, name, shift_at)
@@ -430,31 +508,36 @@ def main() -> None:
                 if old_name in row:
                     row[new_name] = row.pop(old_name)
         table = pd.DataFrame(rows)
-        for arm, arm_rows in table.groupby("arm", sort=True):
-            arm_rows.to_csv(directory / f"{name}_{arm}.csv", index=False, lineterminator="\n")
-        summary = summarize_streams(table)
-        summary.to_csv(directory / f"{name}_summary.csv", index=False, lineterminator="\n")
-        per_stream = directory / name
-        per_stream.mkdir(exist_ok=True)
-        plot_results(table, summary, per_stream)
-        with gzip.open(per_stream / "s4-traces.jsonl.gz", "wt", encoding="utf-8") as handle:
-            for item in items:
-                teacher = item["teacher"]
-                handle.write(json.dumps({"kind": "envelope", "value": teacher.envelope.to_dict()}) + "\n")
-                for step in teacher.trace.steps:
-                    handle.write(
-                        json.dumps(
-                            {
-                                "kind": "agent_step",
-                                "trace_id": teacher.trace.trace_id,
-                                "input": teacher.trace.input,
-                                "tool": step.tool,
-                                "arguments": step.arguments,
-                                "result": step.result,
-                            }
+        if reconstructing:
+            _verify_reconstructed_primary(
+                table, original, name, set(ARMS) | {"always_agent", "fixed_gate", "fixed_gate_config_hash", "knn_cache"}
+            )
+        else:
+            for arm, arm_rows in table.groupby("arm", sort=True):
+                arm_rows.to_csv(directory / f"{name}_{arm}.csv", index=False, lineterminator="\n")
+            summary = summarize_streams(table)
+            summary.to_csv(directory / f"{name}_summary.csv", index=False, lineterminator="\n")
+            per_stream = directory / name
+            per_stream.mkdir(exist_ok=True)
+            plot_results(table, summary, per_stream)
+            with gzip.open(per_stream / "s4-traces.jsonl.gz", "wt", encoding="utf-8") as handle:
+                for item in items:
+                    teacher = item["teacher"]
+                    handle.write(json.dumps({"kind": "envelope", "value": teacher.envelope.to_dict()}) + "\n")
+                    for step in teacher.trace.steps:
+                        handle.write(
+                            json.dumps(
+                                {
+                                    "kind": "agent_step",
+                                    "trace_id": teacher.trace.trace_id,
+                                    "input": teacher.trace.input,
+                                    "tool": step.tool,
+                                    "arguments": step.arguments,
+                                    "result": step.result,
+                                }
+                            )
+                            + "\n"
                         )
-                        + "\n"
-                    )
         all_rows.extend(rows)
         manifest.counts[name] = len(items)
         if writer_failures:
@@ -490,10 +573,14 @@ def main() -> None:
                     teacher = by_index[row["ticket_index"]]["teacher"]
                     route = row.get("route") or {}
                     row["teacher_agreement"] = (
-                        route.get("department") == teacher.route.get("department")
-                        and route.get("priority") == teacher.route.get("priority")
-                        and row.get("verified") == teacher.verified
-                    ) if teacher.route else None
+                        (
+                            route.get("department") == teacher.route.get("department")
+                            and route.get("priority") == teacher.route.get("priority")
+                            and row.get("verified") == teacher.verified
+                        )
+                        if teacher.route
+                        else None
+                    )
                     teacher_entry = None
                     for event in teacher.events:
                         if event["tool"] == "route_ticket":
@@ -508,7 +595,8 @@ def main() -> None:
                     row["d2_teacher_agreement"] = verify == teacher.verified if verify is not None else None
                     row["joint_decision_agreement"] = (
                         predicted == teacher_entry and verify == teacher.verified
-                        if predicted is not None and verify is not None and teacher_entry is not None else None
+                        if predicted is not None and verify is not None and teacher_entry is not None
+                        else None
                     )
                     for part in ("s1", "agent", "shadow", "audit", "writer", "mining", "embedding"):
                         row[f"{part}_cost_usd"] = row.pop(f"cost_{part}")
@@ -546,7 +634,8 @@ def main() -> None:
     summary = summarize_streams(result)
     summary.to_csv(directory / "summary.csv", index=False, lineterminator="\n")
     for stream, part in summary.groupby("stream"):
-        part.to_csv(directory / f"{stream}_summary.csv", index=False, lineterminator="\n")
+        if not args.resume_eval or stream not in RESUMED_STREAMS:
+            part.to_csv(directory / f"{stream}_summary.csv", index=False, lineterminator="\n")
     audit_rates = {**SECONDARY_AUDIT_RATES, "s1_audit": args.audit_rate}
     audit_curve = summary[summary["arm"].isin(audit_rates)].copy()
     audit_curve["audit_rate"] = audit_curve["arm"].map(audit_rates)
@@ -643,7 +732,9 @@ if __name__ == "__main__":
                 else ROOT / "results" / "e3a" / stream
             )
             directory.mkdir(parents=True, exist_ok=True)
-            budget = JournaledBudget({"openai": 75.0, "typesafe": 5.0}, initial={"openai": previous_openai_spend()})
+            budget = JournaledBudget(
+                {"openai": 75.0, "typesafe": TYPESAFE_CAP}, initial={"openai": previous_openai_spend()}
+            )
             (directory / "budget_stop.json").write_text(
                 json.dumps(
                     {

@@ -20,6 +20,38 @@ def test_missing_and_interrupted_outputs_are_not_success(tmp_path):
     assert "Provider dashboard reconciliation is unverified" in text
 
 
+def test_typesafe_reconciliation_and_stop_history(tmp_path):
+    stop = {"error": "TypeSafe 402 Payment Required", "spent_usd": {"typesafe": 2.8020353839984793}}
+    previous = tmp_path / "previous.json"
+    previous.write_text(json.dumps(stop))
+    (tmp_path / "budget_stop.json").write_text(json.dumps({"error": "new stop"}))
+    text = report(tmp_path, (previous,))
+    assert "new stop" in text
+    assert "TypeSafe 402 Payment Required" in text
+    assert "$4.89" in text
+    assert "$2.75" in text
+    assert "1.78" in text
+    assert "$8.00" in text
+    assert "$14.78" in text
+    assert "$0.05" in text
+    assert "cannot guarantee" in text
+
+
+def test_cli_does_not_overwrite_existing_report(tmp_path, monkeypatch):
+    import sys
+
+    import pytest
+
+    from bench.e3a.eval_analysis import main
+
+    output = tmp_path / "ANALYSIS.md"
+    output.write_text("previous report")
+    monkeypatch.setattr(sys, "argv", ["eval_analysis", "--input-dir", str(tmp_path), "--output", str(output)])
+    with pytest.raises(FileExistsError):
+        main()
+    assert output.read_text() == "previous report"
+
+
 def test_numeric_verdicts_and_promotions_are_reported(tmp_path):
     write_csv(
         tmp_path / "discovery_summary.csv",

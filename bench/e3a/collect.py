@@ -138,7 +138,7 @@ def main() -> None:
     args = parser.parse_args()
     out = ROOT / "results" / "e3a" / "dev-collection"
     prior = previous_openai_spend()
-    budget = JournaledBudget({"openai": 75.0, "typesafe": 5.0}, initial={"openai": prior})
+    budget = JournaledBudget({"openai": 75.0, "typesafe": 8.00}, initial={"openai": prior})
     out.mkdir(parents=True, exist_ok=True)
     if budget.spent.get("openai", 0.0) < 15.1003 or budget.spent.get("typesafe", 0.0) < 1.8431:
         message = "budget journal does not include the recorded $15.1003 OpenAI and $1.8431 TypeSafe spend"
@@ -181,7 +181,8 @@ def main() -> None:
                 (out / "budget_stop.json").write_text(
                     json.dumps(
                         {"error": budget_errors[0], "spent_usd": dict(budget.spent), "caps_usd": budget.caps}, indent=2
-                    ) + "\n"
+                    )
+                    + "\n"
                 )
             manifest.notes.append(f"{name}: {errors} ticket calls failed; see CSV")
             break

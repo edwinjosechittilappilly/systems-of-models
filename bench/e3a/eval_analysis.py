@@ -64,7 +64,7 @@ def table(frame, columns):
     ]
 
 
-def report(directory: Path) -> str:
+def report(directory: Path, stop_history: tuple[Path, ...] = ()) -> str:
     lines = [
         "# E3a post-evaluation analysis",
         "",
@@ -125,10 +125,33 @@ def report(directory: Path) -> str:
                 problems.append(f"{stream}: manifest count {counts.get(stream, 'missing')}, expected 2400")
     else:
         lines.append("- Manifest unavailable; frozen configuration, run completion and spend cannot be verified.")
-    stop = directory / "budget_stop.json"
-    if stop.exists():
-        data = json_file("budget_stop.json")
-        lines.append(f"- Recorded budget stop: `{json.dumps(data, sort_keys=True)}`.")
+    stops = []
+    for path in (*stop_history, directory / "budget_stop.json"):
+        if not path.exists() and path == directory / "budget_stop.json":
+            continue
+        try:
+            data = json.loads(path.read_text())
+        except (ValueError, OSError) as exc:
+            problems.append(f"{path}: {exc}")
+            continue
+        stops.append(data)
+        lines.append(f"- Recorded budget stop ({path}): `{json.dumps(data, sort_keys=True)}`.")
+    if any(
+        isinstance(stop, dict)
+        and "402" in str(stop.get("error", ""))
+        and isinstance(stop.get("spent_usd"), dict)
+        and isinstance(stop["spent_usd"].get("typesafe"), (int, float))
+        and abs(stop["spent_usd"]["typesafe"] - 2.8020353839984793) < 1e-6
+        for stop in stops
+    ):
+        lines.append(
+            "- At the TypeSafe 402 stop, the dashboard showed $4.89 billed versus approximately $2.75 "
+            "settled list-price spend (about 1.78 times). After two authorized top-ups, $9.89 of balance "
+            "remained on top of $4.89 already billed ($14.78 total available). The cumulative list-price "
+            "proxy cap was raised to $8.00 (about $14.24 billed at the observed ratio). The previous $0.05 "
+            "unpriced-call reservation is conservatively retained. This proxy cannot guarantee the actual billed "
+            "cap; dashboard billing must be monitored separately."
+        )
     replay = directory / "secondary_replay_cache.json"
     if replay.exists():
         data = json_file("secondary_replay_cache.json")
@@ -137,7 +160,8 @@ def report(directory: Path) -> str:
         missing.append("secondary_replay_cache.json")
     lines.append(
         "- Logical costs can count cached calls across arms and are not provider spend. "
-        "Provider dashboard reconciliation is unverified; hardware and energy are unpriced."
+        "Provider dashboard reconciliation is unverified for current spend; "
+        "hardware and energy are unpriced."
     )
     lines.append(
         "- Pacing deviation: the runner reserves at most 400,000 estimated tokens per rolling minute, "
@@ -494,10 +518,18 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input-dir", type=Path, default=DEFAULT_INPUT)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument(
+        "--stop-history",
+        type=Path,
+        action="append",
+        default=[],
+        help="include a previous budget_stop.json (repeatable for resumed runs)",
+    )
     args = parser.parse_args()
-    text = report(args.input_dir)
+    text = report(args.input_dir, tuple(args.stop_history))
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(text)
+    with args.output.open("x") as output:
+        output.write(text)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,3 @@
+stream,arm,tickets,shift_at,joint_accuracy,teacher_agreement,coverage,total_cost_usd,cost_per_ticket_usd,agent_calls,cumulative_excess_error,postshift_cumulative_excess_error,promotions,demotions,audits,false_demotions,detection_ticket,detection_delay_tickets,detection_delay_audits,detection_miss,recovery_ticket,recovery_delay_tickets,amortization_ticket,amortization_horizon_tickets
+dev_visible,always_agent,2000,1401,0.4885,1.0,0.0,6.114071,0.0030570355000000002,2000,0.0,0.0,0,0,0,0,,,,True,,,,
+dev_visible,fixed_gate_config_hash,2000,1401,0.4905,0.9979349509550852,0.047,6.060937365999999,0.0030304686829999996,1906,-4.0,0.0,1,0,0,0,,,,True,,,846.0,846.0

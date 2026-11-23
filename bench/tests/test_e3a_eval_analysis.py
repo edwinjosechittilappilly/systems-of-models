@@ -37,6 +37,43 @@ def test_typesafe_reconciliation_and_stop_history(tmp_path):
     assert "cannot guarantee" in text
 
 
+def test_openai_503_deviation_preserves_both_explicit_stop_histories(tmp_path):
+    previous = tmp_path / "previous.json"
+    resumed = tmp_path / "resumed.json"
+    previous.write_text(json.dumps({"error": "TypeSafe 402 Payment Required"}))
+    resumed.write_text(
+        json.dumps(
+            {
+                "error": "BudgetExceeded: openai: budget reserved for unpriced call: "
+                "Error code: 503 - Unable to verify model access right now. Please retry.",
+                "spent_usd": {"openai": 35.112541169999865},
+            }
+        )
+    )
+    text = report(tmp_path, (resumed, previous))
+    assert str(resumed) in text
+    assert str(previous) in text
+    assert "TypeSafe 402 Payment Required" in text
+    assert "503 - Unable to verify model access" in text
+    assert "503 stop deviation" in text
+    assert "$1.00 unpriced-call reservation is retained" in text
+    assert "not evidence of actual provider billing" in text
+
+
+def test_unrelated_503_does_not_claim_openai_reservation(tmp_path):
+    (tmp_path / "budget_stop.json").write_text(json.dumps({"error": "other provider: 503"}))
+    text = report(tmp_path)
+    assert "503 stop deviation" not in text
+    assert "$1.00 unpriced-call reservation is retained" not in text
+
+
+def test_explicit_current_stop_is_reported_only_once(tmp_path):
+    stop = tmp_path / "budget_stop.json"
+    stop.write_text(json.dumps({"error": "budget"}))
+    text = report(tmp_path, (stop,))
+    assert text.count("Recorded budget stop") == 1
+
+
 def test_cli_does_not_overwrite_existing_report(tmp_path, monkeypatch):
     import sys
 

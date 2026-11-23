@@ -2,6 +2,12 @@
 
 Generated from retained evaluation artifacts; no model calls. NA means unavailable, not zero.
 
+This is the historical partial snapshot after the first TypeSafe 402 stop, not the
+resumed or final analysis. Subsequently the user reported $4.89 billed versus about
+$2.75 settled list price (ratio 1.78) and $9.89 additional balance, and raised the
+list-price proxy cap to $8.00; actual billed spend may differ. A later OpenAI 503
+interrupted the resumed run; its $1 reservation was retained conservatively.
+
 ## Run provenance, deviations and spend
 - Manifest unavailable; frozen configuration, run completion and spend cannot be verified.
 - Recorded budget stop: `{"caps_usd": {"openai": 75.0, "typesafe": 5.0}, "error": "typesafe: budget reserved for unpriced call: Client error '402 Payment Required' for url 'https://api.typesafe.ai/v1/systemone'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402", "spent_usd": {"openai": 26.55214266999984, "typesafe": 2.8020353839984793}}`.

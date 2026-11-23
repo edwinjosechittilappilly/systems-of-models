@@ -1,0 +1,11 @@
+{
+  "error": "BudgetExceeded: openai: budget reserved for unpriced call: Error code: 503 - Unable to verify model access right now. Please retry.",
+  "spent_usd": {
+    "openai": 35.112541169999865,
+    "typesafe": 3.422965651997018
+  },
+  "caps_usd": {
+    "openai": 75.0,
+    "typesafe": 8.0
+  }
+}

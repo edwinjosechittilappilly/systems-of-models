@@ -2,6 +2,8 @@
 
 Development tuning never consumes the evaluation streams. Evaluation requires
 an explicit opt-in after the preregistration has been reviewed and approved.
+Use --resume-eval --resume-from DIRECTORY with a distinct empty --output-dir
+to reconstruct completed primary streams before recording the remainder.
 """
 
 from __future__ import annotations
@@ -266,8 +268,9 @@ def main() -> None:
     parser.add_argument(
         "--resume-eval",
         action="store_true",
-        help="reconstruct the two completed evaluation streams from cache before continuing",
+        help="reconstruct completed evaluation streams from cache before continuing",
     )
+    parser.add_argument("--resume-from", type=Path, help="evaluation artifact directory to resume (default: original)")
     parser.add_argument("--allow-eval", action="store_true", help="requires prior preregistration approval")
     parser.add_argument(
         "--phase-limit",
@@ -312,13 +315,15 @@ def main() -> None:
         parser.error("evaluation requires the E2-selected probability metric")
     if args.resume_eval and (args.streams != "eval" or args.mode != "record"):
         parser.error("--resume-eval requires --streams eval --mode record")
+    if args.resume_from is not None and not args.resume_eval:
+        parser.error("--resume-from requires --resume-eval")
     if args.resume_eval and args.output_dir is None:
         parser.error("--resume-eval requires a distinct, empty --output-dir")
     if args.resume_eval:
-        original = (ROOT / "results" / "e3a" / "evaluation").resolve()
+        original = (args.resume_from or ROOT / "results" / "e3a" / "evaluation").resolve()
         output = args.output_dir.resolve()
         if output == original or original in output.parents or output in original.parents:
-            parser.error("--resume-eval output must not overlap the original evaluation directory")
+            parser.error("--resume-eval output must not overlap the source evaluation directory")
         if output.exists() and (not output.is_dir() or any(output.iterdir())):
             parser.error("--resume-eval output directory must be empty")
         if (args.warmup, args.n_cal, args.n_val, args.alpha, args.refit_interval, args.tau_rule, args.seed) != (
@@ -335,6 +340,37 @@ def main() -> None:
         args.metric = "probability"
     from bench.e3a.baselines import run_baseline
     from bench.e3a.lifecycle_runner import ARMS, FACTORIAL, SECONDARY_AUDIT_RATES, run_lifecycle
+
+    completed_streams: tuple[str, ...] = ()
+    primary_arms = set(ARMS) | {"always_agent", "fixed_gate", "fixed_gate_config_hash", "knn_cache"}
+    if args.resume_eval:
+        manifest_path = original / "manifest.json"
+        if manifest_path.is_file():
+            source_manifest = json.loads(manifest_path.read_text())
+            counts = source_manifest["counts"]
+            completed = []
+            for name in EVAL_STREAMS:
+                if name not in counts:
+                    if any(later in counts for later in EVAL_STREAMS[len(completed) + 1 :]):
+                        raise RuntimeError(f"non-contiguous completed evaluation streams after {name}")
+                    break
+                stream_path = ROOT / "tasks" / "streams" / f"{name}.csv"
+                if counts[name] != len(pd.read_csv(stream_path)):
+                    raise RuntimeError(f"{name}: completed count does not match stream")
+                completed.append(name)
+            completed_streams = tuple(completed)
+        elif original == (ROOT / "results" / "e3a" / "evaluation").resolve():
+            # The initial interrupted evaluation predates manifest checkpoints.
+            completed_streams = RESUMED_STREAMS
+        else:
+            raise RuntimeError(f"missing source manifest: {manifest_path}")
+        if not completed_streams:
+            raise RuntimeError("source contains no completed evaluation streams")
+        for name in completed_streams:
+            missing = [arm for arm in sorted(primary_arms) if not (original / f"{name}_{arm}.csv").is_file()]
+            if missing or not (original / name).is_dir():
+                raise RuntimeError(f"{name}: missing completed primary artifacts: {missing}")
+        args.resume_from = str(original)
 
     names = (
         (tuple(args.dev_condition) if args.dev_condition else DEV_STREAMS) if args.streams == "dev" else EVAL_STREAMS
@@ -368,7 +404,7 @@ def main() -> None:
             cache.mode = "replay"
         # Copy the completed artifacts verbatim; reconstruction below restores
         # in-memory records and paired teacher selections without rewriting them.
-        for name in RESUMED_STREAMS:
+        for name in completed_streams:
             artifacts = list(original.glob(f"{name}_*"))
             stream_dir = original / name
             if not artifacts or not stream_dir.is_dir():
@@ -377,6 +413,13 @@ def main() -> None:
                 if artifact.is_file():
                     shutil.copy2(artifact, directory / artifact.name)
             shutil.copytree(stream_dir, directory / name)
+        for name in completed_streams:
+            manifest.counts[name] = (
+                counts[name]
+                if manifest_path.is_file()
+                else len(pd.read_csv(ROOT / "tasks" / "streams" / f"{name}.csv"))
+            )
+        manifest.write(directory)
     all_rows: list[dict[str, Any]] = []
     s5_records: list[dict[str, Any]] = []
     meta_records: list[dict[str, Any]] = []
@@ -385,8 +428,8 @@ def main() -> None:
     variance_overhead = 0.0
     secondary_inputs = []
     for name in names:
-        reconstructing = args.resume_eval and name in RESUMED_STREAMS
-        if args.resume_eval and name == EVAL_STREAMS[2]:
+        reconstructing = name in completed_streams
+        if args.resume_eval and not reconstructing:
             for cache in caches:
                 cache.mode = "record"
         stream_seed = args.seed + int(name.split("_")[1]) if name.startswith("seed_") else args.seed
@@ -509,9 +552,7 @@ def main() -> None:
                     row[new_name] = row.pop(old_name)
         table = pd.DataFrame(rows)
         if reconstructing:
-            _verify_reconstructed_primary(
-                table, original, name, set(ARMS) | {"always_agent", "fixed_gate", "fixed_gate_config_hash", "knn_cache"}
-            )
+            _verify_reconstructed_primary(table, original, name, primary_arms)
         else:
             for arm, arm_rows in table.groupby("arm", sort=True):
                 arm_rows.to_csv(directory / f"{name}_{arm}.csv", index=False, lineterminator="\n")
@@ -540,8 +581,12 @@ def main() -> None:
                         )
         all_rows.extend(rows)
         manifest.counts[name] = len(items)
+        manifest.write(directory)
         if writer_failures:
             pd.DataFrame(writer_failures).to_csv(directory / "writer_failures.csv", index=False, lineterminator="\n")
+    if args.resume_eval:
+        for cache in caches:
+            cache.mode = "record"
     if args.streams == "eval":
         from bench.e3a.hypotheses import evaluate
 
@@ -634,7 +679,7 @@ def main() -> None:
     summary = summarize_streams(result)
     summary.to_csv(directory / "summary.csv", index=False, lineterminator="\n")
     for stream, part in summary.groupby("stream"):
-        if not args.resume_eval or stream not in RESUMED_STREAMS:
+        if stream not in completed_streams:
             part.to_csv(directory / f"{stream}_summary.csv", index=False, lineterminator="\n")
     audit_rates = {**SECONDARY_AUDIT_RATES, "s1_audit": args.audit_rate}
     audit_curve = summary[summary["arm"].isin(audit_rates)].copy()

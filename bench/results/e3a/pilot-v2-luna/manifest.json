@@ -1,0 +1,40 @@
+{
+  "cache": {
+    "gpt-6-luna": {
+      "hits": 0,
+      "misses": 380
+    }
+  },
+  "config": {
+    "budget_cap_usd": 12,
+    "granularity": 4,
+    "mode": "record",
+    "sample_seed": 20261122,
+    "size": 100
+  },
+  "contract_version": "2.1.0",
+  "cost_usd": {
+    "gpt-6-luna": 0.0294695
+  },
+  "counts": {
+    "gpt-6-luna": 100
+  },
+  "data": {
+    "banking77-train.parquet": "8dc89b87a188509c42cce5a086e8f7c1ff4a225bdd9ae3f23e6cdfa5806e363a"
+  },
+  "experiment": "e3a",
+  "finished_at": "2026-11-23T04:01:35Z",
+  "git_dirty": true,
+  "git_sha": "15f58b3fb6982b78d8168e33cfa94e2ae640f989",
+  "models": {
+    "gpt-6-luna": "gpt-6-luna"
+  },
+  "new_spend_usd": {
+    "openai": 0.029469
+  },
+  "notes": [],
+  "python": "3.12.9",
+  "run_id": "pilot-v2-luna",
+  "som_version": "0.1.0.dev0",
+  "started_at": "2026-11-23T03:52:40Z"
+}

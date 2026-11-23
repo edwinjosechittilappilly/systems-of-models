@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import argparse
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 from bench.common.stats import wilson
-from bench.e3a.shadow_analysis import OUT
+from bench.e3a.shadow_analysis import DEFAULT_DEV_DIR
 from scipy.stats import beta
 
 
@@ -37,11 +40,16 @@ def promote(scores, errors, n, epsilon, rule):
 
 
 def main():
-    shadow = pd.read_csv(OUT / "shadow_observations.csv")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--dev-dir", type=Path, default=DEFAULT_DEV_DIR)
+    args = parser.parse_args()
+    shadow = pd.read_csv(args.dev_dir / "shadow_observations.csv")
     shadow = shadow[shadow.decision == "D1"]
-    joint = pd.read_csv(OUT.parent / "dev-tuning-joint/dev_control_s1_audit.csv")
-    joined = joint.merge(shadow[["ticket_index", "score"]], on="ticket_index")
-    joined = joined[joined.joint_decision_agreement.notna()]
+    joint = pd.read_csv(args.dev_dir / "dev_control_s1_audit.csv")
+    joined = joint.merge(shadow[["ticket_index", "score"]], on="ticket_index", validate="one_to_one")
+    joined = joined[joined.joint_decision_agreement.notna() & joined.score.notna()]
+    if joined.empty:
+        raise ValueError("no joint-labeled shadow scores; run shadow_analysis for this development run")
     scores = joined.score.to_numpy(dtype=float)
     errors = ~joined.joint_decision_agreement.to_numpy(dtype=bool)
     rng = np.random.default_rng(20261122)
@@ -68,7 +76,7 @@ def main():
                     }
                 )
     result = pd.DataFrame(rows)
-    result.to_csv(OUT.parent / "dev-tuning-joint/promotion_grid.csv", index=False)
+    result.to_csv(args.dev_dir / "promotion_grid.csv", index=False, lineterminator="\n")
     print(result.to_string(index=False))
 
 

@@ -1,4 +1,4 @@
-"""Derive the E3a preregistration from completed development results only."""
+"""Reproduce historical E3a development tuning; never overwrite the preregistration."""
 
 from __future__ import annotations
 
@@ -217,7 +217,7 @@ evaluation stream is used to choose a parameter. The provider dashboard will be 
 exports are available; otherwise it remains explicitly unreconciled. Public benchmark contamination,
 synthetic policy/marker, teacher error and selective escalation labels are threats to validity.
 """
-    (ROOT / "PREREG.md").write_text(text)
+    (DEV / "historical-prereg-draft.md").write_text(text)
 
 
 if __name__ == "__main__":

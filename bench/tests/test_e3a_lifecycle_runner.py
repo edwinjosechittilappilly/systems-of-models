@@ -96,9 +96,22 @@ def test_missing_teacher_decisions_skip_training_without_fabricating_labels():
 def test_failed_writer_is_retried_once_and_both_costs_are_booked(monkeypatch):
     monkeypatch.setattr("bench.e3a.lifecycle_runner.make_surrogate", lambda embedder, classes: Surrogate())
 
+    from bench.e3a import lifecycle_runner
+
+    original = lifecycle_runner.write_question
+    seeds = []
+    retry_markers = []
+
+    def record_seed(*args, **kwargs):
+        seeds.append(kwargs["seed"])
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(lifecycle_runner, "write_question", record_seed)
+
     class FailingWriter(Writer):
         def __call__(self, context):
-            raise ValueError("incomplete writer output")
+            retry_markers.append(context.get("_e3a_retry"))
+            return {}
 
     failures = []
     rows = run_lifecycle(
@@ -111,6 +124,8 @@ def test_failed_writer_is_retried_once_and_both_costs_are_booked(monkeypatch):
     assert row["cost_writer"] == 0.06
     assert row["served_by"] == "agent"
     assert [failure["attempt"] for failure in failures if failure["arm"] == "s1_audit"] == [1, 2]
+    assert seeds[:2] == [20261122, 20261123]
+    assert retry_markers[:2] == [None, 1]
 
 
 def test_real_mining_shadow_promotion_and_audit_are_paired_and_costed(monkeypatch):
@@ -137,10 +152,14 @@ def test_real_mining_shadow_promotion_and_audit_are_paired_and_costed(monkeypatc
     assert [rows[name][8]["training_label_count"] for name in FACTORIAL] == [8] * 4
     assert all(rows[name][8]["compile_status"] == "compiled" for name in FACTORIAL)
     assert rows["s1_audit"][8]["cost_writer"] == 0.03
+    assert rows["s1_audit"][7]["predicted_entry_probability"] is None
+    assert rows["s1_audit"][8]["served_by"] == "agent"
+    assert rows["s1_audit"][8]["predicted_entry_probability"] == 0.99
     assert any(row["promoted"] for row in rows["s1_audit"])
     served = next(row for row in rows["s1_audit"] if row["served_by"] == "compiled")
     assert served["audited"] and served["agent_calls"] == 1
     assert served["cost_audit"] == 0.1 and served["gold_joint_correct"]
+    assert served["predicted_entry_probability"] == 0.99
     refit_served = next(row for row in rows["s1_refit"] if row["served_by"] == "compiled")
     assert not refit_served["audited"] and refit_served["agent_calls"] == 0
     assert all("ambiguous_retrieval_count" in item and item["candidates"] for item in diagnostics)
@@ -330,3 +349,39 @@ def test_joint_reference_counts_identity_mismatch_even_when_entry_matches():
     assert _joint_reference(model, answer, ("a", False), {"a": False}).value == answer.value
     assert _joint_reference(model, answer, ("a", True), {"a": False}).value != answer.value
     assert _joint_reference(model, answer, ("b", False), {"a": False}).value != answer.value
+
+
+def test_oracle_audit_uses_gold_when_teacher_decision_is_missing(monkeypatch):
+    from som.compile import CompiledDecision
+
+    monkeypatch.setattr("bench.e3a.lifecycle_runner.make_surrogate", lambda embedder, classes: Surrogate())
+    original = CompiledDecision.record_audit
+    comparisons = []
+
+    def record(self, answer, reference):
+        comparisons.append((answer.value, reference.value))
+        return original(self, answer, reference)
+
+    monkeypatch.setattr(CompiledDecision, "record_audit", record)
+    items = prepared(16)
+    items[-1]["teacher"].events = [{"tool": "route_ticket"}]
+    items[-1]["gold"]["identity_check"] = not items[-1]["gold"]["identity_check"]
+    rows = run_lifecycle(
+        items,
+        SimpleNamespace(s1=Decider(), writer=Writer()),
+        {
+            "warmup": 8,
+            "min_support": 1,
+            "n_cal": 2,
+            "n_val": 2,
+            "epsilon": 0.9,
+            "alpha": 0.9,
+            "tau_rule": "margin",
+            "audit_rate": 1,
+            "refit_interval": 50,
+            "embedder": None,
+        },
+    )
+    assert rows["oracle_audit"][-1]["audited"]
+    assert rows["oracle_audit"][-1]["teacher_agreement"] is None
+    assert sum(answer != reference for answer, reference in comparisons) == 1

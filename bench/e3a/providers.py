@@ -18,6 +18,7 @@ from typing import Any
 from bench.common.budget import Budget
 from bench.common.cache import CACHE_DIR, CachedDecider, JsonCache, Mode
 from bench.e3a.agent import PROMPT, Agent
+from bench.e3a.spend import paid_call, request_reserve
 from bench.tasks.environment import PolicyKB, SupportEnvironment
 
 from som.compile.traces import AgentStep, AgentTrace
@@ -82,42 +83,24 @@ class _Jev:
         self.budget = budget
         self.client = client
         self.inner: Any = None
-        self.pending_cost: float | None = None
-        self.pending_call = False
 
     def decide(self, input: Any, questions: Any, *, trace_id: str | None = None) -> Any:
-        cap = self.budget.caps.get("typesafe")
-        if cap is not None and self.budget.spent.get("typesafe", 0.0) + 0.05 > cap:
-            raise RuntimeError("TypeSafe budget exhausted")
         if self.inner is None:
             from som.adapters.typesafe import TypeSafe
 
             self.inner = TypeSafe("jev-1.14.0", client=self.client, max_retries=0)
-        decision = self.inner.decide(input, questions, trace_id=trace_id)
-        self.pending_cost = decision.envelope.cost.amount
-        self.pending_call = True
-        return decision
+        body = self.inner.request_body(input, questions)
+        if len(json.dumps(body, ensure_ascii=False, default=str).encode("utf-8")) > 100_000:
+            raise RuntimeError("TypeSafe request exceeds budget reservation size")
+        with paid_call(self.budget, "typesafe", 0.05) as settle:
+            decision = self.inner.decide(input, questions, trace_id=trace_id)
+            settle(decision.envelope.cost.amount)
+            return decision
 
 
 class _BudgetedDecider(CachedDecider):
     def __init__(self, inner: _Jev, cache: JsonCache, budget: Budget) -> None:
         super().__init__(inner, cache)
-        self.budget = budget
-
-    def decide(self, input: Any, questions: Any, *, trace_id: str | None = None, sample: int = 0) -> Any:
-        self.inner.pending_cost = None
-        self.inner.pending_call = False
-        try:
-            return super().decide(input, questions, trace_id=trace_id, sample=sample)
-        finally:
-            amount = self.inner.pending_cost
-            fresh = self.inner.pending_call
-            self.inner.pending_cost = None
-            self.inner.pending_call = False
-            if fresh and amount is None:
-                raise RuntimeError("TypeSafe returned an unpriced decision; cached spend is unknown")
-            if amount is not None:
-                self.budget.charge("typesafe", amount)
 
 
 class _Writer:
@@ -128,19 +111,26 @@ class _Writer:
         self.actual_model: str | None = None
 
     def __call__(self, context: dict[str, Any]) -> dict[str, str]:
-        fresh = False
+        retry = context.get("_e3a_retry")
+        context = {key: value for key, value in context.items() if key != "_e3a_retry"}
 
         def call(request: dict[str, Any]) -> dict[str, Any]:
-            nonlocal fresh
-            if self.budget.spent.get("openai", 0.0) + 1.0 > self.budget.caps["openai"]:
-                raise RuntimeError("OpenAI budget reserve exhausted")
-            started = time.perf_counter()
-            response = self.client.create(**request)
-            latency = (time.perf_counter() - started) * 1000
-            data = response.model_dump(mode="json", by_alias=True, exclude_none=True)
-            data["output_text"] = response.output_text
-            fresh = True
-            return {"response": data, "latency_ms": latency}
+            with paid_call(self.budget, "openai", request_reserve(request)) as settle:
+                started = time.perf_counter()
+                response = self.client.create(**request)
+                latency = (time.perf_counter() - started) * 1000
+                data = response.model_dump(mode="json", by_alias=True, exclude_none=True)
+                u = data.get("usage")
+                if not isinstance(u, dict) or "input_tokens" not in u or "output_tokens" not in u:
+                    raise RuntimeError("OpenAI writer returned no usage; cannot book spend")
+                usage = Usage(
+                    input_tokens=u["input_tokens"],
+                    output_tokens=u["output_tokens"],
+                    cached_tokens=(u.get("input_tokens_details") or {}).get("cached_tokens", 0),
+                )
+                settle(lookup("openai", MODEL).cost(usage).amount)
+                data["output_text"] = response.output_text
+                return {"response": data, "latency_ms": latency}
 
         # OpenAIQuestionWriter builds the canonical request. Its response proxy
         # caches the actual SDK response, including usage, before parsing output.
@@ -156,7 +146,8 @@ class _Writer:
                     schema = request["text"]["format"]["schema"]
                     schema["properties"] = {key: schema["properties"][key] for key in ("name", "instructions")}
                     schema["required"] = ["name", "instructions"]
-                recorded = owner.cache.get_or_call(request, lambda: call(request))
+                key = request if retry is None else {"request": request, "retry": retry}
+                recorded = owner.cache.get_or_call(key, lambda: call(request))
                 data = recorded["response"]
                 u = data.get("usage")
                 if not isinstance(u, dict) or "input_tokens" not in u or "output_tokens" not in u:
@@ -170,8 +161,6 @@ class _Writer:
                 )
                 owner.last_cost = lookup("openai", MODEL).cost(usage)
                 owner.last_latency_ms = recorded["latency_ms"]
-                if fresh:
-                    owner.budget.charge("openai", owner.last_cost.amount)
                 actual = data.get("model")
                 if not isinstance(actual, str) or not actual:
                     raise RuntimeError("writer response does not identify a model")

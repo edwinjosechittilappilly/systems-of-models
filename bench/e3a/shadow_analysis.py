@@ -1,19 +1,19 @@
-"""Analyze the first dev-control shadow generation without making model calls."""
+"""Analyze first-generation development shadow scores without model calls."""
 
 from __future__ import annotations
 
+import argparse
 import json
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from bench.common.cache import answer_from_dict
-from bench.e3a.collect import items_for_stream
 from scipy.stats import beta
 
 ROOT = Path(__file__).resolve().parents[1]
-OUT = ROOT / "results/e3a/dev-tuning"
+DEFAULT_DEV_DIR = ROOT / "results/e3a/dev-tuning-joint"
+LEGACY_SHADOW = ROOT / "results/e3a/dev-tuning/shadow_observations.csv"
 
 
 def upper(errors: int, n: int, alpha: float = 0.0125) -> float:
@@ -23,54 +23,44 @@ def upper(errors: int, n: int, alpha: float = 0.0125) -> float:
 
 
 def main() -> None:
-    frame = pd.read_csv(ROOT / "tasks/streams/dev_control.csv")
-    items, _ = items_for_stream(frame, phase_limit=1000)
-    inputs = {item["index"]: item["text"] for item in items}
-    rows = pd.read_csv(OUT / "dev_control_s1_audit.csv")
-    rows = rows.loc[rows.ticket_index.between(300, 899)]
-    wanted = {inputs[i] for i in rows.ticket_index}
-    names = {"customer_support_intent": "D1", "verify_identity": "D2"}
-    observations: dict[tuple[str, str], list[tuple[object, float]]] = {}
-    with (ROOT / "cache/e3a_s1_jev.jsonl").open() as handle:
-        for line in handle:
-            entry = json.loads(line)
-            request = entry["request"]
-            text = request["input"]
-            if text not in wanted:
-                continue
-            for name, raw in entry["response"]["answers"].items():
-                if name not in names:
-                    continue
-                answer = answer_from_dict(raw)
-                if answer.top_probability is not None:
-                    observations.setdefault((text, names[name]), []).append((answer.value, answer.top_probability))
-    records = []
-    ambiguous = 0
-    for row in rows.itertuples(index=False):
-        for decision, prediction, correct in (
-            ("D1", row.predicted_entry, row.d1_teacher_agreement),
-            ("D2", row.predicted_verify, row.predicted_verify == row.verified),
-        ):
-            if pd.isna(prediction) or pd.isna(correct):
-                continue
-            candidates = {
-                (value, round(float(score), 12))
-                for value, score in observations.get((inputs[row.ticket_index], decision), [])
-                if value == prediction
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--dev-dir", type=Path, default=DEFAULT_DEV_DIR)
+    args = parser.parse_args()
+    out = args.dev_dir
+    rows = pd.read_csv(out / "dev_control_s1_audit.csv")
+    config = json.loads((out / "manifest.json").read_text())["config"]
+    if config["streams"] != "dev":
+        raise ValueError("shadow analysis accepts development runs only")
+    if "predicted_entry_probability" not in rows:
+        if out.resolve() != DEFAULT_DEV_DIR.resolve():
+            raise ValueError("run lacks predicted_entry_probability; cannot match S1 cache safely")
+        # The original Terra bootstrap used this separately recorded historical
+        # shadow table. Never reuse it for a different teacher or development run.
+        data = pd.read_csv(LEGACY_SHADOW)
+        print(f"Using historical Terra shadow observations from {LEGACY_SHADOW}")
+    else:
+        frame = pd.read_csv(ROOT / "tasks/streams/dev_control.csv")
+        shift = len(frame) // 2
+        rows = rows[(rows.ticket_index >= config["warmup"]) & (rows.ticket_index < shift)]
+        compiled = rows.loc[rows.compile_status == "compiled", "ticket_index"].sort_values()
+        if compiled.empty:
+            raise ValueError("development run has no successful S1 compilation before shift")
+        start = int(compiled.iloc[0])
+        end = int(compiled.iloc[1]) if len(compiled) > 1 else shift
+        rows = rows[(rows.ticket_index >= start) & (rows.ticket_index < end)]
+        rows = rows.dropna(subset=["predicted_entry_probability", "joint_decision_agreement"])
+        rows = rows.head(config["n_cal"] + config["n_val"])
+        if rows.empty:
+            raise ValueError("first generation has no joint-labeled S1 scores")
+        data = pd.DataFrame(
+            {
+                "ticket_index": rows.ticket_index,
+                "decision": "D1",
+                "score": rows.predicted_entry_probability,
+                "error": ~rows.joint_decision_agreement.astype(bool),
             }
-            if len(candidates) != 1:
-                ambiguous += 1
-                continue
-            records.append(
-                {
-                    "ticket_index": row.ticket_index,
-                    "decision": decision,
-                    "score": candidates.pop()[1],
-                    "error": not bool(correct),
-                }
-            )
-    data = pd.DataFrame(records)
-    data.to_csv(OUT / "shadow_observations.csv", index=False)
+        )
+    data.to_csv(out / "shadow_observations.csv", index=False, lineterminator="\n")
     grid = []
     rng = np.random.default_rng(20261122)
     for decision, group in data.groupby("decision"):
@@ -103,27 +93,28 @@ def main() -> None:
                     )
             grid.append(result)
     table = pd.DataFrame(grid)
-    table.to_csv(OUT / "shadow_risk_coverage.csv", index=False)
+    table.to_csv(out / "shadow_risk_coverage.csv", index=False, lineterminator="\n")
     plt.style.use(ROOT / "ieee.mplstyle")
     fig, ax = plt.subplots(figsize=(3.5, 2.5))
     for decision, group in table.groupby("decision"):
         ax.plot(group.coverage, group.selective_error, marker="o", label=decision)
     ax.set(xlabel="Coverage", ylabel="Teacher disagreement")
     ax.legend()
-    fig.savefig(OUT / "shadow_risk_coverage.pdf", bbox_inches="tight")
-    fig.savefig(OUT / "shadow_risk_coverage.png", dpi=200, bbox_inches="tight")
+    fig.savefig(out / "shadow_risk_coverage.pdf", bbox_inches="tight")
+    fig.savefig(out / "shadow_risk_coverage.png", dpi=200, bbox_inches="tight")
     plt.close(fig)
-    fig, axes = plt.subplots(1, 2, figsize=(7.0, 2.5), sharey=True)
-    for ax, (decision, group) in zip(axes, table.groupby("decision"), strict=True):
+    groups = list(table.groupby("decision"))
+    fig, axes = plt.subplots(1, len(groups), figsize=(3.5 * len(groups), 2.5), sharey=True, squeeze=False)
+    for ax, (decision, group) in zip(axes[0], groups, strict=True):
         for window in (300, 500, 1000):
             ax.plot(group.tau, group[f"bootstrap_median_cp_n{window}"], label=f"n={window}")
         ax.set(title=decision, xlabel="Threshold", ylim=(0, 1))
-    axes[0].set_ylabel("Bootstrap median CP upper bound")
-    axes[1].legend()
-    fig.savefig(OUT / "shadow_cp_windows.pdf", bbox_inches="tight")
-    fig.savefig(OUT / "shadow_cp_windows.png", dpi=200, bbox_inches="tight")
+    axes[0, 0].set_ylabel("Bootstrap median CP upper bound")
+    axes[0, -1].legend()
+    fig.savefig(out / "shadow_cp_windows.pdf", bbox_inches="tight")
+    fig.savefig(out / "shadow_cp_windows.png", dpi=200, bbox_inches="tight")
     plt.close(fig)
-    print(f"joined={len(data)} ambiguous_or_missing={ambiguous}")
+    print(f"joined={len(data)}")
     print(table.to_string(index=False))
 
 

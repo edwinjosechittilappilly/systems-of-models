@@ -1,0 +1,298 @@
+{
+  "method": {
+    "description": "Development bootstrap promotion estimate multiplied by separately simulated detection conditional on synthetic successful promotion; not an end-to-end lifecycle estimate.",
+    "n_cal": 400,
+    "n_val": 400,
+    "rule": "margin",
+    "alpha": 0.0125,
+    "pre_shift_tickets": 600,
+    "post_shift_tickets": 1200,
+    "seed": 20261122,
+    "repetitions": 500,
+    "sources": [
+      "dev_control_s1_audit.csv",
+      "dev_restructure_15_s1_audit.csv",
+      "promotion_grid.csv"
+    ]
+  },
+  "observed": {
+    "baseline_error": 0.06976744186046513,
+    "effect": 0.3248513922202524,
+    "coverage": 0.086,
+    "n_pre": 86,
+    "n_post": 223,
+    "post_error": 0.3946188340807175
+  },
+  "results": [
+    {
+      "epsilon": 0.1,
+      "promotion_successes": 264,
+      "promotion_replicates": 500,
+      "promotion_probability": 0.528,
+      "promotion_wilson_interval": [
+        0.48419577166421596,
+        0.5713772652699372
+      ],
+      "conditional_detection": {
+        "audit_rate": 0.3,
+        "repetitions": 500,
+        "power": 0.522,
+        "confidence_interval": [
+          0.47821548941356756,
+          0.5654490396061242
+        ],
+        "false_alarm": 0.0,
+        "false_alarm_confidence_interval": [
+          4.336808689942018e-19,
+          0.007624340461552241
+        ],
+        "pre_shift_false_alarms": 0,
+        "misses": 239
+      },
+      "promotion_times_detection": 0.275616
+    },
+    {
+      "epsilon": 0.1,
+      "promotion_successes": 264,
+      "promotion_replicates": 500,
+      "promotion_probability": 0.528,
+      "promotion_wilson_interval": [
+        0.48419577166421596,
+        0.5713772652699372
+      ],
+      "conditional_detection": {
+        "audit_rate": 0.6,
+        "repetitions": 500,
+        "power": 0.894,
+        "confidence_interval": [
+          0.8639490699892671,
+          0.9180429497270297
+        ],
+        "false_alarm": 0.0,
+        "false_alarm_confidence_interval": [
+          4.336808689942018e-19,
+          0.007624340461552241
+        ],
+        "pre_shift_false_alarms": 0,
+        "misses": 53
+      },
+      "promotion_times_detection": 0.472032
+    },
+    {
+      "epsilon": 0.1,
+      "promotion_successes": 264,
+      "promotion_replicates": 500,
+      "promotion_probability": 0.528,
+      "promotion_wilson_interval": [
+        0.48419577166421596,
+        0.5713772652699372
+      ],
+      "conditional_detection": {
+        "audit_rate": 1.0,
+        "repetitions": 500,
+        "power": 0.992,
+        "confidence_interval": [
+          0.9796129641658948,
+          0.9968846848199377
+        ],
+        "false_alarm": 0.002,
+        "false_alarm_confidence_interval": [
+          0.00035313639455927456,
+          0.011240706705146758
+        ],
+        "pre_shift_false_alarms": 1,
+        "misses": 4
+      },
+      "promotion_times_detection": 0.523776
+    },
+    {
+      "epsilon": 0.15,
+      "promotion_successes": 366,
+      "promotion_replicates": 500,
+      "promotion_probability": 0.732,
+      "promotion_wilson_interval": [
+        0.6915162794621877,
+        0.768946026563652
+      ],
+      "conditional_detection": {
+        "audit_rate": 0.3,
+        "repetitions": 500,
+        "power": 0.142,
+        "confidence_interval": [
+          0.114129360445696,
+          0.1753296673247754
+        ],
+        "false_alarm": 0.0,
+        "false_alarm_confidence_interval": [
+          4.336808689942018e-19,
+          0.007624340461552241
+        ],
+        "pre_shift_false_alarms": 0,
+        "misses": 429
+      },
+      "promotion_times_detection": 0.103944
+    },
+    {
+      "epsilon": 0.15,
+      "promotion_successes": 366,
+      "promotion_replicates": 500,
+      "promotion_probability": 0.732,
+      "promotion_wilson_interval": [
+        0.6915162794621877,
+        0.768946026563652
+      ],
+      "conditional_detection": {
+        "audit_rate": 0.6,
+        "repetitions": 500,
+        "power": 0.432,
+        "confidence_interval": [
+          0.3892622537365845,
+          0.47577465656618667
+        ],
+        "false_alarm": 0.0,
+        "false_alarm_confidence_interval": [
+          4.336808689942018e-19,
+          0.007624340461552241
+        ],
+        "pre_shift_false_alarms": 0,
+        "misses": 284
+      },
+      "promotion_times_detection": 0.316224
+    },
+    {
+      "epsilon": 0.15,
+      "promotion_successes": 366,
+      "promotion_replicates": 500,
+      "promotion_probability": 0.732,
+      "promotion_wilson_interval": [
+        0.6915162794621877,
+        0.768946026563652
+      ],
+      "conditional_detection": {
+        "audit_rate": 1.0,
+        "repetitions": 500,
+        "power": 0.75,
+        "confidence_interval": [
+          0.7102363265170449,
+          0.785951503252179
+        ],
+        "false_alarm": 0.0,
+        "false_alarm_confidence_interval": [
+          4.336808689942018e-19,
+          0.007624340461552241
+        ],
+        "pre_shift_false_alarms": 0,
+        "misses": 125
+      },
+      "promotion_times_detection": 0.5489999999999999
+    },
+    {
+      "epsilon": 0.2,
+      "promotion_successes": 437,
+      "promotion_replicates": 500,
+      "promotion_probability": 0.874,
+      "promotion_wilson_interval": [
+        0.8420322822801359,
+        0.900264711054623
+      ],
+      "conditional_detection": {
+        "audit_rate": 0.3,
+        "repetitions": 500,
+        "power": 0.028,
+        "confidence_interval": [
+          0.01675097472075645,
+          0.04644640267494888
+        ],
+        "false_alarm": 0.0,
+        "false_alarm_confidence_interval": [
+          4.336808689942018e-19,
+          0.007624340461552241
+        ],
+        "pre_shift_false_alarms": 0,
+        "misses": 486
+      },
+      "promotion_times_detection": 0.024472
+    },
+    {
+      "epsilon": 0.2,
+      "promotion_successes": 437,
+      "promotion_replicates": 500,
+      "promotion_probability": 0.874,
+      "promotion_wilson_interval": [
+        0.8420322822801359,
+        0.900264711054623
+      ],
+      "conditional_detection": {
+        "audit_rate": 0.6,
+        "repetitions": 500,
+        "power": 0.07,
+        "confidence_interval": [
+          0.0507597429450181,
+          0.09579718985191686
+        ],
+        "false_alarm": 0.0,
+        "false_alarm_confidence_interval": [
+          4.336808689942018e-19,
+          0.007624340461552241
+        ],
+        "pre_shift_false_alarms": 0,
+        "misses": 465
+      },
+      "promotion_times_detection": 0.061180000000000005
+    },
+    {
+      "epsilon": 0.2,
+      "promotion_successes": 437,
+      "promotion_replicates": 500,
+      "promotion_probability": 0.874,
+      "promotion_wilson_interval": [
+        0.8420322822801359,
+        0.900264711054623
+      ],
+      "conditional_detection": {
+        "audit_rate": 1.0,
+        "repetitions": 500,
+        "power": 0.168,
+        "confidence_interval": [
+          0.13778823297684417,
+          0.20327432908962656
+        ],
+        "false_alarm": 0.0,
+        "false_alarm_confidence_interval": [
+          4.336808689942018e-19,
+          0.007624340461552241
+        ],
+        "pre_shift_false_alarms": 0,
+        "misses": 416
+      },
+      "promotion_times_detection": 0.14683200000000002
+    }
+  ],
+  "winner": {
+    "epsilon": 0.15,
+    "promotion_successes": 366,
+    "promotion_replicates": 500,
+    "promotion_probability": 0.732,
+    "promotion_wilson_interval": [
+      0.6915162794621877,
+      0.768946026563652
+    ],
+    "conditional_detection": {
+      "audit_rate": 1.0,
+      "repetitions": 500,
+      "power": 0.75,
+      "confidence_interval": [
+        0.7102363265170449,
+        0.785951503252179
+      ],
+      "false_alarm": 0.0,
+      "false_alarm_confidence_interval": [
+        4.336808689942018e-19,
+        0.007624340461552241
+      ],
+      "pre_shift_false_alarms": 0,
+      "misses": 125
+    },
+    "promotion_times_detection": 0.5489999999999999
+  }
+}

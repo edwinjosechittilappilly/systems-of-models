@@ -1,7 +1,7 @@
 """Run the E3a lifecycle simulator; cache-only replay is the default.
 
 Development tuning never consumes the evaluation streams. Evaluation requires
-an explicit opt-in after the preregistration has been reviewed and tagged.
+an explicit opt-in after the preregistration has been reviewed and approved.
 """
 
 from __future__ import annotations
@@ -10,6 +10,7 @@ import argparse
 import gzip
 import hashlib
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -26,7 +27,7 @@ from bench.e3a.spend import JournaledBudget
 from bench.e3a.variance import teacher_variance
 
 ROOT = Path(__file__).resolve().parents[1]
-EVAL_STREAMS = tuple(f"seed_{seed}_{kind}" for seed in (11, 23, 37) for kind in ("control", "restructure_15"))
+EVAL_STREAMS = tuple(f"seed_{seed}_{kind}" for seed in (11, 23, 37) for kind in ("control", "restructure_15", "clinc"))
 
 
 def always_agent(items: list[dict[str, Any]], stream: str, shift_at: int | None) -> list[dict[str, Any]]:
@@ -129,7 +130,7 @@ def main() -> None:
     parser.add_argument("--warmup", type=int, default=300)
     parser.add_argument("--n-cal", type=int, default=400)
     parser.add_argument("--n-val", type=int, default=400)
-    parser.add_argument("--epsilon", type=float, default=0.20)
+    parser.add_argument("--epsilon", type=float, default=0.15)
     parser.add_argument("--alpha", type=float, default=0.05)
     parser.add_argument("--audit-rate", type=float, default=1.0)
     parser.add_argument("--refit-interval", type=int, default=200)
@@ -155,8 +156,10 @@ def main() -> None:
         parser.error("evaluation streams must not be truncated")
     if args.streams == "eval" and (args.cost_bound_percent is None or args.cost_bound_percent <= 0):
         parser.error("evaluation requires the preregistered --cost-bound-percent")
-    if args.streams == "eval" and args.metric is None:
-        parser.error("evaluation requires the E2-selected --metric")
+    if args.streams == "eval" and (args.epsilon != 0.15 or args.audit_rate != 1.0):
+        parser.error("evaluation requires the selected epsilon 0.15 and audit rate 1.0")
+    if args.streams == "eval" and args.metric not in (None, "probability"):
+        parser.error("evaluation requires the E2-selected probability metric")
     if args.metric is None:
         args.metric = "probability"
     from bench.e3a.baselines import run_baseline
@@ -173,7 +176,9 @@ def main() -> None:
     for filename in ("banking_policy_4.json", "banking_policy_12.json", "clinc_map.json"):
         source = ROOT / "tasks" / filename
         manifest.data[filename] = hashlib.sha256(source.read_bytes()).hexdigest()
-    budget = JournaledBudget({"openai": 55.0, "typesafe": 5.0}, initial={"openai": previous_openai_spend()})
+    budget = JournaledBudget({"openai": 75.0, "typesafe": 5.0}, initial={"openai": previous_openai_spend()})
+    if budget.spent.get("openai", 0.0) < 15.1003 or budget.spent.get("typesafe", 0.0) < 1.8431:
+        raise RuntimeError("budget journal does not include the recorded $15.1003 OpenAI and $1.8431 TypeSafe spend")
     providers = E3aProviders(args.mode, budget)
     embedder = CachedEmbedder(JsonCache(EMBEDDING_NAMESPACE, mode=args.mode))
     mining_timing = JsonCache("e3a_mining_timing_v1", mode=args.mode)
@@ -192,16 +197,21 @@ def main() -> None:
         completed = collect(items, providers, workers=args.workers)
         errors = [row for row in completed if row["status"] == "error"]
         if errors:
-            pd.DataFrame(completed).to_csv(directory / f"{name}_collection.csv", index=False)
+            pd.DataFrame(completed).to_csv(directory / f"{name}_collection.csv", index=False, lineterminator="\n")
             manifest.notes.append(f"{name}: {len(errors)} failed teacher calls; see collection CSV")
             manifest.new_spend_usd = budget.new_spend()
             manifest.write()
+            budget_errors = [row["error"] for row in errors if "budget" in row["error"].lower()]
+            if budget_errors:
+                raise RuntimeError(budget_errors[0])
             raise RuntimeError(manifest.notes[-1])
         if args.streams == "eval" and name.endswith("_control"):
             variance_rows, overhead = teacher_variance(
                 items, providers, seed=stream_seed, size=100, workers=args.workers
             )
-            pd.DataFrame(variance_rows).to_csv(directory / f"{name}_teacher_variance.csv", index=False)
+            pd.DataFrame(variance_rows).to_csv(
+                directory / f"{name}_teacher_variance.csv", index=False, lineterminator="\n"
+            )
             variance_overhead += overhead
         shift_at = None if name.endswith("_control") else shift
         rows = always_agent(items, name, shift_at)
@@ -291,9 +301,9 @@ def main() -> None:
                     row[new_name] = row.pop(old_name)
         table = pd.DataFrame(rows)
         for arm, arm_rows in table.groupby("arm", sort=True):
-            arm_rows.to_csv(directory / f"{name}_{arm}.csv", index=False)
+            arm_rows.to_csv(directory / f"{name}_{arm}.csv", index=False, lineterminator="\n")
         summary = summarize_streams(table)
-        summary.to_csv(directory / f"{name}_summary.csv", index=False)
+        summary.to_csv(directory / f"{name}_summary.csv", index=False, lineterminator="\n")
         per_stream = directory / name
         per_stream.mkdir(exist_ok=True)
         plot_results(table, summary, per_stream)
@@ -318,7 +328,7 @@ def main() -> None:
         all_rows.extend(rows)
         manifest.counts[name] = len(items)
         if writer_failures:
-            pd.DataFrame(writer_failures).to_csv(directory / "writer_failures.csv", index=False)
+            pd.DataFrame(writer_failures).to_csv(directory / "writer_failures.csv", index=False, lineterminator="\n")
     if discovery:
         summaries = []
         candidates = []
@@ -326,8 +336,8 @@ def main() -> None:
             info = {key: value for key, value in report.items() if key != "candidates"}
             summaries.append(info)
             candidates.extend({**info, **candidate} for candidate in report.get("candidates", []))
-        pd.DataFrame(summaries).to_csv(directory / "discovery_summary.csv", index=False)
-        pd.DataFrame(candidates).to_csv(directory / "discovery.csv", index=False)
+        pd.DataFrame(summaries).to_csv(directory / "discovery_summary.csv", index=False, lineterminator="\n")
+        pd.DataFrame(candidates).to_csv(directory / "discovery.csv", index=False, lineterminator="\n")
     for filename, records in (("s5-records.jsonl", s5_records), ("meta-records.jsonl", meta_records)):
         with (directory / filename).open("w") as handle:
             for record in records:
@@ -336,15 +346,15 @@ def main() -> None:
     manifest.counts["meta_records"] = len(meta_records)
     result = pd.DataFrame(all_rows)
     summary = summarize_streams(result)
-    summary.to_csv(directory / "summary.csv", index=False)
+    summary.to_csv(directory / "summary.csv", index=False, lineterminator="\n")
     if args.streams == "eval":
         from bench.e3a.hypotheses import evaluate
 
         h3, h4 = evaluate(result, cost_bound_percent=args.cost_bound_percent, seed=args.seed)
-        pd.DataFrame(h3).to_csv(directory / "h3.csv", index=False)
-        pd.DataFrame(h4).to_csv(directory / "h4.csv", index=False)
+        pd.DataFrame(h3).to_csv(directory / "h3.csv", index=False, lineterminator="\n")
+        pd.DataFrame(h4).to_csv(directory / "h4.csv", index=False, lineterminator="\n")
         summary[summary["arm"].isin(["s1_audit", "surrogate_audit", "s1_refit", "surrogate_refit"])].to_csv(
-            directory / "h5_exploratory.csv", index=False
+            directory / "h5_exploratory.csv", index=False, lineterminator="\n"
         )
     manifest.new_spend_usd = budget.new_spend()
     manifest.cost_usd = {str(arm): float(part["cost_usd"].sum()) for arm, part in result.groupby("arm")}
@@ -419,9 +429,16 @@ if __name__ == "__main__":
                 stream = sys.argv[sys.argv.index("--dev-run-id") + 1]
             directory = ROOT / "results" / "e3a" / stream
             directory.mkdir(parents=True, exist_ok=True)
-            budget = JournaledBudget({"openai": 55.0, "typesafe": 5.0}, initial={"openai": previous_openai_spend()})
+            budget = JournaledBudget({"openai": 75.0, "typesafe": 5.0}, initial={"openai": previous_openai_spend()})
             (directory / "budget_stop.json").write_text(
-                json.dumps({"error": str(exc), "spent_usd": dict(budget.spent), "caps_usd": budget.caps}, indent=2)
+                json.dumps(
+                    {
+                        "error": re.sub(r"org-[A-Za-z0-9_-]+", "org-REDACTED", str(exc)),
+                        "spent_usd": dict(budget.spent),
+                        "caps_usd": budget.caps,
+                    },
+                    indent=2,
+                )
                 + "\n"
             )
         raise

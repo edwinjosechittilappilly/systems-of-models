@@ -1,25 +1,25 @@
-# E3a preregistration (pending review and tag)
+# E3a preregistration
 
 ## Scope and provenance
 
 The v2 environment has `search_policy(query)` return up to five ID/title pairs, followed by
 `get_policy(entry_id)` to read the routing fields. The free-form lookup choice is D1; the
 verify-identity branch is D2. The pilot and all tuning use only the disjoint development pool;
-evaluation comprises control and 15% restructure for each of the three frozen 2,400-ticket
-Banking77 streams, with shift after ticket 1,199. The 5% and 30% restructure, CLINC traffic
-and visible-prompt conditions are dropped for the budget cap, not because of evaluation results.
+evaluation comprises control, 15% restructure, and CLINC traffic shift for each of
+the three frozen 2,400-ticket streams, with shift after ticket 1,199. The 5% and 30%
+restructure and visible-prompt conditions are dropped for budget, not evaluation results.
 Restructure severity is the fraction of post-shift tickets moved to split entries; a synthetic
 cohort marker makes those entries identifiable.
 
-At the dev stop point cumulative OpenAI spend was $15.1003 of $55 and TypeSafe spend
-$1.8431 of $5. Assuming identical shared pre-shift cache hits across each paired control/shift
-stream, evaluation needs approximately 10,800 distinct teacher tickets plus 600 extra variance
-draws. At the joint-dev mean $0.00291197 per ticket and a 20% margin, agent-only projected
-spend is $39.8357; this excludes writer calls and other unanticipated cache misses. The
-remaining OpenAI budget was $39.8997, with a $1 per-request safety reserve, so the projection
-does not comfortably fit and may trigger a hard stop. The runner journals actual charges, aborts
-and records errors at its cap/reserve, and must never silently drop tickets to fit the budget.
-TypeSafe's remaining budget was $3.1569; actual provider cost is monitored separately.
+After the Luna pilot, estimated cumulative OpenAI spend was $15.1298 of $75 and TypeSafe spend
+$1.8431 of $5. Assuming shared pre-shift cache hits across each paired condition,
+the three-condition design needs approximately 14,400 distinct teacher tickets and
+600 extra variance draws. At the Terra joint-dev mean $0.00291197 per ticket with
+20% margin, the projected agent-only cost is $52.4155, or $67.5453 cumulative.
+This excludes writer calls and unanticipated cache misses; those and any new dev spend
+consume the remaining headroom. The runner must abort, record and report on budget
+exhaustion, not silently sample or truncate. Provider-side spending limits are needed
+to guarantee billed dollars, since reported usage and list prices are estimates.
 
 The analysis/simulation code is `bench/e3a/run.py` and related modules at git SHA `b5d36171b849454c879a87509de514ba3561f454`;
 the development run's git SHA is `bf64e6d7ee38e00a70596d5a2cdf66f90e1e31a5`, with manifest at `bench/results/e3a/dev-tuning-joint/manifest.json`.
@@ -28,6 +28,15 @@ Responses `gpt-6.1-terra` (low reasoning) is agent and writer, and Ollama `embed
 logistic regression is the local surrogate. Responses and embeddings are cached and retain
 original usage-weighted list-price cost and latency. The unpriced hardware/energy cost of local
 inference is a limitation.
+
+On the same 100 v2 pilot tickets, Luna achieved 68% joint gold accuracy (95%
+Wilson 58.3%–76.3%) at $0.000295/ticket; Terra achieved 78% (68.9%–85.0%)
+at $0.002948/ticket. The paired Luna-minus-Terra difference was −10 percentage
+points (95% ticket-paired bootstrap interval −18 to −3 points; 100,000 resamples,
+seed 20261122). Luna alone was correct on three tickets and Terra alone on 13.
+The preselected Luna GO criterion was point accuracy at least 73%; Luna failed,
+so no Luna development rerun was performed. Pilot results are in
+`bench/results/e3a/pilot-v2-luna/`.
 
 The policy fixes identity by entry. In 972 routed pre-control dev traces, the teacher agreed with
 the entry policy on 946 (97.3%); 26 minority deviations occurred across 21 of 77 entries. The dev
@@ -41,7 +50,7 @@ and joint teacher agreement are reported separately.
 ## Frozen parameters
 
 - Warm-up W=300; disjoint calibration and validation windows n_cal=400,
-  n_val=400; risk target epsilon=0.2; per-stream alpha=0.05;
+  n_val=400; risk target epsilon=0.15; per-stream alpha=0.05;
   max one promotion attempt per compilation. The dev warm-up contains 77 distinct
   gold intents; these labels are used only to assess diversity, never provided to the miner or writer.
 - The question writer receives at most 20 sampled trace examples and at most 2,048 output tokens.
@@ -54,24 +63,37 @@ and joint teacher agreement are reported separately.
   0.6 epsilon; an independent one-sided Clopper-Pearson validation bound controls promotion.
   Recompilation allocates alpha / [2(g+1)(g+2)] to each decision in generation g=0,1,... .
   E-process uses the package's nine-component mixture and tests at the allocated alpha.
-- Gate signal: **TO-BE-FIXED-FROM-E2** (top probability versus vendor confidence); probability
-  was provisional for dev only. Evaluation must not run until E2 and this field are fixed.
-- Audit rate a=1.00. No rate in 0.10, 0.20, ..., 1.00 reached the target
-  0.8 lower 95% Monte Carlo power bound. At a=1.00 the estimate was
-  0.168 (95% Wilson 0.138-0.203),
-  with median detection delay 985 tickets among detections and 416
-  misses out of 500. Conditional dev joint teacher error was 0.0698 before
-  and 0.3946 after 15% restructure, on 86 and 223
-  served tickets; observed pre-shift coverage was 0.0860. These observations come from
-  the epsilon=0.10, n_cal=n_val=250 dev run, not the selected configuration. The simulation
-  assumes independent Bernoulli errors, constant coverage, alpha=0.01250 and a
-  1,200-ticket post-shift horizon; this is extrapolated power, not measured performance.
-- The feasible dev bootstrap grid chose epsilon=0.2, n_cal=n_val=400 and
-  `margin`: 437/500 promotions
-  (0.874; Wilson 0.842-0.900).
-  Bootstrap sampling reuses 569 dev shadow tickets, so these are conditional, potentially
-  optimistic projections; the selected configuration itself has not been run on dev.
-  Unseen D1-to-D2 mappings can delay the completion of shadow windows beyond the shift.
+- Gate signal: top probability (`probability`). In E2, vendor confidence ranked
+  identically and therefore had identical AURC; margin differed by less than 0.001
+  AURC in mixed directions (Banking77 Jev: 0.0630 probability vs 0.0638 margin;
+  CLINC Jev: 0.0508 vs 0.0498). Source: `bench/results/e2/full/ANALYSIS.md`
+  on `origin/main`.
+- Audit rate a=1.00. The dev-only selection maximizes the product of estimated
+  promotion probability and conditional detection probability, subject to epsilon
+  at most 0.20. With 400+400 windows and margin calibration the grid is:
+
+  | epsilon | audit | P(promote) | P(detect given promotion) | product |
+  |---|---:|---:|---:|---:|
+  | 0.10 | 0.30 | 0.528 | 0.522 | 0.276 |
+  | 0.10 | 0.60 | 0.528 | 0.894 | 0.472 |
+  | 0.10 | 1.00 | 0.528 | 0.992 | 0.524 |
+  | 0.15 | 0.30 | 0.732 | 0.142 | 0.104 |
+  | 0.15 | 0.60 | 0.732 | 0.432 | 0.316 |
+  | 0.15 | 1.00 | 0.732 | 0.750 | 0.549 |
+  | 0.20 | 0.30 | 0.874 | 0.028 | 0.024 |
+  | 0.20 | 0.60 | 0.874 | 0.070 | 0.061 |
+  | 0.20 | 1.00 | 0.874 | 0.168 | 0.147 |
+
+  Promotion is based on 500 bootstrap resamples of 569 matched dev shadow tickets;
+  detection uses a separate 500-run simulation of a synthetic successful promotion.
+  At the selected setting, promotion was 366/500 (Wilson 0.692–0.769) and
+  detection 375/500 (Wilson 0.710–0.786). Multiplication is an extrapolation,
+  not measured end-to-end power, and bootstrap reuse can be optimistic. Conditional
+  observed joint teacher error was 0.0698 pre-shift and 0.3946 post-shift on 86 and
+  223 served tickets; pre-shift coverage was 0.086. These data were generated with
+  epsilon=0.10 and 250+250 windows, not the selected settings. The simulation assumes
+  independent Bernoulli errors, constant coverage, alpha=0.0125 and a 1,200-ticket
+  post-shift horizon. Unseen mappings can defer promotion beyond the shift.
 - Refit cadence R=200; training window W and fixed per-epoch subsampling.
   Equal TRAINING-LABEL budget means the same number of teacher-labelled tickets available to
   fit/recompile each S1 question or surrogate per epoch, via fixed per-epoch subsampling with the
@@ -103,6 +125,25 @@ latency and coverage,
 detection delay including misses, no-shift false demotions, discovery precision/recall, recovery and
 amortization.
 
+The arms are always-agent, S1 with audit/demotion, S1 refit-only, escalation-only,
+fixed gate, fixed gate with configuration-hash invalidation, oracle audit, kNN cache,
+and local-surrogate audit and refit. They replay the same teacher trajectory per
+stream; an audit may replace a compiled answer with the paired teacher answer.
+
+H1 (discovery): the miner identifies the free-form policy-retrieval choice and the
+identity-verification branch as decision candidates while rejecting distractors.
+The primary endpoints are candidate-level precision and recall against the two
+hand-labelled decision types, reported with accepted/rejected reasons and ambiguous
+retrievals. The noisy identity functional-dependency false negative is reported.
+
+H2 (risk control): among promoted compiled decisions, the selective joint D1+D2
+teacher-disagreement rate is at most the frozen risk target. The primary endpoint is
+the number and proportion of promoted generations whose independent validation
+one-sided Clopper–Pearson bound is below the target. Also report observed served
+joint error and audit counts; a failure to promote is not a zero-error success.
+The guarantee depends on the sampling and stationarity assumptions and does not
+establish gold correctness or a post-shift risk guarantee.
+
 H3 (primary): on tickets 600-1,199, S1-question plus audit is non-inferior to always-agent in
 paired joint gold accuracy by a 2-point margin, using a ticket-cluster bootstrap pooled across seeds,
 and costs at most X% of always-agent per ticket.
@@ -117,6 +158,16 @@ same positive sign as a secondary consistency criterion. An exact seed-level sig
 have minimum one-sided p=1/8 with three seeds, motivating the ticket-level primary analysis.
 Ticket-level randomization assumes exchangeable paired differences; adaptive state and temporal
 dependence may make its uncertainty anti-conservative, so per-seed results remain essential.
+
+These promotion/detection estimates do not quantify H1–H4 test power; the latter
+is unknown and the three-seed experiment may be underpowered. Traffic shift is
+exploratory, not another member of the primary H4 family.
+
+The run and cost accounting are in `bench/e3a/run.py`, `collect.py`, `providers.py`
+and `spend.py`; lifecycle and mapping in `lifecycle_runner.py`; metrics in
+`metrics.py`; paired H3/H4 analyses in `hypotheses.py`; development-only bootstrap
+and detection simulations in `promotion_grid.py` and `power_grid.py`. Results and
+manifests are retained under `bench/results/e3a/`.
 
 H5 (exploratory): compare S1-question and surrogate under the equal training-label rule. No
 evaluation stream is used to choose a parameter. The provider dashboard will be reconciled if

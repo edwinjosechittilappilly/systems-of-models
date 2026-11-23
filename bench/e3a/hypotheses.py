@@ -10,9 +10,9 @@ import pandas as pd
 
 def _paired(table: pd.DataFrame, stream: str, arm: str, reference: str) -> pd.DataFrame:
     part = table.loc[table["stream"] == stream]
-    left = part.loc[part["arm"] == arm].set_index("ticket_index")
-    right = part.loc[part["arm"] == reference].set_index("ticket_index")
-    if left.empty or not left.index.equals(right.index):
+    left = part.loc[part["arm"] == arm].set_index("ticket_index").sort_index()
+    right = part.loc[part["arm"] == reference].set_index("ticket_index").sort_index()
+    if left.empty or not left.index.is_unique or not right.index.is_unique or not left.index.equals(right.index):
         raise ValueError(f"unpaired or missing arm: {stream}/{arm}/{reference}")
     return left.merge(right, left_index=True, right_index=True, suffixes=("_arm", "_ref"))
 
@@ -23,7 +23,9 @@ def evaluate(
     """H3/H4 ticket-paired intervals and Holm-adjusted randomization p-values.
 
     Samples and sign flips are stratified by seed. H4's unit is a ticket;
-    seed-wise effects and their sign consistency are reported separately.
+    seed-wise effects and their sign consistency are reported separately. An
+    exact one-sided seed sign-flip test has minimum p=1/8 for three seeds,
+    so it cannot establish significance at 0.05 even before Holm correction.
     """
     if resamples < 1 or cost_bound_percent <= 0:
         raise ValueError("resamples and cost bound must be positive")

@@ -119,6 +119,8 @@ def plot_results(rows: pd.DataFrame, summary: pd.DataFrame, directory: Path) -> 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--streams", choices=("dev", "eval"), default="dev")
+    parser.add_argument("--dev-condition", action="append", choices=DEV_STREAMS, default=None)
+    parser.add_argument("--dev-run-id", default="dev-tuning")
     parser.add_argument("--mode", choices=("record", "replay"), default="replay")
     parser.add_argument("--allow-eval", action="store_true", help="requires prior preregistration approval")
     parser.add_argument(
@@ -147,6 +149,10 @@ def main() -> None:
         "--cost-bound-percent", type=float, default=None, help="evaluation requires the preregistered H3 cost bound"
     )
     args = parser.parse_args()
+    if args.streams != "dev" and (args.dev_condition or args.dev_run_id != "dev-tuning"):
+        parser.error("development condition and run id apply only to development")
+    if "/" in args.dev_run_id or args.dev_run_id in ("", ".", ".."):
+        parser.error("invalid development run id")
     if args.streams == "eval" and not args.allow_eval:
         parser.error("evaluation requires preregistration approval and --allow-eval")
     if args.streams == "eval" and args.phase_limit is not None:
@@ -160,8 +166,10 @@ def main() -> None:
     from bench.e3a.baselines import run_baseline
     from bench.e3a.lifecycle_runner import run_lifecycle
 
-    names = DEV_STREAMS if args.streams == "dev" else EVAL_STREAMS
-    run_id = "dev-tuning" if args.streams == "dev" else "evaluation"
+    names = (
+        (tuple(args.dev_condition) if args.dev_condition else DEV_STREAMS) if args.streams == "dev" else EVAL_STREAMS
+    )
+    run_id = args.dev_run_id if args.streams == "dev" else "evaluation"
     directory = ROOT / "results" / "e3a" / run_id
     directory.mkdir(parents=True, exist_ok=True)
     config = vars(args).copy()
@@ -273,6 +281,13 @@ def main() -> None:
                     teacher_entry = event["entry_id"]
             row["d1_teacher_agreement"] = (
                 predicted == teacher_entry if predicted is not None and teacher_entry is not None else None
+            )
+            predicted_verify = row.get("predicted_verify")
+            row["d2_teacher_agreement"] = predicted_verify == teacher.verified if predicted_verify is not None else None
+            row["joint_decision_agreement"] = (
+                predicted == teacher_entry and predicted_verify == teacher.verified
+                if predicted is not None and predicted_verify is not None and teacher_entry is not None
+                else None
             )
             for part in ("s1", "agent", "shadow", "audit", "writer", "mining", "embedding"):
                 old_name, new_name = f"cost_{part}", f"{part}_cost_usd"

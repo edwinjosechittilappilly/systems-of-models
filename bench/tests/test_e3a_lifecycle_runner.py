@@ -1,18 +1,20 @@
 from types import SimpleNamespace
 
-from bench.e3a.lifecycle_runner import FACTORIAL, run_lifecycle
+from bench.e3a.lifecycle_runner import FACTORIAL, _joint_reference, run_lifecycle
 from bench.tasks.environment import PolicyKB
 from som.compile.traces import AgentStep, AgentTrace
 from som.questions import ChoiceAnswer, Predicate, PredicateAnswer
 
 
 def prepared(n, *, missing=False):
-    entries = [dict(id=key, title=key, department=key, priority="normal", identity_check=False) for key in ("a", "b")]
+    entries = [
+        dict(id=key, title=key, department=key, priority="normal", identity_check=key == "b") for key in ("a", "b")
+    ]
     kb = PolicyKB(entries=entries)
     items = []
     for i in range(n):
         entry = ("a", "a", "b", "b")[i % 4]
-        verify = i % 2 == 1
+        verify = entry == "b"
         text = f"{entry}:{verify}"
         ticket = {"account_id": f"acct{i}", "amount": None, "merchant": None}
         steps = [
@@ -134,7 +136,7 @@ def test_real_mining_shadow_promotion_and_audit_are_paired_and_costed(monkeypatc
     )
     assert [rows[name][8]["training_label_count"] for name in FACTORIAL] == [8] * 4
     assert all(rows[name][8]["compile_status"] == "compiled" for name in FACTORIAL)
-    assert rows["s1_audit"][8]["cost_writer"] == 0.06
+    assert rows["s1_audit"][8]["cost_writer"] == 0.03
     assert any(row["promoted"] for row in rows["s1_audit"])
     served = next(row for row in rows["s1_audit"] if row["served_by"] == "compiled")
     assert served["audited"] and served["agent_calls"] == 1
@@ -316,7 +318,15 @@ def test_surrogate_fit_and_prediction_cpu_are_each_counted_once(monkeypatch):
         SimpleNamespace(s1=Decider(), writer=Writer()),
         {"warmup": 8, "min_support": 1, "embedder": None, "timing_cache": FixedTiming()},
     )
-    assert rows["surrogate_audit"][8]["local_cpu_seconds"] == 3.75
+    assert rows["surrogate_audit"][8]["local_cpu_seconds"] == 3.375
     assert rows["s1_audit"][8]["local_cpu_seconds"] == 3.0
     assert rows["s1_audit"][8]["raw_mining_latency_ms"] == 2.0
     assert rows["s1_audit"][8]["training_filter_latency_ms"] == 2.0
+
+
+def test_joint_reference_counts_identity_mismatch_even_when_entry_matches():
+    model = SimpleNamespace(question=SimpleNamespace(name="entry"))
+    answer = ChoiceAnswer("entry", "a", {"a": 0.9, "b": 0.1})
+    assert _joint_reference(model, answer, ("a", False), {"a": False}).value == answer.value
+    assert _joint_reference(model, answer, ("a", True), {"a": False}).value != answer.value
+    assert _joint_reference(model, answer, ("b", False), {"a": False}).value != answer.value

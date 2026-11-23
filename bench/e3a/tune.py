@@ -13,21 +13,21 @@ import pandas as pd
 from bench.e3a.power import find_minimum_audit_rate
 
 ROOT = Path(__file__).resolve().parents[1]
-DEV = ROOT / "results" / "e3a" / "dev-tuning"
+DEV = ROOT / "results" / "e3a" / "dev-tuning-joint"
 
 
 def measured_effect(directory: Path = DEV) -> tuple[float, float, float, dict]:
-    """Observed conditional D1 teacher disagreement and coverage, without imputing missing service."""
+    """Observed conditional joint teacher disagreement and coverage, without imputing missing service."""
     control = pd.read_csv(directory / "dev_control_s1_audit.csv")
     shifted = pd.read_csv(directory / "dev_restructure_15_s1_audit.csv")
     shift_at = int(shifted["shift_at"].dropna().iloc[0])
     pre = control[(control["ticket_index"] < shift_at) & (control["served_by"] != "agent")]
     post = shifted[(shifted["ticket_index"] >= shift_at) & (shifted["served_by"] != "agent")]
     parse = {True: True, False: False, "True": True, "False": False}
-    before = pre["d1_teacher_agreement"].map(parse).dropna()
-    after = post["d1_teacher_agreement"].map(parse).dropna()
+    before = pre["joint_decision_agreement"].map(parse).dropna()
+    after = post["joint_decision_agreement"].map(parse).dropna()
     if len(before) < 30 or len(after) < 30:
-        raise ValueError(f"insufficient served D1 comparisons: pre={len(before)}, post={len(after)}")
+        raise ValueError(f"insufficient served joint comparisons: pre={len(before)}, post={len(after)}")
     baseline = 1.0 - before.astype(bool).mean()
     post_error = 1.0 - after.astype(bool).mean()
     coverage = len(pre) / int((control["ticket_index"] < shift_at).sum())
@@ -98,12 +98,21 @@ a synthetic cohort marker makes those entries identifiable. The 5% and visible-p
 are exploratory.
 
 The analysis/simulation code is `bench/e3a/run.py` and related modules at git SHA `{analysis_sha}`;
-the development run's git SHA is `{sha}`, with manifest at `bench/results/e3a/dev-tuning/manifest.json`.
+the development run's git SHA is `{sha}`, with manifest at `bench/results/e3a/dev-tuning-joint/manifest.json`.
 TypeSafe `jev-1.14.0` is S1,
 Responses `gpt-6.1-terra` (low reasoning) is agent and writer, and Ollama `embeddinggemma` plus
 logistic regression is the local surrogate. Responses and embeddings are cached and retain
 original usage-weighted list-price cost and latency. The unpriced hardware/energy cost of local
 inference is a limitation.
+
+The policy fixes identity by entry. In 972 routed pre-control dev traces, the teacher agreed with
+the entry policy on 946 (97.3%); 26 minority deviations occurred across 21 of 77 entries. The dev
+miner still accepted the identity branch rather than rejecting it as a functional dependency,
+apparently because of teacher noise. This false negative is reported, not corrected in the miner.
+The lifecycle asks S1 only D1 and learns D1-to-D2 by majority vote on its own training traces;
+ties and unseen entries escalate. Shadow validation and audits score the joint D1 plus mapped D2
+outcome against the teacher, and the e-process monitors this same joint error. D1-only, D2-only
+and joint teacher agreement are reported separately.
 
 ## Frozen parameters
 
@@ -126,7 +135,7 @@ inference is a limitation.
 - Audit rate a={search.minimum_rate:.2f}, chosen as the smallest of 0.10, 0.20, ..., 1.00 whose
   lower 95% Monte Carlo Wilson bound on power reaches 0.8, using the actual e-process with
   per-decision generation-zero alpha={cfg["alpha"] / 4:.5f}, {args.repetitions} replicates and seed
-  {cfg["seed"]}. Conditional dev D1 teacher error was
+  {cfg["seed"]}. Conditional dev joint teacher error was
   {baseline:.4f} before and {baseline + effect:.4f} after 15% restructure, on {details["n_pre"]}
   and {details["n_post"]} served tickets; observed pre-shift coverage was {coverage:.4f}.
   Simulation assumes independent Bernoulli errors, constant coverage and a 1,200-ticket
@@ -157,7 +166,7 @@ Discovery truth labels are `search_policy.retrieval_choice` (D1) and `verify_ide
 every other candidate is a distractor. Report all accepted/rejected candidates and ambiguous
 retrieval counts. The full always-agent trajectory is the paired reference. Joint gold correctness
 requires department, priority and the account-specific verification before routing all to be correct.
-Report component accuracy, D1 agreement, agent calls, all cost lines and latency as well as coverage,
+Report component accuracy, D1-only, D2-only and joint agreement, agent calls, all cost lines and latency as well as coverage,
 detection delay including misses, no-shift false demotions, discovery precision/recall, recovery and
 amortization.
 

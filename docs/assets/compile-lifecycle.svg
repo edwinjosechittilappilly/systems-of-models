@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" width="1200" height="300" role="img" aria-labelledby="t d">
+  <title id="t">Runtime compile lifecycle</title>
+  <desc id="d">Agent traces are mined for repeated judgements; an LLM writes a typed question; the question runs in shadow, is promoted when it meets a risk target on held-out traffic, is audited while serving, and is demoted on drift.</desc>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#475569"/>
+    </marker>
+    <marker id="r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/>
+    </marker>
+  </defs>
+  <rect width="1200" height="300" rx="20" fill="#f8fafc" stroke="#e2e8f0"/>
+  <g font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" text-anchor="middle">
+    <g>
+      <rect x="30" y="70" width="170" height="96" rx="14" fill="#e0f2fe" stroke="#0284c7"/>
+      <text x="115" y="104" font-size="18" font-weight="700" fill="#0c4a6e">1 · mine</text>
+      <text x="115" y="128" font-size="13" fill="#0c4a6e">agent traces →</text>
+      <text x="115" y="146" font-size="13" fill="#0c4a6e">repeated judgements</text>
+    </g>
+    <line x1="200" y1="118" x2="232" y2="118" stroke="#475569" stroke-width="2" marker-end="url(#a)"/>
+    <g>
+      <rect x="236" y="70" width="170" height="96" rx="14" fill="#ede9fe" stroke="#7c3aed"/>
+      <text x="321" y="104" font-size="18" font-weight="700" fill="#4c1d95">2 · write</text>
+      <text x="321" y="128" font-size="13" fill="#4c1d95">LLM drafts a typed</text>
+      <text x="321" y="146" font-size="13" fill="#4c1d95">Choice / Predicate</text>
+    </g>
+    <line x1="406" y1="118" x2="438" y2="118" stroke="#475569" stroke-width="2" marker-end="url(#a)"/>
+    <g>
+      <rect x="442" y="70" width="190" height="96" rx="14" fill="#fef3c7" stroke="#d97706"/>
+      <text x="537" y="104" font-size="18" font-weight="700" fill="#78350f">3 · shadow</text>
+      <text x="537" y="128" font-size="13" fill="#78350f">S1 answers beside the agent;</text>
+      <text x="537" y="146" font-size="13" fill="#78350f">pick τ, then test held out</text>
+    </g>
+    <line x1="632" y1="118" x2="664" y2="118" stroke="#475569" stroke-width="2" marker-end="url(#a)"/>
+    <text x="648" y="62" font-size="12" fill="#475569">error ≤ ε</text>
+    <g>
+      <rect x="668" y="70" width="210" height="96" rx="14" fill="#dcfce7" stroke="#16a34a"/>
+      <text x="773" y="104" font-size="18" font-weight="700" fill="#14532d">4 · serve</text>
+      <text x="773" y="128" font-size="13" fill="#14532d">confident → S1 answers</text>
+      <text x="773" y="146" font-size="13" fill="#14532d">unsure → agent; random audits</text>
+    </g>
+    <line x1="878" y1="118" x2="910" y2="118" stroke="#dc2626" stroke-width="2" marker-end="url(#r)"/>
+    <text x="894" y="62" font-size="12" fill="#dc2626">drift</text>
+    <g>
+      <rect x="914" y="70" width="250" height="96" rx="14" fill="#fee2e2" stroke="#dc2626"/>
+      <text x="1039" y="104" font-size="18" font-weight="700" fill="#7f1d1d">5 · demote</text>
+      <text x="1039" y="128" font-size="13" fill="#7f1d1d">anytime-valid test on audits;</text>
+      <text x="1039" y="146" font-size="13" fill="#7f1d1d">back to the agent, recompile</text>
+    </g>
+    <path d="M1039,166 C1039,250 115,250 115,170" fill="none" stroke="#dc2626" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#r)"/>
+    <text x="600" y="270" font-size="14" fill="#334155">Review drafts, validate independently, and monitor served decisions</text>
+    <text x="600" y="40" font-size="20" font-weight="700" fill="#0f172a">From agent traces to typed decisions</text>
+  </g>
+</svg>

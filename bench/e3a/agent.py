@@ -8,6 +8,7 @@ from typing import Any
 
 from bench.common.budget import Budget
 from bench.common.cache import JsonCache
+from bench.e3a.spend import paid_call, request_reserve
 from bench.tasks.environment import SupportEnvironment
 from openai import OpenAI
 
@@ -116,34 +117,25 @@ class Agent:
                 "max_output_tokens": 800,
                 "reasoning": {"effort": "low"},
             }
-            new_cost: list[float | None] = []
-
-            def call(payload: dict[str, Any] = payload, new_cost: list[float | None] = new_cost) -> dict[str, Any]:
-                # Reserve headroom before each paid request.
-                if self.budget.spent.get("openai", 0.0) + 1.0 > self.budget.caps["openai"]:
-                    raise RuntimeError("OpenAI budget reserve exhausted")
-                before = time.perf_counter()
-                response = self.client.responses.create(**payload)
-                elapsed = (time.perf_counter() - before) * 1000
-                data = response.model_dump(mode="json", by_alias=True, exclude_none=True)
-                u = data.get("usage")
-                if isinstance(u, dict) and "input_tokens" in u and "output_tokens" in u:
+            def call(payload: dict[str, Any] = payload) -> dict[str, Any]:
+                with paid_call(self.budget, "openai", request_reserve(payload)) as settle:
+                    before = time.perf_counter()
+                    response = self.client.responses.create(**payload)
+                    elapsed = (time.perf_counter() - before) * 1000
+                    data = response.model_dump(mode="json", by_alias=True, exclude_none=True)
+                    u = data.get("usage")
+                    if not isinstance(u, dict) or "input_tokens" not in u or "output_tokens" not in u:
+                        raise RuntimeError("OpenAI returned no usage; paid cost is unknown")
                     priced = Usage(
                         input_tokens=u["input_tokens"],
                         output_tokens=u["output_tokens"],
                         cached_tokens=(u.get("input_tokens_details") or {}).get("cached_tokens", 0),
                     )
-                    new_cost.append(lookup("openai", self.model).cost(priced).amount)
-                else:
-                    new_cost.append(None)
-                return {"response": data, "latency_ms": elapsed}
+                    settle(lookup("openai", self.model).cost(priced).amount)
+                    return {"response": data, "latency_ms": elapsed}
 
             cache_key = payload if self.sample == 0 else {"sample": self.sample, "request": payload}
             recorded = self.cache.get_or_call(cache_key, call)
-            if new_cost and new_cost[0] is None:
-                raise RuntimeError("OpenAI returned no usage; paid cost is unknown")
-            if new_cost:
-                self.budget.charge("openai", new_cost[0])
             response = recorded["response"]
             measured_ms += recorded["latency_ms"]
             actual_model = response["model"]

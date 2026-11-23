@@ -286,11 +286,13 @@ def _compile(arm, selected, providers, cfg, index):
                 try:
                     question, _ = write_question(
                         candidate,
-                        providers.writer,
+                        providers.writer
+                        if attempt == 0
+                        else lambda context: providers.writer(context | {"_e3a_retry": 1}),
                         n_samples=20,
                         seed=cfg["seed"] + arm.generation * 2 + attempt,
                     )
-                except ValueError as exc:
+                except (ValueError, KeyError) as exc:
                     if cfg.get("writer_failures") is not None:
                         cfg["writer_failures"].append(
                             {
@@ -533,6 +535,7 @@ def run_lifecycle(items, providers, config):
                 model.candidate.name: answer.value for model, answer in zip(arm.models, answers, strict=True)
             }
             row["predicted_entry"] = entry if can_serve else (answers[0].value if answers else None)
+            row["predicted_entry_probability"] = answers[0].top_probability if answers else None
             row["predicted_verify"] = arm.identity_map.get(row["predicted_entry"])
             audit = (
                 can_serve
@@ -550,13 +553,14 @@ def run_lifecycle(items, providers, config):
                 cost = _amount(item["teacher"].envelope.cost)
                 row["cost_audit" if audit else "cost_shadow" if shadow else "cost_agent"] = cost
                 row["latency_ms"] += item["teacher"].envelope.latency_ms or 0.0
-            if labels is not None:
-                if can_serve:
-                    row["teacher_agreement"] = entry == labels[0] and verify == labels[1]
-                else:
-                    row["teacher_agreement"] = True
+            if labels is not None or (name == "oracle_audit" and audit):
+                if labels is not None:
+                    if can_serve:
+                        row["teacher_agreement"] = entry == labels[0] and verify == labels[1]
+                    else:
+                        row["teacher_agreement"] = True
                 for model, answer, routed in zip(arm.models, answers, routes, strict=True):
-                    if model.gate.state == "shadow" and answer.value in arm.identity_map:
+                    if labels is not None and model.gate.state == "shadow" and answer.value in arm.identity_map:
                         model.gate.observe_shadow(answer, _joint_reference(model, answer, labels, arm.identity_map))
                         model.observed += 1
                         if model.observed == cfg["n_cal"] + cfg["n_val"]:

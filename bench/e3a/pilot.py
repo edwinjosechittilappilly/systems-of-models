@@ -9,6 +9,7 @@ import argparse
 import csv
 import hashlib
 import json
+import re
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -24,14 +25,15 @@ from bench.tasks.environment import PolicyKB, SupportEnvironment, augment_ticket
 from som.trace import TraceStore
 
 ROOT = Path(__file__).resolve().parents[1]
-MODELS = ("gpt-6.1-terra",)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", choices=["record", "replay"], default="replay")
+    parser.add_argument("--model", choices=("gpt-6.1-terra", "gpt-6-luna"), default="gpt-6.1-terra")
     args = parser.parse_args()
-    out = ROOT / "results" / "e3a" / "pilot-v2"
+    run_id = "pilot-v2" if args.model == "gpt-6.1-terra" else "pilot-v2-luna"
+    out = ROOT / "results" / "e3a" / run_id
     previous = (
         json.loads((out / "manifest.json").read_text())
         if args.mode == "replay" and (out / "manifest.json").exists()
@@ -40,7 +42,7 @@ def main() -> None:
     out.mkdir(parents=True, exist_ok=True)
     manifest = Manifest(
         "e3a",
-        "pilot-v2",
+        run_id,
         {"size": 100, "sample_seed": 20261122, "granularity": 4, "mode": args.mode, "budget_cap_usd": 12},
     )
     if previous:
@@ -59,7 +61,7 @@ def main() -> None:
     rows: list[dict] = []
     summaries: list[dict] = []
     failures: list[str] = []
-    for model in MODELS:
+    for model in (args.model,):
         cache = JsonCache("e3a_agent_v2_" + model.replace(".", "_"), mode=args.mode)
         trace_path = out / (model + "_traces.jsonl")
         trace_path.write_text("")
@@ -71,7 +73,8 @@ def main() -> None:
             try:
                 result = agent.run(ticket["text"], env)
             except Exception as exc:
-                failures.append(f"{model}, ticket {index}: {type(exc).__name__}: {exc}")
+                error = re.sub(r"org-[A-Za-z0-9_-]+", "org-REDACTED", str(exc))
+                failures.append(f"{model}, ticket {index}: {type(exc).__name__}: {error}")
                 break
             gold = kb.get_entry(str(item["intent"]))
             route = env.routes[-1] if env.routes else {}
@@ -132,6 +135,7 @@ def main() -> None:
                 "cost_usd",
                 "input_tokens",
                 "output_tokens",
+                "cached_tokens",
                 "tool_calls",
                 "latency_ms",
             ):
@@ -145,7 +149,7 @@ def main() -> None:
     for name, data in (("per_ticket.csv", rows), ("summary.csv", summaries)):
         with (out / name).open("w", newline="") as f:
             if data:
-                writer = csv.DictWriter(f, fieldnames=list(data[0]))
+                writer = csv.DictWriter(f, fieldnames=list(data[0]), lineterminator="\n")
                 writer.writeheader()
                 writer.writerows(data)
     manifest.counts = {row["model"]: row["n"] for row in summaries}
@@ -162,18 +166,20 @@ def main() -> None:
         "Costs use provider-reported token usage and dated list prices, not provider billing.",
         "",
     ]
+    accuracy_threshold = 0.73 if args.model == "gpt-6-luna" else 0.70
     eligible = [
-        row for row in summaries if row["n"] == 100 and row["joint_correct"] >= 0.70 and row["cost_usd"] <= 0.02
+        row for row in summaries
+        if row["n"] == 100 and row["joint_correct"] >= accuracy_threshold and row["cost_usd"] <= 0.02
     ]
     if eligible:
         recommended = max(eligible, key=lambda row: (row["joint_correct"], -row["cost_usd"]))
         lines.append(f"Recommendation: GO with {recommended['model']} (meets both pilot thresholds).")
-    elif len(summaries) == len(MODELS) and all(row["n"] == 100 for row in summaries):
+    elif len(summaries) == 1 and all(row["n"] == 100 for row in summaries):
         lines.append("Recommendation: NO GO; the model does not meet both thresholds.")
     else:
         lines.append("Recommendation: indeterminate; the pilot is incomplete.")
     for row in summaries:
-        go = row["n"] == 100 and row["joint_correct"] >= 0.70 and row["cost_usd"] <= 0.02
+        go = row["n"] == 100 and row["joint_correct"] >= accuracy_threshold and row["cost_usd"] <= 0.02
         lines.append(
             f"- {row['model']}: n={row['n']}, joint accuracy={row['joint_correct']:.3f} "
             f"(95% Wilson {row['joint_ci_low']:.3f}-{row['joint_ci_high']:.3f}), "

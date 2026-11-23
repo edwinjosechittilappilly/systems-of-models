@@ -108,6 +108,21 @@ def test_choice_writer_requests_only_needed_fields_with_bounded_output(tmp_path)
     assert request["max_output_tokens"] == 2048
 
 
+def test_writer_retry_has_distinct_cache_identity_without_changing_prompt(tmp_path):
+    client = OpenAIStub()
+    budget = Budget({"openai": 55, "typesafe": 5})
+    providers = E3aProviders("record", budget, cache_dir=tmp_path, openai_client=client)
+    context = {"samples": [{"input": "x", "value": True}]}
+    providers.writer(context)
+    first_cost = budget.spent["openai"]
+    providers.writer({**context, "_e3a_retry": 1})
+    assert len(client.calls) == 2
+    assert client.calls[0] == client.calls[1]
+    assert budget.spent["openai"] == pytest.approx(2 * first_cost)
+    providers.writer({**context, "_e3a_retry": 1})
+    assert len(client.calls) == 2
+
+
 def test_jev_new_spend_is_booked_once_and_replay_needs_no_key(tmp_path, monkeypatch):
     monkeypatch.setenv("TYPESAFE_API_KEY", "test-key")
     calls = []

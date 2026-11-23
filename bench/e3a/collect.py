@@ -39,7 +39,7 @@ def previous_openai_spend() -> float:
     """Return recorded spend from the v1/v2 pilots; subsequent spend is journaled."""
     v1 = ROOT / "results" / "e3a" / "pilot" / "manifest.json"
     total = sum(json.loads(v1.read_text())["cost_usd"].values()) if v1.exists() else 0.0
-    for name in ("pilot-v2",):
+    for name in ("pilot-v2", "pilot-v2-luna"):
         path = ROOT / "results" / "e3a" / name / "manifest.json"
         if path.exists():
             manifest = json.loads(path.read_text())
@@ -138,9 +138,15 @@ def main() -> None:
     args = parser.parse_args()
     out = ROOT / "results" / "e3a" / "dev-collection"
     prior = previous_openai_spend()
-    budget = JournaledBudget({"openai": 55.0, "typesafe": 5.0}, initial={"openai": prior})
-    providers = E3aProviders(args.mode, budget)
+    budget = JournaledBudget({"openai": 75.0, "typesafe": 5.0}, initial={"openai": prior})
     out.mkdir(parents=True, exist_ok=True)
+    if budget.spent.get("openai", 0.0) < 15.1003 or budget.spent.get("typesafe", 0.0) < 1.8431:
+        message = "budget journal does not include the recorded $15.1003 OpenAI and $1.8431 TypeSafe spend"
+        (out / "budget_stop.json").write_text(
+            json.dumps({"error": message, "spent_usd": dict(budget.spent), "caps_usd": budget.caps}, indent=2) + "\n"
+        )
+        raise SystemExit(message)
+    providers = E3aProviders(args.mode, budget)
     manifest = Manifest(
         "e3a",
         "dev-collection",
@@ -159,13 +165,24 @@ def main() -> None:
         items, _ = items_for_stream(pd.read_csv(source), phase_limit=args.phase_limit)
         rows = collect(items, providers, workers=args.workers)
         with (out / f"{name}.csv").open("w", newline="") as handle:
-            writer = csv.DictWriter(handle, fieldnames=["ticket_index", "status", "cost_usd", "latency_ms", "error"])
+            writer = csv.DictWriter(
+                handle, fieldnames=["ticket_index", "status", "cost_usd", "latency_ms", "error"], lineterminator="\n"
+            )
             writer.writeheader()
             writer.writerows(rows)
         errors = sum(row["status"] == "error" for row in rows)
         manifest.counts[name] = len(rows) - errors
         failed += errors
         if errors:
+            budget_errors = [
+                row["error"] for row in rows if row["status"] == "error" and "budget" in row["error"].lower()
+            ]
+            if budget_errors:
+                (out / "budget_stop.json").write_text(
+                    json.dumps(
+                        {"error": budget_errors[0], "spent_usd": dict(budget.spent), "caps_usd": budget.caps}, indent=2
+                    ) + "\n"
+                )
             manifest.notes.append(f"{name}: {errors} ticket calls failed; see CSV")
             break
     manifest.new_spend_usd = budget.new_spend()

@@ -97,6 +97,17 @@ def test_writer_records_actual_usage_and_replays_without_credentials(tmp_path):
     assert len(client.calls) == 1
 
 
+def test_choice_writer_requests_only_needed_fields_with_bounded_output(tmp_path):
+    client = OpenAIStub()
+    providers = E3aProviders("record", Budget({"openai": 55, "typesafe": 5}), cache_dir=tmp_path, openai_client=client)
+    providers.writer({"samples": [{"input": "x", "value": "a"}], "choices": [{"value": "a"}]})
+    request = client.calls[0]
+    schema = request["text"]["format"]["schema"]
+    assert schema["required"] == ["name", "instructions"]
+    assert set(schema["properties"]) == {"name", "instructions"}
+    assert request["max_output_tokens"] == 2048
+
+
 def test_jev_new_spend_is_booked_once_and_replay_needs_no_key(tmp_path, monkeypatch):
     monkeypatch.setenv("TYPESAFE_API_KEY", "test-key")
     calls = []

@@ -106,10 +106,12 @@ inference is a limitation.
   n_val={cfg["n_val"]}; risk target epsilon={cfg["epsilon"]}; per-stream alpha={cfg["alpha"]};
   max one promotion attempt per compilation. The dev warm-up contains {warmup_classes} distinct
   gold intents; these labels are used only to assess diversity, never provided to the miner or writer.
-- The question writer receives at most 20 sampled trace examples. A malformed or incomplete
-  structured response gets one retry using a different deterministic sampling seed; if both fail,
-  the compile fails and the agent continues serving. Both attempts' list-price costs and latency
-  are charged to that arm; incomplete responses are retained, not repaired.
+- The question writer receives at most 20 sampled trace examples and at most 2,048 output tokens.
+  Choice questions request only name/instructions; branch questions additionally request true/false
+  descriptions. A malformed or incomplete structured response gets one retry using a different
+  deterministic sampling seed; if both fail, the compile fails and the agent continues serving.
+  Both attempts' list-price costs and latency are charged to that arm; incomplete responses are
+  retained, not repaired.
 - Calibration rule `{cfg["tau_rule"]}`; margin rule uses empirical calibration error at most
   0.6 epsilon; an independent one-sided Clopper-Pearson validation bound controls promotion.
   Recompilation allocates alpha / [2(g+1)(g+2)] to each decision in generation g=0,1,... .

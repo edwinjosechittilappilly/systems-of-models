@@ -1,0 +1,18 @@
+{
+  "stage": "question_writer",
+  "stream": "dev_control",
+  "model": "gpt-6.1-terra",
+  "status": "incomplete",
+  "reason": "max_output_tokens",
+  "input_tokens": 2475,
+  "output_tokens": 8000,
+  "cached_input_tokens": 0,
+  "usage_weighted_cost_usd": 0.042475,
+  "initial_attempt_writer_calls": 7,
+  "initial_attempt_all_writer_calls_cost_usd": 0.059448,
+  "initial_attempt_typesafe_calls": 3600,
+  "initial_attempt_typesafe_cost_usd": 0.160740972,
+  "cost_basis": "list_price",
+  "attribution": "initial failed simulator attempt; arm attribution unavailable; some cached S1 calls may be replayed later and must not be double-counted as new spend",
+  "disposition": "response retained in writer cache and spend journal; output was not repaired or used"
+}

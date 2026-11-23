@@ -177,6 +177,7 @@ def main() -> None:
     s5_records: list[dict[str, Any]] = []
     meta_records: list[dict[str, Any]] = []
     discovery: list[dict[str, Any]] = []
+    writer_failures: list[dict[str, Any]] = []
     variance_overhead = 0.0
     for name in names:
         path = ROOT / "tasks" / "streams" / f"{name}.csv"
@@ -215,6 +216,7 @@ def main() -> None:
             "s5_records": s5_records,
             "meta_records": meta_records,
             "timing_cache": mining_timing,
+            "writer_failures": writer_failures,
         }
         visible = name.endswith("_visible")
         if not visible:
@@ -301,6 +303,8 @@ def main() -> None:
                     )
         all_rows.extend(rows)
         manifest.counts[name] = len(items)
+        if writer_failures:
+            pd.DataFrame(writer_failures).to_csv(directory / "writer_failures.csv", index=False)
     if discovery:
         summaries = []
         candidates = []
@@ -330,6 +334,14 @@ def main() -> None:
         )
     manifest.new_spend_usd = budget.new_spend()
     manifest.cost_usd = {str(arm): float(part["cost_usd"].sum()) for arm, part in result.groupby("arm")}
+    failed_attempt = directory / "initial_writer_failure.json"
+    if args.streams == "dev" and failed_attempt.exists():
+        failure = json.loads(failed_attempt.read_text())
+        manifest.cost_usd["discarded_initial_writer_calls"] = failure["initial_attempt_all_writer_calls_cost_usd"]
+        manifest.notes.append(
+            "Initial failed simulator attempt and its prior TypeSafe spend are documented in "
+            "initial_writer_failure.json; cached calls may also appear in logical arm costs."
+        )
     if args.streams == "eval":
         manifest.cost_usd["teacher_variance_unused_draws"] = variance_overhead
     caches = {

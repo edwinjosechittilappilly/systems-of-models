@@ -148,7 +148,14 @@ class _Writer:
 
         class Responses:
             def create(self, **request: Any) -> Any:
-                request.setdefault("max_output_tokens", 8000)
+                request["max_output_tokens"] = 2048
+                request["instructions"] += (
+                    " Return short strings only: at most 12 words for the name and 40 words for each other field."
+                )
+                if "choices" in context:
+                    schema = request["text"]["format"]["schema"]
+                    schema["properties"] = {key: schema["properties"][key] for key in ("name", "instructions")}
+                    schema["required"] = ["name", "instructions"]
                 recorded = owner.cache.get_or_call(request, lambda: call(request))
                 data = recorded["response"]
                 u = data.get("usage")
@@ -172,6 +179,8 @@ class _Writer:
                     owner.actual_model = actual
                 elif owner.actual_model != actual:
                     raise RuntimeError(f"writer model changed: {owner.actual_model} -> {actual}")
+                if data.get("status") == "incomplete":
+                    raise ValueError(f"writer response incomplete: {data.get('incomplete_details')}")
                 return SimpleNamespace(output_text=data.get("output_text"))
 
         self.last_cost = None

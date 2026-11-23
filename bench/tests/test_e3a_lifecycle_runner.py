@@ -91,6 +91,26 @@ def test_missing_teacher_decisions_skip_training_without_fabricating_labels():
         assert arm_rows[4]["teacher_agreement"] is None
 
 
+def test_failed_writer_is_retried_once_and_both_costs_are_booked(monkeypatch):
+    monkeypatch.setattr("bench.e3a.lifecycle_runner.make_surrogate", lambda embedder, classes: Surrogate())
+
+    class FailingWriter(Writer):
+        def __call__(self, context):
+            raise ValueError("incomplete writer output")
+
+    failures = []
+    rows = run_lifecycle(
+        prepared(10),
+        SimpleNamespace(s1=Decider(), writer=FailingWriter()),
+        {"warmup": 8, "min_support": 1, "embedder": None, "writer_failures": failures},
+    )
+    row = rows["s1_audit"][8]
+    assert row["compile_status"] == "writer_failed_after_retry"
+    assert row["cost_writer"] == 0.06
+    assert row["served_by"] == "agent"
+    assert [failure["attempt"] for failure in failures if failure["arm"] == "s1_audit"] == [1, 2]
+
+
 def test_real_mining_shadow_promotion_and_audit_are_paired_and_costed(monkeypatch):
     monkeypatch.setattr("bench.e3a.lifecycle_runner.make_surrogate", lambda embedder, classes: Surrogate())
     diagnostics = []

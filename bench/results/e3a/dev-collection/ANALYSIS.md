@@ -1,0 +1,7 @@
+# E3a development teacher collection
+
+The first collection attempt recorded 1,999 of 2,000 selected control tickets before one provider 429 on ticket 1593. The failure and recorded usage-weighted list-price spend ($5.5443303, excluding the unsuccessful request) are retained in `initial_attempt.json` and `initial_failure.csv`; the organization ID is redacted. Successful responses were cached. The 429 was not cached. The resumed collector uses two workers and a process-local 400,000-token-per-minute conservative request reservation; actual billed charges have not been reconciled.
+
+The first 300 development-control tickets contain all 77 Banking77 gold intents (see `warmup_diversity.csv`). Those gold labels are used only to assess sample diversity; the miner and writer receive teacher traces, not gold. The 100-ticket v2 teacher pilot is reported separately in `../pilot-v2/`.
+
+The resumed collection completed all six development conditions with 2,000 tickets each (the first 1,000 from each phase), recording $8.842039 in additional usage-weighted spend and reusing cached calls. This is a development subset, not the complete 2,803-ticket stream. The total recorded collection spend across the initial and resumed attempts is $14.3863693; provider billing remains unreconciled. Development-arm simulation and preregistration are separate steps. Synthetic policies and the visible restructure cohort marker limit external validity.

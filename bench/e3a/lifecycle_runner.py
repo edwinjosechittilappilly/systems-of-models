@@ -279,9 +279,33 @@ def _compile(arm, selected, providers, cfg, index):
             elapsed += float(getattr(decider, "fit_metadata", {}).get("latency_ms", 0.0))
             cpu_seconds += float(getattr(decider, "fit_metadata", {}).get("cpu_seconds", 0.0))
         else:
-            question, _ = write_question(candidate, providers.writer, n_samples=20, seed=cfg["seed"] + arm.generation)
-            elapsed += getattr(providers.writer, "last_latency_ms", None) or 0.0
-            writer_cost += _amount(providers.writer.last_cost)
+            question = None
+            for attempt in range(2):
+                try:
+                    question, _ = write_question(
+                        candidate,
+                        providers.writer,
+                        n_samples=20,
+                        seed=cfg["seed"] + arm.generation * 2 + attempt,
+                    )
+                except ValueError as exc:
+                    if cfg.get("writer_failures") is not None:
+                        cfg["writer_failures"].append(
+                            {
+                                "stream": cfg.get("stream"),
+                                "arm": arm.name,
+                                "ticket_index": index,
+                                "candidate": candidate.name,
+                                "attempt": attempt + 1,
+                                "error": str(exc),
+                            }
+                        )
+                elapsed += getattr(providers.writer, "last_latency_ms", None) or 0.0
+                writer_cost += _amount(providers.writer.last_cost)
+                if question is not None:
+                    break
+            if question is None:
+                return False, writer_cost, elapsed, "writer_failed_after_retry", cpu_seconds
             decider = providers.s1
         # The sum over generations is bounded by alpha, and each decision gets
         # its own share; CompiledDecision further splits across attempts.

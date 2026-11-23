@@ -1,0 +1,51 @@
+{
+  "cache": {
+    "teacher": {
+      "hits": 35642,
+      "misses": 10943
+    }
+  },
+  "config": {
+    "budget_caps_usd": {
+      "openai": 55.0,
+      "typesafe": 5.0
+    },
+    "mode": "record",
+    "phase_limit": 1000,
+    "prior_total_openai_spend_usd": 0.56533427,
+    "workers": 2
+  },
+  "contract_version": "2.1.0",
+  "cost_usd": {},
+  "counts": {
+    "dev_clinc": 2000,
+    "dev_control": 2000,
+    "dev_restructure_05": 2000,
+    "dev_restructure_15": 2000,
+    "dev_restructure_30": 2000,
+    "dev_visible": 2000
+  },
+  "data": {
+    "dev_clinc.csv": "11af8680671aa0d5233b0079bb608da4e793d21fe4815a89f81922866fd7a1ba",
+    "dev_control.csv": "fafaa8401f36dbc9db182b5d9d04acc6e676e857c8f4052bd2b16d4e30929c64",
+    "dev_restructure_05.csv": "41f51808267ee299e7cec178d24a85bae48bc8ef1fd6048d3d9abe2e44b50944",
+    "dev_restructure_15.csv": "bc61e2a89dc57c6b6a85761323a3251de0d90a2cb770b1d627a43713812de286",
+    "dev_restructure_30.csv": "0ad1065a1a3124231d0721919903087648de717006231e0a7dc19a7ac497b59b",
+    "dev_visible.csv": "079abec214d26cd80ebac37c358e49d8cbe7dd4cb10da15e9e2219fc7fcd6dd1"
+  },
+  "experiment": "e3a",
+  "finished_at": "2026-11-23T01:42:39Z",
+  "git_dirty": true,
+  "git_sha": "a36fd916b30d6ca608d7ca846b108af3b8fb4026",
+  "models": {
+    "teacher": "gpt-6.1-terra"
+  },
+  "new_spend_usd": {
+    "openai": 8.842039000000021
+  },
+  "notes": [],
+  "python": "3.12.9",
+  "run_id": "dev-collection",
+  "som_version": "0.1.0.dev0",
+  "started_at": "2026-11-22T22:50:15Z"
+}

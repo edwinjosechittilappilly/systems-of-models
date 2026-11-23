@@ -113,6 +113,16 @@ def main() -> None:
     fig.savefig(OUT / "shadow_risk_coverage.pdf", bbox_inches="tight")
     fig.savefig(OUT / "shadow_risk_coverage.png", dpi=200, bbox_inches="tight")
     plt.close(fig)
+    fig, axes = plt.subplots(1, 2, figsize=(7.0, 2.5), sharey=True)
+    for ax, (decision, group) in zip(axes, table.groupby("decision"), strict=True):
+        for window in (300, 500, 1000):
+            ax.plot(group.tau, group[f"bootstrap_median_cp_n{window}"], label=f"n={window}")
+        ax.set(title=decision, xlabel="Threshold", ylim=(0, 1))
+    axes[0].set_ylabel("Bootstrap median CP upper bound")
+    axes[1].legend()
+    fig.savefig(OUT / "shadow_cp_windows.pdf", bbox_inches="tight")
+    fig.savefig(OUT / "shadow_cp_windows.png", dpi=200, bbox_inches="tight")
+    plt.close(fig)
     print(f"joined={len(data)} ambiguous_or_missing={ambiguous}")
     print(table.to_string(index=False))
 

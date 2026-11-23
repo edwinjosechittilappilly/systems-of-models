@@ -1,0 +1,96 @@
+{
+  "cache": {
+    "embeddings": {
+      "hits": 17375,
+      "misses": 0
+    },
+    "local_timings": {
+      "hits": 6868,
+      "misses": 3346
+    },
+    "mining_timings": {
+      "hits": 177,
+      "misses": 64
+    },
+    "s1": {
+      "hits": 16983,
+      "misses": 3417
+    },
+    "teacher": {
+      "hits": 15512,
+      "misses": 0
+    },
+    "writer": {
+      "hits": 9,
+      "misses": 4
+    }
+  },
+  "config": {
+    "allow_eval": false,
+    "alpha": 0.05,
+    "audit_rate": 0.2,
+    "cost_bound_percent": null,
+    "dev_condition": [
+      "dev_control",
+      "dev_restructure_15"
+    ],
+    "dev_run_id": "dev-tuning-joint",
+    "epsilon": 0.1,
+    "metric": "probability",
+    "mode": "record",
+    "n_cal": 250,
+    "n_val": 250,
+    "phase_limit": 1000,
+    "refit_interval": 200,
+    "seed": 20261122,
+    "streams": "dev",
+    "tau_rule": "margin",
+    "warmup": 300,
+    "workers": 2
+  },
+  "contract_version": "2.1.0",
+  "cost_usd": {
+    "always_agent": 11.647874999999999,
+    "escalation_only": 9.00170411,
+    "fixed_gate": 9.09817121,
+    "fixed_gate_config_hash": 10.33735016,
+    "knn_cache": 11.647874999999999,
+    "oracle_audit": 9.576991809999999,
+    "s1_audit": 10.08845416,
+    "s1_refit": 11.72511106,
+    "surrogate_audit": 11.647874999999999,
+    "surrogate_refit": 11.647874999999999
+  },
+  "counts": {
+    "dev_control": 2000,
+    "dev_restructure_15": 2000,
+    "meta_records": 9,
+    "s5_records": 9
+  },
+  "data": {
+    "banking_policy_12.json": "4d3db67081e8e10388d1dfc68ac2ba91dd55be08fd4057fb7bda94c7329d4877",
+    "banking_policy_4.json": "7067d1a293259fe29f5096fcea81b83704ba7059fae9852f6e682c30c34cffbd",
+    "clinc_map.json": "46f0075065a85b3d6b1a6bd15f7ce12302931fdc4371fa94bd604d2eed14477f",
+    "dev_control.csv": "fafaa8401f36dbc9db182b5d9d04acc6e676e857c8f4052bd2b16d4e30929c64",
+    "dev_restructure_15.csv": "bc61e2a89dc57c6b6a85761323a3251de0d90a2cb770b1d627a43713812de286"
+  },
+  "experiment": "e3a",
+  "finished_at": "2026-11-23T02:59:53Z",
+  "git_dirty": true,
+  "git_sha": "bf64e6d7ee38e00a70596d5a2cdf66f90e1e31a5",
+  "models": {
+    "embedder": "embeddinggemma",
+    "s1": "jev-1.14.0",
+    "teacher": "gpt-6.1-terra",
+    "writer": "gpt-6.1-terra"
+  },
+  "new_spend_usd": {
+    "openai": 0.013125000000000497,
+    "typesafe": 0.2737609559999792
+  },
+  "notes": [],
+  "python": "3.12.9",
+  "run_id": "dev-tuning-joint",
+  "som_version": "0.1.0.dev0",
+  "started_at": "2026-11-23T02:50:38Z"
+}

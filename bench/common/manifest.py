@@ -53,9 +53,10 @@ class Manifest:
     def directory(self) -> Path:
         return RESULTS_DIR / self.experiment / self.run_id
 
-    def write(self) -> Path:
+    def write(self, directory: Path | None = None) -> Path:
         self.finished_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-        self.directory.mkdir(parents=True, exist_ok=True)
-        path = self.directory / "manifest.json"
+        directory = self.directory if directory is None else directory
+        directory.mkdir(parents=True, exist_ok=True)
+        path = directory / "manifest.json"
         path.write_text(json.dumps(asdict(self), indent=2, sort_keys=True, default=str) + "\n")
         return path

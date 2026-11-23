@@ -129,7 +129,7 @@ class _Arm:
     pool: list = field(default_factory=list)
     escalated: list = field(default_factory=list)
     models: list = field(default_factory=list)
-    dependent: bool = False
+    identity_map: dict[str, bool] = field(default_factory=dict)
     pending: bool = True
     generation: int = 0
     last_compile: int = -1
@@ -246,18 +246,19 @@ def _compile(arm, selected, providers, cfg, index):
             }
         )
     d1 = next((c for c in report.accepted if c.kind == "retrieval_choice" and c.tool == "search_policy"), None)
-    d2 = next((c for c in report.accepted if c.kind == "branch" and c.tool == "verify_identity"), None)
-    dependent = any(
-        c.kind == "branch"
-        and c.tool == "verify_identity"
-        and c.reason == "functional_dependency"
-        and d1 is not None
-        and c.determinant == d1.name
-        for c in report.rejected
-    )
-    if d1 is None or (d2 is None and not dependent):
+    if d1 is None:
         return False, 0.0, elapsed, "required_decision_not_mined", mining_cpu
-    candidates = [d1] + ([d2] if d2 else [])
+    # The controlled policy fixes identity by entry. Learn the dependent value
+    # only from this arm's observed training traces; unseen or tied entries
+    # cannot be substituted.
+    identities: dict[str, Counter] = defaultdict(Counter)
+    for item in selected:
+        entry, identity = _teacher_labels(item)
+        identities[entry][identity] += 1
+    identity_map = {
+        entry: counts[True] > counts[False] for entry, counts in identities.items() if counts[True] != counts[False]
+    }
+    candidates = [d1]
     training = []
     for candidate in candidates:
         labels = [_teacher_labels(item)[0 if candidate is d1 else 1] for item in selected]
@@ -322,7 +323,7 @@ def _compile(arm, selected, providers, cfg, index):
         )
         gate.start_shadow()
         new_models.append(_Model(candidate, question, gate, decider, surrogate))
-    arm.models, arm.dependent = new_models, dependent
+    arm.models, arm.identity_map = new_models, identity_map
     arm.pending = False
     arm.last_compile = index
     arm.generation += 1
@@ -339,11 +340,13 @@ def _predict(model, text):
     return answer, _amount(result.envelope.cost), result.envelope.latency_ms or 0.0, cpu
 
 
-def _model_reference(model, labels):
-    value = labels[0] if model.candidate.kind == "retrieval_choice" else labels[1]
-    if model.surrogate and model.candidate.kind == "branch":
-        return PredicateAnswer(model.question.name, None, raw_value=value)
-    return _reference(model.question, value)
+def _joint_reference(model, answer, labels, identity_map):
+    """Encode joint mismatch while retaining the D1 answer's routing signal."""
+    entry = answer.value
+    expected = labels[0]
+    if entry == expected and identity_map[entry] != labels[1]:
+        expected = f"\x00identity_mismatch:{expected}"
+    return _reference(model.question, expected)
 
 
 def run_lifecycle(items, providers, config):
@@ -500,19 +503,15 @@ def run_lifecycle(items, providers, config):
             )
             entry = answers[0].value if can_serve else None
             # Unknown labels cannot be substituted and must escalate.
-            selected_entry = None
-            if can_serve:
+            # Do not substitute an unseen or tied learned identity mapping.
+            if can_serve and entry in arm.identity_map:
                 try:
-                    selected_entry = item["kb"].get_entry(entry)
+                    item["kb"].get_entry(entry)
                 except KeyError:
                     can_serve = False
-            verify = (
-                selected_entry["identity_check"]
-                if can_serve and arm.dependent
-                else answers[1].value
-                if can_serve
-                else None
-            )
+            else:
+                can_serve = False
+            verify = arm.identity_map[entry] if can_serve else None
             if can_serve:
                 env = SupportEnvironment(item["kb"])
                 route = env.substitute(
@@ -533,7 +532,7 @@ def run_lifecycle(items, providers, config):
                 model.candidate.name: answer.value for model, answer in zip(arm.models, answers, strict=True)
             }
             row["predicted_entry"] = entry if can_serve else (answers[0].value if answers else None)
-            row["predicted_verify"] = verify if can_serve else (answers[1].value if len(answers) > 1 else None)
+            row["predicted_verify"] = arm.identity_map.get(row["predicted_entry"])
             audit = (
                 can_serve
                 and name not in ("s1_refit", "surrogate_refit", "escalation_only")
@@ -556,8 +555,8 @@ def run_lifecycle(items, providers, config):
                 else:
                     row["teacher_agreement"] = True
                 for model, answer, routed in zip(arm.models, answers, routes, strict=True):
-                    if model.gate.state == "shadow":
-                        model.gate.observe_shadow(answer, _model_reference(model, labels))
+                    if model.gate.state == "shadow" and answer.value in arm.identity_map:
+                        model.gate.observe_shadow(answer, _joint_reference(model, answer, labels, arm.identity_map))
                         model.observed += 1
                         if model.observed == cfg["n_cal"] + cfg["n_val"]:
                             started = time.perf_counter()
@@ -569,18 +568,18 @@ def run_lifecycle(items, providers, config):
                             row["promoted"] |= result.promoted
                             if model.gate.state == "rejected":
                                 arm.pending = True
-                    elif model.gate.state == "promoted" and (
-                        (audit and routed == "serve")
-                        or (name == "escalation_only" and not can_serve and routed == "serve")
+                    elif (
+                        model.gate.state == "promoted"
+                        and answer.value in arm.identity_map
+                        and (
+                            (audit and routed == "serve")
+                            or (name == "escalation_only" and not can_serve and routed == "serve")
+                        )
                     ):
-                        reference = _model_reference(model, labels)
+                        reference_labels = labels
                         if name == "oracle_audit":
-                            reference = _reference(
-                                model.question,
-                                item["gold"]["id"]
-                                if model.candidate.kind == "retrieval_choice"
-                                else item["gold"]["identity_check"],
-                            )
+                            reference_labels = (item["gold"]["id"], item["gold"]["identity_check"])
+                        reference = _joint_reference(model, answer, reference_labels, arm.identity_map)
                         started = time.perf_counter()
                         demoted = model.gate.record_audit(answer, reference)
                         elapsed_ms = (time.perf_counter() - started) * 1000

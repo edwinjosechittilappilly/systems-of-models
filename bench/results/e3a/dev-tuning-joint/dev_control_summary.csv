@@ -1,0 +1,11 @@
+stream,arm,tickets,shift_at,joint_accuracy,teacher_agreement,coverage,total_cost_usd,cost_per_ticket_usd,agent_calls,cumulative_excess_error,postshift_cumulative_excess_error,promotions,demotions,audits,false_demotions,detection_ticket,detection_delay_tickets,detection_delay_audits,detection_miss,recovery_ticket,recovery_delay_tickets,amortization_ticket,amortization_horizon_tickets
+dev_control,always_agent,2000,,0.7485,1.0,0.0,5.76625325,0.002883126625,2000,0.0,,0,0,0,0,,,,,,,,
+dev_control,escalation_only,2000,,0.7595,0.9866529774127311,0.2695,4.460579294,0.0022302896470000003,1461,-22.0,,1,0,0,0,,,,,,,851.0,851.0
+dev_control,fixed_gate,2000,,0.758,0.9892197125256673,0.2615,4.508862044,0.002254431022,1477,-19.0,,1,0,0,0,,,,,,,846.0,846.0
+dev_control,fixed_gate_config_hash,2000,,0.758,0.9892197125256673,0.2615,4.508862044,0.002254431022,1477,-19.0,,1,0,0,0,,,,,,,846.0,846.0
+dev_control,knn_cache,2000,,0.7485,1.0,0.0,5.76625325,0.002883126625,2000,0.0,,0,0,0,0,,,,,,,,
+dev_control,oracle_audit,2000,,0.7595,0.9866529774127311,0.2695,4.745347794,0.002372673897,1570,-22.0,,1,0,109,0,,,,,,,858.0,858.0
+dev_control,s1_audit,2000,,0.7595,0.9866529774127311,0.2695,4.745347794,0.002372673897,1570,-22.0,,1,0,109,0,,,,,,,858.0,858.0
+dev_control,s1_refit,2000,,0.749,0.9994866529774127,0.0195,5.801192244,0.002900596122,1961,-1.0,,1,0,0,0,,,,,,,851.0,851.0
+dev_control,surrogate_audit,2000,,0.7485,1.0,0.0,5.76625325,0.002883126625,2000,0.0,,0,0,0,0,,,,,,,,
+dev_control,surrogate_refit,2000,,0.7485,1.0,0.0,5.76625325,0.002883126625,2000,0.0,,0,0,0,0,,,,,,,,

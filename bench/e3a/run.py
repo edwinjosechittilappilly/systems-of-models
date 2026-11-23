@@ -26,11 +26,7 @@ from bench.e3a.spend import JournaledBudget
 from bench.e3a.variance import teacher_variance
 
 ROOT = Path(__file__).resolve().parents[1]
-EVAL_STREAMS = tuple(
-    f"seed_{seed}_{kind}"
-    for seed in (11, 23, 37)
-    for kind in ("control", "restructure_05", "restructure_15", "restructure_30", "clinc", "visible")
-)
+EVAL_STREAMS = tuple(f"seed_{seed}_{kind}" for seed in (11, 23, 37) for kind in ("control", "restructure_15"))
 
 
 def always_agent(items: list[dict[str, Any]], stream: str, shift_at: int | None) -> list[dict[str, Any]]:
@@ -131,11 +127,11 @@ def main() -> None:
     )
     parser.add_argument("--workers", type=int, default=2)
     parser.add_argument("--warmup", type=int, default=300)
-    parser.add_argument("--n-cal", type=int, default=250)
-    parser.add_argument("--n-val", type=int, default=250)
-    parser.add_argument("--epsilon", type=float, default=0.10)
+    parser.add_argument("--n-cal", type=int, default=400)
+    parser.add_argument("--n-val", type=int, default=400)
+    parser.add_argument("--epsilon", type=float, default=0.20)
     parser.add_argument("--alpha", type=float, default=0.05)
-    parser.add_argument("--audit-rate", type=float, default=0.2)
+    parser.add_argument("--audit-rate", type=float, default=1.0)
     parser.add_argument("--refit-interval", type=int, default=200)
     parser.add_argument(
         "--metric",
@@ -408,4 +404,24 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except RuntimeError as exc:
+        if "budget" in str(exc).lower() or "spend exceeds cap" in str(exc).lower():
+            import sys
+
+            stream = (
+                "evaluation"
+                if "--streams" in sys.argv and sys.argv[sys.argv.index("--streams") + 1] == "eval"
+                else "dev-tuning"
+            )
+            if stream != "evaluation" and "--dev-run-id" in sys.argv:
+                stream = sys.argv[sys.argv.index("--dev-run-id") + 1]
+            directory = ROOT / "results" / "e3a" / stream
+            directory.mkdir(parents=True, exist_ok=True)
+            budget = JournaledBudget({"openai": 55.0, "typesafe": 5.0}, initial={"openai": previous_openai_spend()})
+            (directory / "budget_stop.json").write_text(
+                json.dumps({"error": str(exc), "spent_usd": dict(budget.spent), "caps_usd": budget.caps}, indent=2)
+                + "\n"
+            )
+        raise

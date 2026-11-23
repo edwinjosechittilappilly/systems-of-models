@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import subprocess
 from dataclasses import asdict
 from pathlib import Path
 
@@ -80,6 +81,9 @@ def main() -> None:
     ratio = numerator / denominator
     bound = math.ceil(float(ratio) * 20) * 5
     sha = manifest["git_sha"]
+    analysis_sha = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=ROOT.parent, check=True, capture_output=True, text=True
+    ).stdout.strip()
     text = f"""# E3a preregistration (pending review and tag)
 
 ## Scope and provenance
@@ -93,8 +97,9 @@ utterances. Restructure severity is the fraction of post-shift tickets moved to 
 a synthetic cohort marker makes those entries identifiable. The 5% and visible-prompt streams
 are exploratory.
 
-The analysis/simulation code is `bench/e3a/run.py` and related modules at git SHA `{sha}`;
-development manifest: `bench/results/e3a/dev-tuning/manifest.json`. TypeSafe `jev-1.14.0` is S1,
+The analysis/simulation code is `bench/e3a/run.py` and related modules at git SHA `{analysis_sha}`;
+the development run's git SHA is `{sha}`, with manifest at `bench/results/e3a/dev-tuning/manifest.json`.
+TypeSafe `jev-1.14.0` is S1,
 Responses `gpt-6.1-terra` (low reasoning) is agent and writer, and Ollama `embeddinggemma` plus
 logistic regression is the local surrogate. Responses and embeddings are cached and retain
 original usage-weighted list-price cost and latency. The unpriced hardware/energy cost of local
@@ -131,6 +136,8 @@ inference is a limitation.
   fit/recompile each S1 question or surrogate per epoch, via fixed per-epoch subsampling with the
   same seed. Every escalation, audit and shadow agent call is costed separately; total agent calls
   may differ and are reported.
+  Pseudorandom operations use base seed {cfg["seed"]} plus the evaluation stream seed (11, 23 or 37);
+  the same stream seed is used for paired shift conditions.
 - H3 cost bound X={bound}% of always-agent cost/ticket, the development control ratio rounded up
   to the next five percentage points. kNN uses prior-only sequential warm-up predictions and the
   lowest similarity threshold with empirical error at most epsilon; audit disagreement invalidates

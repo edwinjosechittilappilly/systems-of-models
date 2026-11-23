@@ -7,8 +7,11 @@ an explicit opt-in after the preregistration has been reviewed and approved.
 from __future__ import annotations
 
 import argparse
+import csv
+import difflib
 import gzip
 import hashlib
+import io
 import json
 import re
 from pathlib import Path
@@ -113,8 +116,124 @@ def plot_results(rows: pd.DataFrame, summary: pd.DataFrame, directory: Path) -> 
     plt.close(fig)
 
 
+def _comparison_text(path: Path) -> tuple[str | None, list[str]]:
+    """Return comparable content without changing the recorded artifact."""
+    if path.suffix == ".csv":
+        with path.open(newline="", encoding="utf-8") as handle:
+            rows = list(csv.reader(handle))
+        if not rows:
+            return "", []
+        excluded = [name for name in rows[0] if "latency" in name or "cpu_seconds" in name]
+        keep = [index for index, name in enumerate(rows[0]) if name not in excluded]
+        output = io.StringIO(newline="")
+        writer = csv.writer(output, lineterminator="\n")
+        writer.writerows([[row[index] for index in keep] for row in rows])
+        return output.getvalue(), excluded
+    if path.name in ("s5-records.jsonl", "meta-records.jsonl"):
+        excluded = {"latency_ms", "created_at"}
+
+        def strip_timing(value: Any) -> Any:
+            if isinstance(value, dict):
+                return {key: strip_timing(item) for key, item in value.items() if key not in excluded}
+            if isinstance(value, list):
+                return [strip_timing(item) for item in value]
+            return value
+
+        records = [strip_timing(json.loads(line)) for line in path.read_text(encoding="utf-8").splitlines()]
+        return (
+            "".join(json.dumps(record, sort_keys=True, ensure_ascii=False) + "\n" for record in records),
+            sorted(excluded),
+        )
+    if path.name == "s4-traces.jsonl.gz":
+        with gzip.open(path, "rt", encoding="utf-8") as handle:
+            return handle.read(), ["gzip header metadata"]
+    return None, []
+
+
+def compare_replay(original: Path, replay: Path) -> dict[str, Any]:
+    """Compare deterministic artifacts and report observed metadata separately."""
+    if not original.is_dir() or not replay.is_dir():
+        raise ValueError("both artifact directories must exist")
+    if original.resolve() == replay.resolve():
+        raise ValueError("original and replay must be separate directories")
+    original_files = {p.relative_to(original) for p in original.rglob("*") if p.is_file()}
+    replay_files = {p.relative_to(replay) for p in replay.rglob("*") if p.is_file()}
+    report: dict[str, Any] = {"deterministic": {}, "observed_metadata": {}, "presentation": {}}
+    for relative in sorted(original_files | replay_files):
+        name = str(relative)
+        if relative.name in ("manifest.json", "secondary_replay_cache.json", "budget_stop.json", "ANALYSIS.md"):
+            category = "observed_metadata"
+        elif relative.suffix in (".pdf", ".png"):
+            category = "presentation"
+        else:
+            category = "deterministic"
+        left, right = original / relative, replay / relative
+        entry: dict[str, Any] = {}
+        report[category][name] = entry
+        if not left.is_file() or not right.is_file():
+            entry["status"] = "missing_original" if not left.is_file() else "missing_replay"
+            continue
+        a, b = left.read_bytes(), right.read_bytes()
+        entry["original_sha256"] = hashlib.sha256(a).hexdigest()
+        entry["replay_sha256"] = hashlib.sha256(b).hexdigest()
+        entry["original_size"] = len(a)
+        entry["replay_size"] = len(b)
+        entry["byte_identical"] = a == b
+        if category == "deterministic":
+            left_text, left_excluded = _comparison_text(left)
+            right_text, right_excluded = _comparison_text(right)
+            entry["excluded_timing_fields"] = sorted(set(left_excluded + right_excluded))
+            if (left_excluded or right_excluded) and relative.suffix != ".gz" and a != b:
+                entry["raw_diff_including_excluded_fields"] = "".join(
+                    difflib.unified_diff(
+                        a.decode("utf-8").splitlines(keepends=True),
+                        b.decode("utf-8").splitlines(keepends=True),
+                        fromfile=f"original/{name}",
+                        tofile=f"replay/{name}",
+                    )
+                )
+            if left_text is not None and right_text is not None:
+                entry["identical"] = left_text == right_text
+                if left_text != right_text:
+                    entry["diff"] = "".join(
+                        difflib.unified_diff(
+                            left_text.splitlines(keepends=True),
+                            right_text.splitlines(keepends=True),
+                            fromfile=f"original/{name}",
+                            tofile=f"replay/{name}",
+                        )
+                    )
+            else:
+                entry["identical"] = a == b
+        elif not entry["byte_identical"]:
+            try:
+                entry["diff"] = "".join(
+                    difflib.unified_diff(
+                        a.decode("utf-8").splitlines(keepends=True),
+                        b.decode("utf-8").splitlines(keepends=True),
+                        fromfile=f"original/{name}",
+                        tofile=f"replay/{name}",
+                    )
+                )
+            except UnicodeDecodeError:
+                entry["first_differing_byte"] = next(
+                    (index for index, (x, y) in enumerate(zip(a, b, strict=False)) if x != y), min(len(a), len(b))
+                )
+    report["deterministic_identical"] = bool(report["deterministic"]) and all(
+        entry.get("identical", False) for entry in report["deterministic"].values()
+    )
+    return report
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--compare-artifacts",
+        nargs=2,
+        metavar=("ORIGINAL", "REPLAY"),
+        help="compare existing artifact directories without running the simulator",
+    )
+    parser.add_argument("--output-dir", type=Path, help="write artifacts to this directory")
     parser.add_argument("--streams", choices=("dev", "eval"), default="dev")
     parser.add_argument("--dev-condition", action="append", choices=DEV_STREAMS, default=None)
     parser.add_argument("--dev-run-id", default="dev-tuning")
@@ -143,6 +262,12 @@ def main() -> None:
     parser.add_argument("--tau-rule", choices=("upper_bound", "margin"), default="margin")
     parser.add_argument("--seed", type=int, default=20261122)
     args = parser.parse_args()
+    if args.compare_artifacts:
+        report = compare_replay(*(Path(path) for path in args.compare_artifacts))
+        print(json.dumps(report, indent=2, ensure_ascii=False))
+        if not report["deterministic_identical"]:
+            raise SystemExit(1)
+        return
     if args.streams != "dev" and (args.dev_condition or args.dev_run_id != "dev-tuning"):
         parser.error("development condition and run id apply only to development")
     if "/" in args.dev_run_id or args.dev_run_id in ("", ".", ".."):
@@ -164,9 +289,11 @@ def main() -> None:
         (tuple(args.dev_condition) if args.dev_condition else DEV_STREAMS) if args.streams == "dev" else EVAL_STREAMS
     )
     run_id = args.dev_run_id if args.streams == "dev" else "evaluation"
-    directory = ROOT / "results" / "e3a" / run_id
+    directory = args.output_dir or ROOT / "results" / "e3a" / run_id
+    if args.mode == "replay" and directory.exists() and any(directory.iterdir()):
+        parser.error("replay output directory must be empty; use --output-dir to preserve recorded artifacts")
     directory.mkdir(parents=True, exist_ok=True)
-    config = vars(args).copy()
+    config = {key: value for key, value in vars(args).items() if key not in ("output_dir", "compare_artifacts")}
     manifest = Manifest("e3a", run_id, config)
     for filename in ("banking_policy_4.json", "banking_policy_12.json", "clinc_map.json"):
         source = ROOT / "tasks" / filename
@@ -196,7 +323,7 @@ def main() -> None:
             pd.DataFrame(completed).to_csv(directory / f"{name}_collection.csv", index=False, lineterminator="\n")
             manifest.notes.append(f"{name}: {len(errors)} failed teacher calls; see collection CSV")
             manifest.new_spend_usd = budget.new_spend()
-            manifest.write()
+            manifest.write(directory)
             budget_errors = [row["error"] for row in errors if "budget" in row["error"].lower()]
             if budget_errors:
                 raise RuntimeError(budget_errors[0])
@@ -461,7 +588,7 @@ def main() -> None:
         "writer": providers.writer.actual_model or "not called",
         "embedder": "embeddinggemma",
     }
-    manifest.write()
+    manifest.write(directory)
     analysis = [
         "# E3a development tuning" if args.streams == "dev" else "# E3a evaluation",
         "",
@@ -510,7 +637,11 @@ if __name__ == "__main__":
             )
             if stream != "evaluation" and "--dev-run-id" in sys.argv:
                 stream = sys.argv[sys.argv.index("--dev-run-id") + 1]
-            directory = ROOT / "results" / "e3a" / stream
+            directory = (
+                Path(sys.argv[sys.argv.index("--output-dir") + 1])
+                if "--output-dir" in sys.argv
+                else ROOT / "results" / "e3a" / stream
+            )
             directory.mkdir(parents=True, exist_ok=True)
             budget = JournaledBudget({"openai": 75.0, "typesafe": 5.0}, initial={"openai": previous_openai_spend()})
             (directory / "budget_stop.json").write_text(

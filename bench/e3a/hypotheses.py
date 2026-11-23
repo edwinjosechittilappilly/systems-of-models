@@ -60,7 +60,7 @@ def evaluate(
         }
     ]
     h4 = []
-    for severity in (15, 30):
+    for severity in (15,):
         comparisons = []
         for other in ("s1_refit", "escalation_only"):
             differences = []

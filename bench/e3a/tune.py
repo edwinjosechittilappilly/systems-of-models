@@ -42,7 +42,12 @@ def main() -> None:
     parser.add_argument("--repetitions", type=int, default=500)
     args = parser.parse_args()
     manifest = json.loads((DEV / "manifest.json").read_text())
-    cfg = manifest["config"]
+    cfg = manifest["config"].copy()
+    grid = pd.read_csv(DEV / "promotion_grid.csv")
+    best = grid[grid["fits_preshift"]].sort_values(["power", "epsilon"], ascending=[False, True]).iloc[0]
+    cfg.update(
+        epsilon=float(best["epsilon"]), n_cal=int(best["n_cal"]), n_val=int(best["n_val"]), tau_rule=best["rule"]
+    )
     dev_control = pd.read_csv(ROOT / "tasks" / "streams" / "dev_control.csv")
     warmup_classes = int(dev_control.iloc[: cfg["warmup"]]["intent"].nunique())
     baseline, effect, coverage, details = measured_effect()
@@ -71,8 +76,11 @@ def main() -> None:
         )
         + "\n"
     )
-    if search.minimum_rate is None:
-        raise RuntimeError("no tested audit rate achieves >=0.8 power on the lower 95% Monte Carlo bound")
+    selected = next(
+        (result for result in search.results if result.audit_rate == search.minimum_rate), search.results[-1]
+    )
+    delays = [delay for delay in selected.detection_delays if delay is not None]
+    median_delay = float(pd.Series(delays).median()) if delays else float("nan")
     control = pd.read_csv(DEV / "dev_control_s1_audit.csv")
     reference = pd.read_csv(DEV / "dev_control_always_agent.csv")
     boundary = int(pd.read_csv(DEV / "dev_restructure_15_s1_audit.csv")["shift_at"].dropna().iloc[0])
@@ -91,11 +99,21 @@ def main() -> None:
 The v2 environment has `search_policy(query)` return up to five ID/title pairs, followed by
 `get_policy(entry_id)` to read the routing fields. The free-form lookup choice is D1; the
 verify-identity branch is D2. The pilot and all tuning use only the disjoint development pool;
-evaluation comprises the three frozen 2,400-ticket Banking77 training streams with shift after
-ticket 1,199. The CLINC shift replaces 20% of post-shift tickets with disjoint banking/credit-card
-utterances. Restructure severity is the fraction of post-shift tickets moved to split entries;
-a synthetic cohort marker makes those entries identifiable. The 5% and visible-prompt streams
-are exploratory.
+evaluation comprises control and 15% restructure for each of the three frozen 2,400-ticket
+Banking77 streams, with shift after ticket 1,199. The 5% and 30% restructure, CLINC traffic
+and visible-prompt conditions are dropped for the budget cap, not because of evaluation results.
+Restructure severity is the fraction of post-shift tickets moved to split entries; a synthetic
+cohort marker makes those entries identifiable.
+
+At the dev stop point cumulative OpenAI spend was $15.1003 of $55 and TypeSafe spend
+$1.8431 of $5. Assuming identical shared pre-shift cache hits across each paired control/shift
+stream, evaluation needs approximately 10,800 distinct teacher tickets plus 600 extra variance
+draws. At the joint-dev mean $0.00291197 per ticket and a 20% margin, agent-only projected
+spend is $39.8357; this excludes writer calls and other unanticipated cache misses. The
+remaining OpenAI budget was $39.8997, with a $1 per-request safety reserve, so the projection
+does not comfortably fit and may trigger a hard stop. The runner journals actual charges, aborts
+and records errors at its cap/reserve, and must never silently drop tickets to fit the budget.
+TypeSafe's remaining budget was $3.1569; actual provider cost is monitored separately.
 
 The analysis/simulation code is `bench/e3a/run.py` and related modules at git SHA `{analysis_sha}`;
 the development run's git SHA is `{sha}`, with manifest at `bench/results/e3a/dev-tuning-joint/manifest.json`.
@@ -132,14 +150,22 @@ and joint teacher agreement are reported separately.
   E-process uses the package's nine-component mixture and tests at the allocated alpha.
 - Gate signal: **TO-BE-FIXED-FROM-E2** (top probability versus vendor confidence); probability
   was provisional for dev only. Evaluation must not run until E2 and this field are fixed.
-- Audit rate a={search.minimum_rate:.2f}, chosen as the smallest of 0.10, 0.20, ..., 1.00 whose
-  lower 95% Monte Carlo Wilson bound on power reaches 0.8, using the actual e-process with
-  per-decision generation-zero alpha={cfg["alpha"] / 4:.5f}, {args.repetitions} replicates and seed
-  {cfg["seed"]}. Conditional dev joint teacher error was
-  {baseline:.4f} before and {baseline + effect:.4f} after 15% restructure, on {details["n_pre"]}
-  and {details["n_post"]} served tickets; observed pre-shift coverage was {coverage:.4f}.
-  Simulation assumes independent Bernoulli errors, constant coverage and a 1,200-ticket
-  post-shift horizon; this is an assumption, not measured power.
+- Audit rate a={selected.audit_rate:.2f}. No rate in 0.10, 0.20, ..., 1.00 reached the target
+  0.8 lower 95% Monte Carlo power bound. At a={selected.audit_rate:.2f} the estimate was
+  {selected.power:.3f} (95% Wilson {selected.confidence_interval[0]:.3f}-{selected.confidence_interval[1]:.3f}),
+  with median detection delay {median_delay:.0f} tickets among detections and {selected.misses}
+  misses out of {args.repetitions}. Conditional dev joint teacher error was {baseline:.4f} before
+  and {baseline + effect:.4f} after 15% restructure, on {details["n_pre"]} and {details["n_post"]}
+  served tickets; observed pre-shift coverage was {coverage:.4f}. These observations come from
+  the epsilon=0.10, n_cal=n_val=250 dev run, not the selected configuration. The simulation
+  assumes independent Bernoulli errors, constant coverage, alpha={cfg["alpha"] / 4:.5f} and a
+  1,200-ticket post-shift horizon; this is extrapolated power, not measured performance.
+- The feasible dev bootstrap grid chose epsilon={cfg["epsilon"]}, n_cal=n_val={cfg["n_cal"]} and
+  `{cfg["tau_rule"]}`: {int(best["successes"])}/{int(best["replicates"])} promotions
+  ({best["power"]:.3f}; Wilson {best["power_wilson_low"]:.3f}-{best["power_wilson_high"]:.3f}).
+  Bootstrap sampling reuses 569 dev shadow tickets, so these are conditional, potentially
+  optimistic projections; the selected configuration itself has not been run on dev.
+  Unseen D1-to-D2 mappings can delay the completion of shadow windows beyond the shift.
 - Refit cadence R={cfg["refit_interval"]}; training window W and fixed per-epoch subsampling.
   Equal TRAINING-LABEL budget means the same number of teacher-labelled tickets available to
   fit/recompile each S1 question or surrogate per epoch, via fixed per-epoch subsampling with the
@@ -166,7 +192,8 @@ Discovery truth labels are `search_policy.retrieval_choice` (D1) and `verify_ide
 every other candidate is a distractor. Report all accepted/rejected candidates and ambiguous
 retrieval counts. The full always-agent trajectory is the paired reference. Joint gold correctness
 requires department, priority and the account-specific verification before routing all to be correct.
-Report component accuracy, D1-only, D2-only and joint agreement, agent calls, all cost lines and latency as well as coverage,
+Report component accuracy, D1-only, D2-only and joint agreement, agent calls, all cost lines,
+latency and coverage,
 detection delay including misses, no-shift false demotions, discovery precision/recall, recovery and
 amortization.
 
@@ -174,7 +201,7 @@ H3 (primary): on tickets 600-1,199, S1-question plus audit is non-inferior to al
 paired joint gold accuracy by a 2-point margin, using a ticket-cluster bootstrap pooled across seeds,
 and costs at most X% of always-agent per ticket.
 
-H4 (primary): for 15% and 30% restructure, S1 plus audit/demotion has lower cumulative excess
+H4 (primary): for 15% restructure, S1 plus audit/demotion has lower cumulative excess
 error over tickets 1,200-2,399 than refit-only and escalation-only monitoring. For every ticket,
 the outcome is the served route's gold-correctness indicator, including escalated and audited
 tickets. Use a one-sided paired ticket sign-flip permutation test stratified by seed and Holm

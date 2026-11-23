@@ -22,7 +22,7 @@ def evaluate(
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """H3/H4 ticket-paired intervals and Holm-adjusted randomization p-values.
 
-    H3 uses all control tickets 1200–2399, including escalations, for its
+    H3 uses all control tickets 1200-2399, including escalations, for its
     primary accuracy-only noninferiority test. The compiled-served subset is
     descriptive. Samples and sign flips are stratified by seed. H4's unit is a ticket;
     seed-wise effects and their sign consistency are reported separately. An
@@ -48,7 +48,10 @@ def evaluate(
         served_ref.extend(ref[served])
     loss = float(np.concatenate(losses).mean())
     draws = np.array(
-        [np.concatenate([part[rng.integers(0, len(part), len(part))] for part in losses]).mean() for _ in range(resamples)]
+        [
+            np.concatenate([part[rng.integers(0, len(part), len(part))] for part in losses]).mean()
+            for _ in range(resamples)
+        ]
     )
     upper = float(np.quantile(draws, 0.95))
     h3 = [

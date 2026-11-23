@@ -45,25 +45,22 @@ pip install "systems-of-models[openai]"
 
 ```python
 import som
-from som.testing import FunctionDecider
 
-question = som.Choice("team", "Which team should handle this ticket?", ["billing", "cards", "fraud"])
-fit = som.Predicate("fits", "Does the ticket fit one of these teams?")
-
-def answer(text, q):
-    if q.name == "fits":
-        return som.PredicateAnswer(q.name, 0.95)
-    return som.ChoiceAnswer(q.name, "billing", {"billing": 0.9, "cards": 0.05, "fraud": 0.05})
-
-gate = som.Gate(FunctionDecider(answer), FunctionDecider(answer, system="s2.reasoning"),
-                question, threshold=0.8, fit=fit, fit_threshold=0.5)
+teams = ["billing", "cards", "fraud"]
+gate = som.Gate(
+    s1=som.TypeSafe("jev-1.14.0"),  # TYPESAFE_API_KEY; or som.OpenAIDecisions("gpt-6-luna")
+    s2=som.OpenAIResponses("gpt-6.1-terra"),  # OPENAI_API_KEY; held to the same answer space
+    question=som.Choice("team", "Which team should handle this ticket?", teams),
+    fit=som.Predicate("fits", f"Is this ticket for one of these teams: {', '.join(teams)}?"),
+    threshold=0.8,
+)
 result = gate("I was charged twice for the same coffee")
-print(result.value, result.served_by, result.in_scope)  # billing s1 True
+result.value, result.served_by, result.cost.amount  # e.g. ('billing', 's1', 7.1e-05)
 ```
 
-This example uses offline stand-ins, not a model. Replace them with provider adapters such as `som.TypeSafe`
-and `som.OpenAIResponses` and configure credentials to make real calls. A refused or out-of-scope result needs
-explicit handling; `result.value` is `None` in either case.
+Decision APIs answer each question on its own, so the companion `fit` predicate must name the options itself.
+`result.value` is `None` when the serving system refuses or says nothing fits; handle that case explicitly.
+For offline tests, swap in `som.testing.FunctionDecider` (see [`docs/integrations.md`](docs/integrations.md)).
 
 No keys yet? `som demo` replays 20 real recorded decisions offline, and `som breakeven` tells you when a gate pays off:
 

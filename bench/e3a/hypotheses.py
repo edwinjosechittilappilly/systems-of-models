@@ -18,46 +18,50 @@ def _paired(table: pd.DataFrame, stream: str, arm: str, reference: str) -> pd.Da
 
 
 def evaluate(
-    table: pd.DataFrame, *, cost_bound_percent: float, seed: int = 20261122, resamples: int = 2000
+    table: pd.DataFrame, *, seed: int = 20261122, resamples: int = 2000
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """H3/H4 ticket-paired intervals and Holm-adjusted randomization p-values.
 
-    Samples and sign flips are stratified by seed. H4's unit is a ticket;
+    H3 uses all control tickets 1200–2399, including escalations, for its
+    primary accuracy-only noninferiority test. The compiled-served subset is
+    descriptive. Samples and sign flips are stratified by seed. H4's unit is a ticket;
     seed-wise effects and their sign consistency are reported separately. An
     exact one-sided seed sign-flip test has minimum p=1/8 for three seeds,
     so it cannot establish significance at 0.05 even before Holm correction.
     """
-    if resamples < 1 or cost_bound_percent <= 0:
-        raise ValueError("resamples and cost bound must be positive")
+    if resamples < 1:
+        raise ValueError("resamples must be positive")
     rng = np.random.default_rng(seed)
-    pre = []
-    cost_arm = cost_ref = 0.0
+    losses = []
+    served_arm = []
+    served_ref = []
     for stream_seed in (11, 23, 37):
         data = _paired(table, f"seed_{stream_seed}_control", "s1_audit", "always_agent")
-        data = data[(data.index >= 600) & (data.index < 1200)]
-        if len(data) != 600:
-            raise ValueError(f"incomplete H3 pre-shift window: seed {stream_seed}")
-        pre.append(
-            data["gold_joint_correct_ref"].astype(float).to_numpy()
-            - data["gold_joint_correct_arm"].astype(float).to_numpy()
-        )
-        cost_arm += data["cost_usd_arm"].sum()
-        cost_ref += data["cost_usd_ref"].sum()
-    loss = float(np.concatenate(pre).mean())
+        data = data[(data.index >= 1200) & (data.index < 2400)]
+        if len(data) != 1200:
+            raise ValueError(f"incomplete H3 post-shift window: seed {stream_seed}")
+        arm = data["gold_joint_correct_arm"].astype(float)
+        ref = data["gold_joint_correct_ref"].astype(float)
+        losses.append((ref - arm).to_numpy())
+        served = data["served_by_arm"].ne("agent")
+        served_arm.extend(arm[served])
+        served_ref.extend(ref[served])
+    loss = float(np.concatenate(losses).mean())
     draws = np.array(
-        [np.concatenate([part[rng.integers(0, len(part), len(part))] for part in pre]).mean() for _ in range(resamples)]
+        [np.concatenate([part[rng.integers(0, len(part), len(part))] for part in losses]).mean() for _ in range(resamples)]
     )
     upper = float(np.quantile(draws, 0.95))
-    ratio = 100 * cost_arm / cost_ref
     h3 = [
         {
             "hypothesis": "H3",
             "paired_accuracy_loss": loss,
             "upper_one_sided_95": upper,
             "margin": 0.02,
-            "cost_percent": ratio,
-            "cost_bound_percent": cost_bound_percent,
-            "noninferior_and_cost_pass": upper < 0.02 and ratio <= cost_bound_percent,
+            "noninferior": upper < 0.02,
+            "served_count": len(served_arm),
+            "served_arm_accuracy": float(np.mean(served_arm)) if served_arm else None,
+            "served_reference_accuracy": float(np.mean(served_ref)) if served_ref else None,
+            "served_paired_accuracy_loss": float(np.mean(np.subtract(served_ref, served_arm))) if served_arm else None,
             "resamples": resamples,
         }
     ]

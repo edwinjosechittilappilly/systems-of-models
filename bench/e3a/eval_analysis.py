@@ -139,6 +139,11 @@ def report(directory: Path) -> str:
         "- Logical costs can count cached calls across arms and are not provider spend. "
         "Provider dashboard reconciliation is unverified; hardware and energy are unpriced."
     )
+    lines.append(
+        "- Pacing deviation: the runner reserves at most 400,000 estimated tokens per rolling minute, "
+        "but does not record individual pacing sleeps; actual waits and any backoff cannot be audited "
+        "from the retained artifacts."
+    )
 
     lines += [
         "",

@@ -1,0 +1,447 @@
+{
+  "format": "gzip byte shards",
+  "chunk_bytes": 512000,
+  "gzip_mtime": 0,
+  "reconstruction": "Decompress and concatenate each source's shards in order.",
+  "sources": {
+    "dev-tuning-joint/dev_control/s4-traces.jsonl.gz": {
+      "bytes": 1186920,
+      "sha256": "d786c37b61abd5d540d95bc03bdcbf9bbf7669f75802b89eef92efd4280b9218",
+      "shards": [
+        "dev-tuning-joint/dev_control/s4-traces.jsonl.gz.part-0001.gz",
+        "dev-tuning-joint/dev_control/s4-traces.jsonl.gz.part-0002.gz",
+        "dev-tuning-joint/dev_control/s4-traces.jsonl.gz.part-0003.gz"
+      ]
+    },
+    "dev-tuning-joint/dev_restructure_15/s4-traces.jsonl.gz": {
+      "bytes": 1208325,
+      "sha256": "bea88cde243d7b5fa0c72bdf9cca686d7ba9dddbcabfef5a91ed9f8f4d466b3b",
+      "shards": [
+        "dev-tuning-joint/dev_restructure_15/s4-traces.jsonl.gz.part-0001.gz",
+        "dev-tuning-joint/dev_restructure_15/s4-traces.jsonl.gz.part-0002.gz",
+        "dev-tuning-joint/dev_restructure_15/s4-traces.jsonl.gz.part-0003.gz"
+      ]
+    },
+    "dev-tuning-joint/dev_restructure_15_surrogate_audit.csv": {
+      "bytes": 1014993,
+      "sha256": "91f18f46c7108688a318206c3346004a1b5cfb943da1b76d5eec45b750581072",
+      "shards": [
+        "dev-tuning-joint/dev_restructure_15_surrogate_audit.csv.part-0001.gz",
+        "dev-tuning-joint/dev_restructure_15_surrogate_audit.csv.part-0002.gz"
+      ]
+    },
+    "dev-tuning-joint/dev_restructure_15_surrogate_refit.csv": {
+      "bytes": 1001804,
+      "sha256": "392257c7f06995d8952d61f2f67de22ef61a963f8502ac0e8f6de6a86ee2592b",
+      "shards": [
+        "dev-tuning-joint/dev_restructure_15_surrogate_refit.csv.part-0001.gz",
+        "dev-tuning-joint/dev_restructure_15_surrogate_refit.csv.part-0002.gz"
+      ]
+    },
+    "dev-tuning-joint/discovery.csv": {
+      "bytes": 10353894,
+      "sha256": "6369800154a5fccfacc8947a46796e9fb4afc4a4fa1b8ed1f7fc03fb03d7fb65",
+      "shards": [
+        "dev-tuning-joint/discovery.csv.part-0001.gz",
+        "dev-tuning-joint/discovery.csv.part-0002.gz",
+        "dev-tuning-joint/discovery.csv.part-0003.gz",
+        "dev-tuning-joint/discovery.csv.part-0004.gz",
+        "dev-tuning-joint/discovery.csv.part-0005.gz",
+        "dev-tuning-joint/discovery.csv.part-0006.gz",
+        "dev-tuning-joint/discovery.csv.part-0007.gz",
+        "dev-tuning-joint/discovery.csv.part-0008.gz",
+        "dev-tuning-joint/discovery.csv.part-0009.gz",
+        "dev-tuning-joint/discovery.csv.part-0010.gz",
+        "dev-tuning-joint/discovery.csv.part-0011.gz",
+        "dev-tuning-joint/discovery.csv.part-0012.gz",
+        "dev-tuning-joint/discovery.csv.part-0013.gz",
+        "dev-tuning-joint/discovery.csv.part-0014.gz",
+        "dev-tuning-joint/discovery.csv.part-0015.gz",
+        "dev-tuning-joint/discovery.csv.part-0016.gz",
+        "dev-tuning-joint/discovery.csv.part-0017.gz",
+        "dev-tuning-joint/discovery.csv.part-0018.gz",
+        "dev-tuning-joint/discovery.csv.part-0019.gz",
+        "dev-tuning-joint/discovery.csv.part-0020.gz",
+        "dev-tuning-joint/discovery.csv.part-0021.gz"
+      ]
+    },
+    "dev-tuning/dev_clinc/s4-traces.jsonl.gz": {
+      "bytes": 1179923,
+      "sha256": "42a9050033404e67a970ca2e752e3fc59ca86384d167089ad95728904aff069e",
+      "shards": [
+        "dev-tuning/dev_clinc/s4-traces.jsonl.gz.part-0001.gz",
+        "dev-tuning/dev_clinc/s4-traces.jsonl.gz.part-0002.gz",
+        "dev-tuning/dev_clinc/s4-traces.jsonl.gz.part-0003.gz"
+      ]
+    },
+    "dev-tuning/dev_clinc_escalation_only.csv": {
+      "bytes": 1031541,
+      "sha256": "7aaa4b268fcdd79209cd7c8cb00e68c131270e55af246cc562b1f9c79e33e904",
+      "shards": [
+        "dev-tuning/dev_clinc_escalation_only.csv.part-0001.gz",
+        "dev-tuning/dev_clinc_escalation_only.csv.part-0002.gz",
+        "dev-tuning/dev_clinc_escalation_only.csv.part-0003.gz"
+      ]
+    },
+    "dev-tuning/dev_clinc_oracle_audit.csv": {
+      "bytes": 1025541,
+      "sha256": "d04ff325273fde24bcc95b2b711e0a7cb46248efb12ef5d9cf580cca9e921afb",
+      "shards": [
+        "dev-tuning/dev_clinc_oracle_audit.csv.part-0001.gz",
+        "dev-tuning/dev_clinc_oracle_audit.csv.part-0002.gz",
+        "dev-tuning/dev_clinc_oracle_audit.csv.part-0003.gz"
+      ]
+    },
+    "dev-tuning/dev_clinc_s1_audit.csv": {
+      "bytes": 1017541,
+      "sha256": "8595e565ebb718ad472a2397c36d61c2867fa135b2a52c10811630c6407a7684",
+      "shards": [
+        "dev-tuning/dev_clinc_s1_audit.csv.part-0001.gz",
+        "dev-tuning/dev_clinc_s1_audit.csv.part-0002.gz"
+      ]
+    },
+    "dev-tuning/dev_clinc_s1_refit.csv": {
+      "bytes": 1017416,
+      "sha256": "349f6f07404d974025b819dba2896b1eba0d610a04a6e419ed0d8f4faef71beb",
+      "shards": [
+        "dev-tuning/dev_clinc_s1_refit.csv.part-0001.gz",
+        "dev-tuning/dev_clinc_s1_refit.csv.part-0002.gz"
+      ]
+    },
+    "dev-tuning/dev_clinc_surrogate_audit.csv": {
+      "bytes": 1033661,
+      "sha256": "8869297608969fbc76fe8dde893b4457a1b5c83fadcb0d25e3f9c482624750e6",
+      "shards": [
+        "dev-tuning/dev_clinc_surrogate_audit.csv.part-0001.gz",
+        "dev-tuning/dev_clinc_surrogate_audit.csv.part-0002.gz",
+        "dev-tuning/dev_clinc_surrogate_audit.csv.part-0003.gz"
+      ]
+    },
+    "dev-tuning/dev_clinc_surrogate_refit.csv": {
+      "bytes": 1023916,
+      "sha256": "b8dda7e62c40fdd10967764b225f304c2c39bfc6aab3a06031965db16f068757",
+      "shards": [
+        "dev-tuning/dev_clinc_surrogate_refit.csv.part-0001.gz",
+        "dev-tuning/dev_clinc_surrogate_refit.csv.part-0002.gz"
+      ]
+    },
+    "dev-tuning/dev_control/s4-traces.jsonl.gz": {
+      "bytes": 1186883,
+      "sha256": "cdff7862ec998aa866c7050e523cad41f7ea45c506b750c720c8d617614f6e3a",
+      "shards": [
+        "dev-tuning/dev_control/s4-traces.jsonl.gz.part-0001.gz",
+        "dev-tuning/dev_control/s4-traces.jsonl.gz.part-0002.gz",
+        "dev-tuning/dev_control/s4-traces.jsonl.gz.part-0003.gz"
+      ]
+    },
+    "dev-tuning/dev_control_escalation_only.csv": {
+      "bytes": 1027347,
+      "sha256": "8fe44723f545f472c24bc7d092a22493240f86dadc48b48f96ec6c3126f9d2c8",
+      "shards": [
+        "dev-tuning/dev_control_escalation_only.csv.part-0001.gz",
+        "dev-tuning/dev_control_escalation_only.csv.part-0002.gz",
+        "dev-tuning/dev_control_escalation_only.csv.part-0003.gz"
+      ]
+    },
+    "dev-tuning/dev_control_oracle_audit.csv": {
+      "bytes": 1021347,
+      "sha256": "8d9d271058c51937a9719f49d331934714c4afa3b3434aea8cfb76971ab30c35",
+      "shards": [
+        "dev-tuning/dev_control_oracle_audit.csv.part-0001.gz",
+        "dev-tuning/dev_control_oracle_audit.csv.part-0002.gz"
+      ]
+    },
+    "dev-tuning/dev_control_s1_audit.csv": {
+      "bytes": 1013347,
+      "sha256": "8498e8934e2bd03e5fa49c4d486a4c85bbef4f295b65172d11c0d81bae0c1e99",
+      "shards": [
+        "dev-tuning/dev_control_s1_audit.csv.part-0001.gz",
+        "dev-tuning/dev_control_s1_audit.csv.part-0002.gz"
+      ]
+    },
+    "dev-tuning/dev_control_s1_refit.csv": {
+      "bytes": 1013576,
+      "sha256": "7e21aca97ec9a05627a2ce876694d9c7fc14b14124c1c193b08c9bc2d73b2015",
+      "shards": [
+        "dev-tuning/dev_control_s1_refit.csv.part-0001.gz",
+        "dev-tuning/dev_control_s1_refit.csv.part-0002.gz"
+      ]
+    },
+    "dev-tuning/dev_control_surrogate_audit.csv": {
+      "bytes": 1029936,
+      "sha256": "93c6401d57f63fe7c896a977cebb879011adcc696cd9c9281a76ce28ac02ddb6",
+      "shards": [
+        "dev-tuning/dev_control_surrogate_audit.csv.part-0001.gz",
+        "dev-tuning/dev_control_surrogate_audit.csv.part-0002.gz",
+        "dev-tuning/dev_control_surrogate_audit.csv.part-0003.gz"
+      ]
+    },
+    "dev-tuning/dev_control_surrogate_refit.csv": {
+      "bytes": 1019095,
+      "sha256": "059cb919d2f18e7996407cd62638a97cdd37cd8186ae2d29b473a8bd25837d1a",
+      "shards": [
+        "dev-tuning/dev_control_surrogate_refit.csv.part-0001.gz",
+        "dev-tuning/dev_control_surrogate_refit.csv.part-0002.gz"
+      ]
+    },
+    "dev-tuning/dev_restructure_05/s4-traces.jsonl.gz": {
+      "bytes": 1199745,
+      "sha256": "17d062c2dda0a0c4eaab70560cd6af8f9a45b21b3b98fa4df83079fa2fbec58e",
+      "shards": [
+        "dev-tuning/dev_restructure_05/s4-traces.jsonl.gz.part-0001.gz",
+        "dev-tuning/dev_restructure_05/s4-traces.jsonl.gz.part-0002.gz",
+        "dev-tuning/dev_restructure_05/s4-traces.jsonl.gz.part-0003.gz"
+      ]
+    },
+    "dev-tuning/dev_restructure_05_escalation_only.csv": {
+      "bytes": 1049009,
+      "sha256": "92a1ebfdf273ec6087cc2c3b1409b6068965de445ed37051817100bca3226e0f",
+      "shards": [
+        "dev-tuning/dev_restructure_05_escalation_only.csv.part-0001.gz",
+        "dev-tuning/dev_restructure_05_escalation_only.csv.part-0002.gz",
+        "dev-tuning/dev_restructure_05_escalation_only.csv.part-0003.gz"
+      ]
+    },
+    "dev-tuning/dev_restructure_05_oracle_audit.csv": {
+      "bytes": 1043009,
+      "sha256": "fb48592c99993a16d302197d499c1adae12318faa91fb57f0f1cbb8eda259652",
+      "shards": [
+        "dev-tuning/dev_restructure_05_oracle_audit.csv.part-0001.gz",
+        "dev-tuning/dev_restructure_05_oracle_audit.csv.part-0002.gz",
+        "dev-tuning/dev_restructure_05_oracle_audit.csv.part-0003.gz"
+      ]
+    },
+    "dev-tuning/dev_restructure_05_s1_audit.csv": {
+      "bytes": 1035009,
+      "sha256": "71a279e4aac8d277242c67cfac18c8f1d831125fa1f27665cae6d39068db8639",
+      "shards": [
+        "dev-tuning/dev_restructure_05_s1_audit.csv.part-0001.gz",
+        "dev-tuning/dev_restructure_05_s1_audit.csv.part-0002.gz",
+        "dev-tuning/dev_restructure_05_s1_audit.csv.part-0003.gz"
+      ]
+    },
+    "dev-tuning/dev_restructure_05_s1_refit.csv": {
+      "bytes": 1035781,
+      "sha256": "aa621b6412dda1acc02e6fa513ba96198743d9494864251253912c8285af2979",
+      "shards": [
+        "dev-tuning/dev_restructure_05_s1_refit.csv.part-0001.gz",
+        "dev-tuning/dev_restructure_05_s1_refit.csv.part-0002.gz",
+        "dev-tuning/dev_restructure_05_s1_refit.csv.part-0003.gz"
+      ]
+    },
+    "dev-tuning/dev_restructure_05_surrogate_audit.csv": {
+      "bytes": 1050664,
+      "sha256": "ce413fea5b2f43e010b01712410a4f3e1592cb97f85603e398c67952afe3ba1f",
+      "shards": [
+        "dev-tuning/dev_restructure_05_surrogate_audit.csv.part-0001.gz",
+        "dev-tuning/dev_restructure_05_surrogate_audit.csv.part-0002.gz",
+        "dev-tuning/dev_restructure_05_surrogate_audit.csv.part-0003.gz"
+      ]
+    },
+    "dev-tuning/dev_restructure_05_surrogate_refit.csv": {
+      "bytes": 1038109,
+      "sha256": "12df5b206dbef170046595817145d3b7f3f84c1663a6c8f7e18860cb23caec45",
+      "shards": [
+        "dev-tuning/dev_restructure_05_surrogate_refit.csv.part-0001.gz",
+        "dev-tuning/dev_restructure_05_surrogate_refit.csv.part-0002.gz",
+        "dev-tuning/dev_restructure_05_surrogate_refit.csv.part-0003.gz"
+      ]
+    },
+    "dev-tuning/dev_restructure_15/s4-traces.jsonl.gz": {
+      "bytes": 1208468,
+      "sha256": "a59d566f61e24ebb4ed3bab4729624dec5b425709aa8d12e0724406af13fe11d",
+      "shards": [
+        "dev-tuning/dev_restructure_15/s4-traces.jsonl.gz.part-0001.gz",
+        "dev-tuning/dev_restructure_15/s4-traces.jsonl.gz.part-0002.gz",
+        "dev-tuning/dev_restructure_15/s4-traces.jsonl.gz.part-0003.gz"
+      ]
+    },
+    "dev-tuning/dev_restructure_15_escalation_only.csv": {
+      "bytes": 1051732,
+      "sha256": "2e6818bd780662ee42232c8c7be7e21aacd46b0ccc824b21cffa7612b7efd96a",
+      "shards": [
+        "dev-tuning/dev_restructure_15_escalation_only.csv.part-0001.gz",
+        "dev-tuning/dev_restructure_15_escalation_only.csv.part-0002.gz",
+        "dev-tuning/dev_restructure_15_escalation_only.csv.part-0003.gz"
+      ]
+    },
+    "dev-tuning/dev_restructure_15_oracle_audit.csv": {
+      "bytes": 1045732,
+      "sha256": "da65aed597c9d7d7311fb46aad6a09c2696a2a25521ada592dd93383c904abd3",
+      "shards": [
+        "dev-tuning/dev_restructure_15_oracle_audit.csv.part-0001.gz",
+        "dev-tuning/dev_restructure_15_oracle_audit.csv.part-0002.gz",
+        "dev-tuning/dev_restructure_15_oracle_audit.csv.part-0003.gz"
+      ]
+    },
+    "dev-tuning/dev_restructure_15_s1_audit.csv": {
+      "bytes": 1037732,
+      "sha256": "d38eeaf4fde2056ef502f64c82e1dced87f4adf836264aee4f60af0aa4f20626",
+      "shards": [
+        "dev-tuning/dev_restructure_15_s1_audit.csv.part-0001.gz",
+        "dev-tuning/dev_restructure_15_s1_audit.csv.part-0002.gz",
+        "dev-tuning/dev_restructure_15_s1_audit.csv.part-0003.gz"
+      ]
+    },
+    "dev-tuning/dev_restructure_15_s1_refit.csv": {
+      "bytes": 1038022,
+      "sha256": "0b15bb87b9422fb85e8181b323e63602fe3f6e132540ebf92a8070b79e657924",
+      "shards": [
+        "dev-tuning/dev_restructure_15_s1_refit.csv.part-0001.gz",
+        "dev-tuning/dev_restructure_15_s1_refit.csv.part-0002.gz",
+        "dev-tuning/dev_restructure_15_s1_refit.csv.part-0003.gz"
+      ]
+    },
+    "dev-tuning/dev_restructure_15_surrogate_audit.csv": {
+      "bytes": 1052933,
+      "sha256": "a72a39dfc022a736b284008f23793dfc93b4165e92c6dae9d5544ff83d2d174f",
+      "shards": [
+        "dev-tuning/dev_restructure_15_surrogate_audit.csv.part-0001.gz",
+        "dev-tuning/dev_restructure_15_surrogate_audit.csv.part-0002.gz",
+        "dev-tuning/dev_restructure_15_surrogate_audit.csv.part-0003.gz"
+      ]
+    },
+    "dev-tuning/dev_restructure_15_surrogate_refit.csv": {
+      "bytes": 1040166,
+      "sha256": "ee6d0a504ffd7272165cb7d4a8d99448f8de2beca4e7ed33898f89407f93d2fc",
+      "shards": [
+        "dev-tuning/dev_restructure_15_surrogate_refit.csv.part-0001.gz",
+        "dev-tuning/dev_restructure_15_surrogate_refit.csv.part-0002.gz",
+        "dev-tuning/dev_restructure_15_surrogate_refit.csv.part-0003.gz"
+      ]
+    },
+    "dev-tuning/dev_restructure_30/s4-traces.jsonl.gz": {
+      "bytes": 1209180,
+      "sha256": "77ea261a908aec163cd0005eae1d541b5ab3e3b3a43cfa6122af8c321f19df59",
+      "shards": [
+        "dev-tuning/dev_restructure_30/s4-traces.jsonl.gz.part-0001.gz",
+        "dev-tuning/dev_restructure_30/s4-traces.jsonl.gz.part-0002.gz",
+        "dev-tuning/dev_restructure_30/s4-traces.jsonl.gz.part-0003.gz"
+      ]
+    },
+    "dev-tuning/dev_restructure_30_escalation_only.csv": {
+      "bytes": 1052402,
+      "sha256": "9b60581d502e2ea9379343d8cc31ae64b588f42e82453325d7db5b2ea53fc2c1",
+      "shards": [
+        "dev-tuning/dev_restructure_30_escalation_only.csv.part-0001.gz",
+        "dev-tuning/dev_restructure_30_escalation_only.csv.part-0002.gz",
+        "dev-tuning/dev_restructure_30_escalation_only.csv.part-0003.gz"
+      ]
+    },
+    "dev-tuning/dev_restructure_30_oracle_audit.csv": {
+      "bytes": 1046402,
+      "sha256": "444cf6f33b4e5e50216db9bad90344c6afade164234fb77bbeab73b89e7a6669",
+      "shards": [
+        "dev-tuning/dev_restructure_30_oracle_audit.csv.part-0001.gz",
+        "dev-tuning/dev_restructure_30_oracle_audit.csv.part-0002.gz",
+        "dev-tuning/dev_restructure_30_oracle_audit.csv.part-0003.gz"
+      ]
+    },
+    "dev-tuning/dev_restructure_30_s1_audit.csv": {
+      "bytes": 1038402,
+      "sha256": "975604bccc9172324b4b47c7f1ee8c49831fac7970e9c8de46cef7643e56c13f",
+      "shards": [
+        "dev-tuning/dev_restructure_30_s1_audit.csv.part-0001.gz",
+        "dev-tuning/dev_restructure_30_s1_audit.csv.part-0002.gz",
+        "dev-tuning/dev_restructure_30_s1_audit.csv.part-0003.gz"
+      ]
+    },
+    "dev-tuning/dev_restructure_30_s1_refit.csv": {
+      "bytes": 1038281,
+      "sha256": "1fc54292527801b585a3a3aede99fabfd94cb71c331f401e8ac57c9b03896463",
+      "shards": [
+        "dev-tuning/dev_restructure_30_s1_refit.csv.part-0001.gz",
+        "dev-tuning/dev_restructure_30_s1_refit.csv.part-0002.gz",
+        "dev-tuning/dev_restructure_30_s1_refit.csv.part-0003.gz"
+      ]
+    },
+    "dev-tuning/dev_restructure_30_surrogate_audit.csv": {
+      "bytes": 1053877,
+      "sha256": "628039249373e6c2c05cbd257131f3d6cdaa0a9e052dec953d8de2eed368953a",
+      "shards": [
+        "dev-tuning/dev_restructure_30_surrogate_audit.csv.part-0001.gz",
+        "dev-tuning/dev_restructure_30_surrogate_audit.csv.part-0002.gz",
+        "dev-tuning/dev_restructure_30_surrogate_audit.csv.part-0003.gz"
+      ]
+    },
+    "dev-tuning/dev_restructure_30_surrogate_refit.csv": {
+      "bytes": 1039353,
+      "sha256": "ddaf91606c119353d9a0046e5720ff07d215dd6c783c506852b011642bf608d2",
+      "shards": [
+        "dev-tuning/dev_restructure_30_surrogate_refit.csv.part-0001.gz",
+        "dev-tuning/dev_restructure_30_surrogate_refit.csv.part-0002.gz",
+        "dev-tuning/dev_restructure_30_surrogate_refit.csv.part-0003.gz"
+      ]
+    },
+    "dev-tuning/dev_visible/s4-traces.jsonl.gz": {
+      "bytes": 1237931,
+      "sha256": "49388fd6eb9b9c926808c5dcd9a00ea86afcb5caa16a9ff8dfc046ce99c65954",
+      "shards": [
+        "dev-tuning/dev_visible/s4-traces.jsonl.gz.part-0001.gz",
+        "dev-tuning/dev_visible/s4-traces.jsonl.gz.part-0002.gz",
+        "dev-tuning/dev_visible/s4-traces.jsonl.gz.part-0003.gz"
+      ]
+    },
+    "dev-tuning/discovery.csv": {
+      "bytes": 27687828,
+      "sha256": "e600a48891acfdc3f945124a3ac1cff9c85d3f5bbdbecbe36b9357b7dfdba21e",
+      "shards": [
+        "dev-tuning/discovery.csv.part-0001.gz",
+        "dev-tuning/discovery.csv.part-0002.gz",
+        "dev-tuning/discovery.csv.part-0003.gz",
+        "dev-tuning/discovery.csv.part-0004.gz",
+        "dev-tuning/discovery.csv.part-0005.gz",
+        "dev-tuning/discovery.csv.part-0006.gz",
+        "dev-tuning/discovery.csv.part-0007.gz",
+        "dev-tuning/discovery.csv.part-0008.gz",
+        "dev-tuning/discovery.csv.part-0009.gz",
+        "dev-tuning/discovery.csv.part-0010.gz",
+        "dev-tuning/discovery.csv.part-0011.gz",
+        "dev-tuning/discovery.csv.part-0012.gz",
+        "dev-tuning/discovery.csv.part-0013.gz",
+        "dev-tuning/discovery.csv.part-0014.gz",
+        "dev-tuning/discovery.csv.part-0015.gz",
+        "dev-tuning/discovery.csv.part-0016.gz",
+        "dev-tuning/discovery.csv.part-0017.gz",
+        "dev-tuning/discovery.csv.part-0018.gz",
+        "dev-tuning/discovery.csv.part-0019.gz",
+        "dev-tuning/discovery.csv.part-0020.gz",
+        "dev-tuning/discovery.csv.part-0021.gz",
+        "dev-tuning/discovery.csv.part-0022.gz",
+        "dev-tuning/discovery.csv.part-0023.gz",
+        "dev-tuning/discovery.csv.part-0024.gz",
+        "dev-tuning/discovery.csv.part-0025.gz",
+        "dev-tuning/discovery.csv.part-0026.gz",
+        "dev-tuning/discovery.csv.part-0027.gz",
+        "dev-tuning/discovery.csv.part-0028.gz",
+        "dev-tuning/discovery.csv.part-0029.gz",
+        "dev-tuning/discovery.csv.part-0030.gz",
+        "dev-tuning/discovery.csv.part-0031.gz",
+        "dev-tuning/discovery.csv.part-0032.gz",
+        "dev-tuning/discovery.csv.part-0033.gz",
+        "dev-tuning/discovery.csv.part-0034.gz",
+        "dev-tuning/discovery.csv.part-0035.gz",
+        "dev-tuning/discovery.csv.part-0036.gz",
+        "dev-tuning/discovery.csv.part-0037.gz",
+        "dev-tuning/discovery.csv.part-0038.gz",
+        "dev-tuning/discovery.csv.part-0039.gz",
+        "dev-tuning/discovery.csv.part-0040.gz",
+        "dev-tuning/discovery.csv.part-0041.gz",
+        "dev-tuning/discovery.csv.part-0042.gz",
+        "dev-tuning/discovery.csv.part-0043.gz",
+        "dev-tuning/discovery.csv.part-0044.gz",
+        "dev-tuning/discovery.csv.part-0045.gz",
+        "dev-tuning/discovery.csv.part-0046.gz",
+        "dev-tuning/discovery.csv.part-0047.gz",
+        "dev-tuning/discovery.csv.part-0048.gz",
+        "dev-tuning/discovery.csv.part-0049.gz",
+        "dev-tuning/discovery.csv.part-0050.gz",
+        "dev-tuning/discovery.csv.part-0051.gz",
+        "dev-tuning/discovery.csv.part-0052.gz",
+        "dev-tuning/discovery.csv.part-0053.gz",
+        "dev-tuning/discovery.csv.part-0054.gz",
+        "dev-tuning/discovery.csv.part-0055.gz"
+      ]
+    }
+  }
+}

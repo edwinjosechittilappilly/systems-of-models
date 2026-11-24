@@ -39,7 +39,7 @@
     "phase_limit": null,
     "refit_interval": 200,
     "resume_eval": true,
-    "resume_from": "/Users/edwinjose/Documents/GitHub/som-wt-e3a/bench/results/e3a/evaluation-resumed-2",
+    "resume_from": "bench/results/e3a/evaluation-resumed-2",
     "seed": 20261122,
     "streams": "eval",
     "tau_rule": "margin",

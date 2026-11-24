@@ -153,10 +153,11 @@ def test_numeric_verdicts_and_promotions_are_reported(tmp_path):
     text = report(tmp_path)
     assert "1/2 reports" in text
     assert "1 have undefined endpoints" in text
-    assert "below 0.15: 1/1 (1)" in text
+    assert "Distinct validation result signatures below 0.15: 1/1" in text
     assert "noninferiority demonstrated" in text
     assert "Against s1_refit: lower error demonstrated" in text
     assert "Against escalation_only: lower error not demonstrated" in text
+    assert "observed effect is in the opposite direction" in text
     assert "[1, 2, 9]" in text
 
 
@@ -178,3 +179,102 @@ def test_empty_promotions_and_missing_holm_family_are_inconclusive(tmp_path):
     assert "not evaluable: no promotions" in text
     assert "both valid Holm-family comparisons are required" in text
     assert "lower error demonstrated" not in text
+
+
+def test_duplicate_promotion_records_are_not_independent_windows(tmp_path):
+    def modification(arm):
+        return {
+            "operation": "add",
+            "target_ref": f"{arm}/d1",
+            "after": {"value": {"generation": 1}},
+            "evaluation": {
+                "eval_suite": "independent shadow calibration and validation",
+                "candidate": {"validation_served": 80, "validation_errors": 3, "validation_upper_bound": 0.12},
+            },
+        }
+
+    mods = [modification("s1_audit"), modification("s1_refit"), modification("s1_audit_0.1")]
+    (tmp_path / "s5-records.jsonl").write_text(json.dumps({"response": {"body": {"modifications": mods}}}) + "\n")
+    text = report(tmp_path)
+    assert "Distinct validation result signatures below 0.15: 1/1" in text
+    assert "3 transition rows include repeated arms and secondary replays" in text
+
+
+def test_cost_ratios_use_only_matched_streams(tmp_path):
+    write_csv(
+        tmp_path / "summary.csv",
+        [
+            {"stream": "seed_11_control", "arm": "always_agent", "tickets": 10, "total_cost_usd": 10},
+            {"stream": "seed_23_control", "arm": "always_agent", "tickets": 10, "total_cost_usd": 20},
+            {"stream": "seed_11_control", "arm": "s1_audit_0.1", "tickets": 10, "total_cost_usd": 8},
+            {"stream": "seed_37_clinc", "arm": "always_agent", "tickets": 10, "total_cost_usd": 100},
+        ],
+    )
+    text = report(tmp_path)
+    assert "| s1_audit_0.1 | control | 1 | 0.8 |" in text
+    assert "| s1_audit_0.1 | clinc |" not in text
+
+
+def test_h3_composition_and_served_disagreement_are_descriptive(tmp_path):
+    for seed in (11, 23, 37):
+        stream = f"seed_{seed}_control"
+        served = seed != 11
+        write_csv(
+            tmp_path / f"{stream}_s1_audit.csv",
+            [
+                {
+                    "ticket_index": 1200,
+                    "served_by": "s1" if served else "agent",
+                    "gold_joint_correct": True,
+                    "joint_decision_agreement": not served,
+                }
+            ],
+        )
+        write_csv(
+            tmp_path / f"{stream}_always_agent.csv",
+            [
+                {
+                    "ticket_index": 1200,
+                    "served_by": "agent",
+                    "gold_joint_correct": not served,
+                }
+            ],
+        )
+    text = report(tmp_path)
+    assert "| 11 | 1 | 0 |" in text
+    assert "Compiled-served: 2/3" in text
+    assert "Selected served subset, descriptive only" in text
+    assert "Audits do not replace the compiled answer" in text
+    assert "seed_23_control, all: 1/1 = 1" in text
+
+
+def test_h1_warmup_and_distractors_are_not_averaged(tmp_path):
+    write_csv(
+        tmp_path / "discovery_summary.csv",
+        [
+            {
+                "stream": "seed_11_control",
+                "arm": "s1_audit",
+                "ticket_index": 300,
+                "stage": "raw",
+                "discovery_precision": 0.5,
+                "discovery_recall": 1,
+                "ambiguous_retrieval_count": 0,
+            }
+        ],
+    )
+    write_csv(
+        tmp_path / "discovery.csv",
+        [
+            {"name": "get_policy.entry_id", "accepted": True, "stage": "raw", "support": 30},
+            {"name": "route_ticket.queue", "accepted": True, "stage": "raw", "support": 20},
+            {"name": "route_ticket.branch", "accepted": True, "stage": "raw", "support": 8},
+        ],
+    )
+    text = report(tmp_path)
+    assert "H1 is not supported as stated" in text
+    assert "| seed_11_control | raw | 0.5 | 1 |" in text
+    assert "Distractor `get_policy.entry_id` accepted in 1/1" in text
+    assert "Distractor `route_ticket.queue` accepted in 1/1" in text
+    assert "Ambiguous retrieval count range: 0-0" in text
+    assert "mean candidate-level precision" not in text

@@ -3,11 +3,14 @@
 Generated from retained evaluation artifacts; no model calls. NA means unavailable, not zero.
 
 ## Run provenance, deviations and spend
-- Run ID: evaluation; git SHA: a7cfa6005f1af4be62cfd717adf79573317c628c; dirty: True.
+- Run ID: evaluation. Frozen code is tag `prereg-e3a` at original `be24e7c` (rebased patch-equivalent `3a65403`). `PREREG.md`'s older `b5d3617` reference is imprecise: H3 and lifecycle code changed before the tag.
+- Four invocations were needed; the first (seed 11 control and restructure) has no retained manifest or recorded run SHA. The next three recorded dirty worktrees at original SHAs `06694c4`, `278d5b3`, and `a7cfa60`. Exact uncommitted differences are not recoverable from those manifests.
+- Original commits are preserved by tags `e3a-run-1` through `e3a-run-4`: `be24e7c`, `06694c4`, `278d5b3`, and `a7cfa60`, respectively. Their patch-equivalent rebased SHAs are `3a65403`, `9e6d3fc`, `ecc2fb4`, and `6d8f562`. The first tag preserves the frozen baseline, not a verified SHA for the manifest-less first invocation.
 - Models: `{"embedder": "embeddinggemma", "s1": "jev-1.14.0", "teacher": "gpt-6.1-terra", "writer": "gpt-6.1-terra"}`.
 - Frozen configuration deviations: none detected in checked fields.
-- Manifest new provider spend (USD): `{"openai": 1.608545700000029, "typesafe": 1.5085857779968936}`; logical arm costs (USD): `{"always_agent": 62.11958835, "escalation_only": 48.334037585999994, "fixed_gate": 48.709636986, "fixed_gate_config_hash": 60.187073036, "knn_cache": 62.11958835, "oracle_audit": 63.508265886, "s1_audit": 63.557920286, "s1_audit_0.1": 36.902828381999996, "s1_audit_0.3": 38.545018832, "s1_audit_0.6": 40.443270982, "s1_refit": 60.948528186000004, "surrogate_audit": 62.11958835, "surrogate_refit": 62.11958835, "teacher_variance_unused_draws": 1.6744858500000006}`.
+- Manifest new provider spend (USD): `{"openai": 1.608545700000029, "typesafe": 1.5085857779968936}`. The following cost ratios compare matched stream sets; the secondary arms cover only six streams and their totals must not be divided by the nine-stream always-agent total.
 - Cumulative journaled list-price spend at completion: OpenAI $51.813693 of $75 and TypeSafe $6.120658 of the $8 proxy cap. This conservatively includes the $1 reservations for each OpenAI 503 and 429 and the $0.05 TypeSafe 402 reservation; provider billing may differ. No reservations remain unsettled.
+- The frozen TypeSafe cap was $5; the cap was raised during evaluation. [INFERENCE] Applying the observed 1.78 billing/list ratio to $6.120658 list spend gives approximately $10.90 billed, exceeding the frozen $5 cap; final provider billing remains unreconciled.
 - Manifest notes: `["Deviation: CLINC secondary audit-rate replays skipped by user instruction."]`.
 - Recorded budget stop (bench/results/e3a/evaluation/budget_stop.json): `{"caps_usd": {"openai": 75.0, "typesafe": 5.0}, "error": "typesafe: budget reserved for unpriced call: Client error '402 Payment Required' for url 'https://api.typesafe.ai/v1/systemone'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402", "spent_usd": {"openai": 26.55214266999984, "typesafe": 2.8020353839984793}}`.
 - Recorded budget stop (bench/results/e3a/evaluation-resumed/budget_stop.json): `{"caps_usd": {"openai": 75.0, "typesafe": 8.0}, "error": "BudgetExceeded: openai: budget reserved for unpriced call: Error code: 503 - Unable to verify model access right now. Please retry.", "spent_usd": {"openai": 35.112541169999865, "typesafe": 3.422965651997018}}`.
@@ -18,6 +21,21 @@ Generated from retained evaluation artifacts; no model calls. NA means unavailab
 - Secondary replay status: `{"caches": {"mining_timings": {"hits": 0, "misses": 0}, "s1": {"hits": 30500, "misses": 7300}, "teacher": {"hits": 0, "misses": 0}, "writer": {"hits": 24, "misses": 9}}, "error": null}`.
 - Logical costs can count cached calls across arms and are not provider spend. Provider dashboard reconciliation is unverified for current spend; hardware and energy are unpriced.
 - Pacing deviation: the runner reserves at most 400,000 estimated tokens per rolling minute, but does not record individual pacing sleeps; actual waits and any backoff cannot be audited from the retained artifacts.
+
+### Cost per ticket relative to always-agent
+
+| Arm | Overall | Control | Restructure | CLINC |
+|---|---:|---:|---:|---:|
+| S1 audit, rate 1.0 | 1.023 | 1.022 | 1.026 | 1.022 |
+| Oracle audit | 1.022 | — | — | — |
+| S1 refit | 0.981 | — | — | — |
+| Escalation only | 0.778 | 0.811 | 0.744 | 0.780 |
+| Fixed gate | 0.784 | — | — | — |
+| Fixed gate with config hash | 0.969 | — | — | — |
+| kNN / local surrogates | 1.000 | — | — | — |
+| Secondary audit 0.1 / 0.3 / 0.6 | — | 0.833 / 0.874 / 0.937 | 0.937 / 0.976 / 1.004 | not run |
+
+The primary audit arm costs 2.3% more, not less, than always-agent. Local compute is unpriced. Always-agent cost was $62.12 over 21,600 tickets ($0.002876 per ticket); unused teacher-variance draws cost $1.67.
 
 ## Offline replay verification
 
@@ -37,6 +55,8 @@ Timing/metadata exclusions were `created_at`, `latency_ms`, `local_cpu_seconds`,
 For the additional trace/transition semantic comparison, generated `id`, `trace_id`,
 `span_id`, `parent_span_id`, and `trace_ref` fields were also excluded. The original
 recorded artifacts and observed timing values were not modified.
+The comparator JSON is preserved in ordered, privacy-redacted shards with checksums
+and reconstruction instructions in `bench/results/e3a/replay-comparison/README.md`.
 
 ## H1 — discovery
 Candidate-level precision and recall are per mining report; repeated reports are not independent experiments.
@@ -986,66 +1006,23 @@ Candidate-level precision and recall are per mining report; repeated reports are
 | seed_37_restructure_15 | s1_audit_0.1 | 2300 | 2 | raw | 0.4 | 1 | 2 | 5 | 12 | 0 |
 | seed_37_restructure_15 | s1_audit_0.3 | 2300 | 2 | raw | 0.4 | 1 | 2 | 5 | 12 | 0 |
 | seed_37_restructure_15 | s1_audit_0.6 | 2300 | 2 | raw | 0.4 | 1 | 2 | 5 | 12 | 0 |
-Verdict: 0/944 reports with defined precision attain both precision and recall 1; 0 have undefined endpoints. Reports are not independent.
-Across the 944 repeated mining reports, mean candidate-level precision was 0.4373 and mean recall was 1.0000; the reports are not independent.
+Verdict: H1 is not supported as stated: none of the 944 repeated reports attained both precision and recall 1. These reports are pseudoreplicates, not independent experiments.
+At the 300-ticket warm-up raw precision was 0.5 for seed 11 and 0.4 for seeds 23 and 37; filtered precision was 0.5 and recall was 1.0 for all three. The miner always accepted distractors `get_policy.entry_id` and `route_ticket.queue`, both consequences of D1; raw `route_ticket.branch` was also accepted at support 8–9. Ambiguous retrievals were zero in all reports.
 All 16048 accepted and rejected candidate records, with reasons, are retained in `bench/results/e3a/evaluation-resumed-3/discovery.csv`; deterministic compressed shards and reconstruction details are in `bench/results/e3a/eval-compressed/manifest.json` and `bench/results/e3a/ARTIFACTS.md`.
 The preregistration reports a development identity functional-dependency false negative; it was not corrected. Candidate-level results above are evaluation observations, not proof of independence.
 
 ## H2 — promoted-generation risk control
-- Promotion records: 49; bounds available: 49; below 0.15: 49/49 (1).
-- Verdict: all recorded promotion bounds below target.
-| target | generation | validation_served | validation_errors | validation_upper_bound |
-| --- | --- | --- | --- | --- |
-| s1_audit/search_policy.retrieval_choice | 1 | 125 | 7 | 0.120731 |
-| s1_refit/search_policy.retrieval_choice | 1 | 125 | 7 | 0.120731 |
-| escalation_only/search_policy.retrieval_choice | 1 | 125 | 7 | 0.120731 |
-| oracle_audit/search_policy.retrieval_choice | 1 | 125 | 7 | 0.120731 |
-| s1_audit/search_policy.retrieval_choice | 1 | 125 | 7 | 0.120731 |
-| s1_refit/search_policy.retrieval_choice | 1 | 125 | 7 | 0.120731 |
-| escalation_only/search_policy.retrieval_choice | 1 | 125 | 7 | 0.120731 |
-| oracle_audit/search_policy.retrieval_choice | 1 | 125 | 7 | 0.120731 |
-| s1_audit/search_policy.retrieval_choice | 1 | 231 | 19 | 0.13201 |
-| s1_refit/search_policy.retrieval_choice | 1 | 231 | 19 | 0.13201 |
-| escalation_only/search_policy.retrieval_choice | 1 | 231 | 19 | 0.13201 |
-| oracle_audit/search_policy.retrieval_choice | 1 | 231 | 19 | 0.13201 |
-| s1_refit/search_policy.retrieval_choice | 2 | 256 | 21 | 0.137741 |
-| s1_audit/search_policy.retrieval_choice | 1 | 241 | 20 | 0.131652 |
-| s1_refit/search_policy.retrieval_choice | 1 | 241 | 20 | 0.131652 |
-| escalation_only/search_policy.retrieval_choice | 1 | 241 | 20 | 0.131652 |
-| oracle_audit/search_policy.retrieval_choice | 1 | 241 | 20 | 0.131652 |
-| s1_audit/search_policy.retrieval_choice | 1 | 241 | 20 | 0.131652 |
-| s1_refit/search_policy.retrieval_choice | 1 | 241 | 20 | 0.131652 |
-| escalation_only/search_policy.retrieval_choice | 1 | 241 | 20 | 0.131652 |
-| oracle_audit/search_policy.retrieval_choice | 1 | 241 | 20 | 0.131652 |
-| s1_audit/search_policy.retrieval_choice | 1 | 270 | 22 | 0.126702 |
-| s1_refit/search_policy.retrieval_choice | 1 | 270 | 22 | 0.126702 |
-| escalation_only/search_policy.retrieval_choice | 1 | 270 | 22 | 0.126702 |
-| oracle_audit/search_policy.retrieval_choice | 1 | 270 | 22 | 0.126702 |
-| s1_audit/search_policy.retrieval_choice | 1 | 277 | 27 | 0.144816 |
-| s1_refit/search_policy.retrieval_choice | 1 | 277 | 27 | 0.144816 |
-| escalation_only/search_policy.retrieval_choice | 1 | 277 | 27 | 0.144816 |
-| oracle_audit/search_policy.retrieval_choice | 1 | 277 | 27 | 0.144816 |
-| s1_audit/search_policy.retrieval_choice | 1 | 277 | 27 | 0.144816 |
-| s1_refit/search_policy.retrieval_choice | 1 | 277 | 27 | 0.144816 |
-| escalation_only/search_policy.retrieval_choice | 1 | 277 | 27 | 0.144816 |
-| oracle_audit/search_policy.retrieval_choice | 1 | 277 | 27 | 0.144816 |
-| s1_refit/search_policy.retrieval_choice | 2 | 130 | 6 | 0.117995 |
-| s1_audit_0.1/search_policy.retrieval_choice | 1 | 125 | 7 | 0.120731 |
-| s1_audit_0.3/search_policy.retrieval_choice | 1 | 125 | 7 | 0.120731 |
-| s1_audit_0.6/search_policy.retrieval_choice | 1 | 125 | 7 | 0.120731 |
-| s1_audit_0.1/search_policy.retrieval_choice | 1 | 231 | 19 | 0.13201 |
-| s1_audit_0.3/search_policy.retrieval_choice | 1 | 231 | 19 | 0.13201 |
-| s1_audit_0.6/search_policy.retrieval_choice | 1 | 231 | 19 | 0.13201 |
-| s1_audit_0.1/search_policy.retrieval_choice | 1 | 241 | 20 | 0.131652 |
-| s1_audit_0.3/search_policy.retrieval_choice | 1 | 241 | 20 | 0.131652 |
-| s1_audit_0.6/search_policy.retrieval_choice | 1 | 241 | 20 | 0.131652 |
-| s1_audit_0.1/search_policy.retrieval_choice | 1 | 270 | 22 | 0.126702 |
-| s1_audit_0.3/search_policy.retrieval_choice | 1 | 270 | 22 | 0.126702 |
-| s1_audit_0.6/search_policy.retrieval_choice | 1 | 270 | 22 | 0.126702 |
-| s1_audit_0.1/search_policy.retrieval_choice | 1 | 277 | 27 | 0.144816 |
-| s1_audit_0.3/search_policy.retrieval_choice | 1 | 277 | 27 | 0.144816 |
-| s1_audit_0.6/search_policy.retrieval_choice | 1 | 277 | 27 | 0.144816 |
-- Transition records omit stream identity; each row is one recorded decision promotion, not an independent stream-level experiment.
+- Seven of seven distinct validation windows had bounds below 0.15, ranging from 0.118 to 0.145. There were 10 stream-level promotions (eight first-generation and two second-generation refits), not 49 independent promotions. The 49 transition rows repeat gates across arms and secondary replays; transition records omit stream identity. Restructure and CLINC share pre-shift windows within a seed.
+| generation | validation_served | validation_errors | validation_upper_bound |
+| --- | --- | --- | --- |
+| 1 | 125 | 7 | 0.120731 |
+| 1 | 231 | 19 | 0.13201 |
+| 2 | 256 | 21 | 0.137741 |
+| 1 | 241 | 20 | 0.131652 |
+| 1 | 270 | 22 | 0.126702 |
+| 1 | 277 | 27 | 0.144816 |
+| 2 | 130 | 6 | 0.117995 |
+- Seed 11 control never promoted (two attempts rejected). In control, served teacher disagreement after promotion was 62/778 = 0.080 for seed 23 and 85/832 = 0.102 for seed 37. Post-shift CLINC seed 37 was 117/713 = 0.164 and never demoted; post-shift restructure disagreement was 0.35–0.45. These served observations are descriptive, not validation guarantees.
 - No promotion is not zero-error success. Validation controls teacher disagreement under its assumptions, not gold error or post-shift risk.
 
 ## H3 — control noninferiority
@@ -1055,6 +1032,9 @@ The preregistration reports a development identity functional-dependency false n
 | --- | --- | --- | --- | --- |
 | 1511 | 0.900728 | 0.872932 | -0.0277962 | 2000 |
 - Served subset is selected and descriptive; the primary estimand includes all post-1200 tickets and has no cost condition.
+- Composition: S1 served 1511/3600 control tickets (42.0%); seed 11 served 0/1200, seed 23 served 731/1200, and seed 37 served 780/1200. Per-seed reference-minus-S1 losses were 0, −0.0267, and −0.0083. The 2089 agent-served tickets contributed zero loss.
+- On the selected served subset, S1 accuracy was 0.9007 versus agent 0.8729, a descriptive paired gain of 2.78 percentage points (seed-stratified bootstrap 95% CI [1.39, 4.17] points); 80 tickets favored S1 and 38 favored the agent. This is not the preregistered noninferiority estimand.
+- Audits never replace the compiled answer: the compiled route remains served even when audited. Control accuracy is identical across audit rates 0.1–1.0.
 
 ## H4 — 15% restructure
 | comparison | mean_audit_advantage | ci_low | ci_high | ticket_permutation_one_sided_p | holm_p_within_severity | per_seed_advantages | all_seed_effects_positive |
@@ -1063,6 +1043,9 @@ The preregistration reports a development identity functional-dependency false n
 | escalation_only | -38.3333 | -54.0083 | -22.3333 | 1 | 1 | [-15.0, -65.0, -35.0] | False |
 - Against s1_refit: lower error not demonstrated at Holm-adjusted 0.05.
 - Against escalation_only: lower error not demonstrated at Holm-adjusted 0.05.
+- The observed effect went the opposite way: versus escalation-only, audit yielded −38.3 correct tickets per seed, 95% CI [−54.0, −22.3], with seed effects −15, −65, and −35.
+- On post-shift tickets served by escalation-only, compiled versus teacher gold accuracy was 0.829 versus 0.805, 0.786 versus 0.707, and 0.742 versus 0.699 for seeds 11, 23, and 37 respectively. Demotion on teacher disagreement handed tickets to a less accurate teacher; the selected comparison is descriptive.
+- At audit rate 1.0 restructure detection took 270, 102, and 142 tickets (92, 62, and 92 audits), respectively; there were no false control demotions.
 - Positive advantage favors audit. Ticket sign flips assume exchangeability; adaptation and temporal dependence may make uncertainty anti-conservative. Three seed effects are an essential secondary check; traffic shift is exploratory.
 
 ## H5 — exploratory equal-training-label comparison

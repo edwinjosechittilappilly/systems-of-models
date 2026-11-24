@@ -13,6 +13,7 @@ import argparse
 import json
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -107,6 +108,14 @@ def report(directory: Path, stop_history: tuple[Path, ...] = ()) -> str:
             f"- Run ID: {fmt(manifest.get('run_id'))}; git SHA: {fmt(manifest.get('git_sha'))}; "
             f"dirty: {fmt(manifest.get('git_dirty'))}."
         )
+        if manifest.get("git_sha") == "a7cfa6005f1af4be62cfd717adf79573317c628c":
+            lines.append(
+                "- Frozen code: `prereg-e3a` at be24e7c (rebased 3a65403). Preserved original run tags map "
+                "be24e7c→3a65403, 06694c4→9e6d3fc, 278d5b3→ecc2fb4 and a7cfa60→6d8f562. "
+                "The initial invocation has no retained manifest or recorded SHA; later invocations were dirty. "
+                "At the observed billing ratio, $6.12 list price implies approximately $10.90 billed "
+                "[inference], above the frozen $5 cap; actual final billing is unverified."
+            )
         lines.append(f"- Models: `{json.dumps(manifest.get('models', {}), sort_keys=True)}`.")
         deviations = [
             f"{key}: expected {expected!r}, observed {config.get(key, '<missing>')!r}"
@@ -195,6 +204,10 @@ def report(directory: Path, stop_history: tuple[Path, ...] = ()) -> str:
         "hardware and energy are unpriced."
     )
     lines.append(
+        "- Arm totals need not cover the same streams: secondary audit-rate replays exclude CLINC. "
+        "Compare only stream-matched per-ticket costs below, not unmatched manifest totals."
+    )
+    lines.append(
         "- Pacing deviation: the runner reserves at most 400,000 estimated tokens per rolling minute, "
         "but does not record individual pacing sleeps; actual waits and any backoff cannot be audited "
         "from the retained artifacts."
@@ -222,12 +235,20 @@ def report(directory: Path, stop_history: tuple[Path, ...] = ()) -> str:
             "ambiguous_retrieval_count",
         ]
         lines += table(discovery, cols)
+        if {"stream", "arm", "ticket_index", "stage", "discovery_precision", "discovery_recall"}.issubset(
+            discovery.columns
+        ):
+            warmup = discovery[(discovery["ticket_index"] == 300) & (discovery["arm"] == "s1_audit")]
+            if not warmup.empty:
+                lines.append("At the 300-ticket warm-up, primary-arm endpoints (repeated streams are not independent):")
+                lines += table(warmup, ["stream", "stage", "discovery_precision", "discovery_recall"])
         if {"discovery_precision", "discovery_recall"}.issubset(discovery.columns):
             valid = discovery.dropna(subset=["discovery_precision", "discovery_recall"])
             success = ((valid["discovery_precision"] == 1) & (valid["discovery_recall"] == 1)).sum()
             lines.append(
                 f"Verdict: {success}/{len(valid)} reports with defined precision attain both precision and recall 1; "
                 f"{len(discovery) - len(valid)} have undefined endpoints. Reports are not independent."
+                + (" H1 is not supported as stated." if len(valid) and success == 0 else "")
             )
         else:
             problems.append("discovery_summary.csv: missing precision or recall")
@@ -238,10 +259,86 @@ def report(directory: Path, stop_history: tuple[Path, ...] = ()) -> str:
             f"All {len(candidates)} accepted and rejected candidate records, with reasons, are retained in "
             f"`{directory / 'discovery.csv'}`."
         )
+        if {"name", "accepted"}.issubset(candidates.columns):
+            for name in ("get_policy.entry_id", "route_ticket.queue"):
+                rows = candidates[candidates["name"] == name]
+                if not rows.empty:
+                    accepted = rows["accepted"].eq(True).sum()
+                    lines.append(
+                        f"- Distractor `{name}` accepted in {accepted}/{len(rows)} candidate records; "
+                        "it follows from D1."
+                    )
+            if {"stage", "support"}.issubset(candidates.columns):
+                branch = candidates[
+                    (candidates["name"] == "route_ticket.branch")
+                    & (candidates["stage"] == "raw")
+                    & candidates["accepted"].eq(True)
+                ]
+                if not branch.empty:
+                    lines.append(
+                        f"- Raw `route_ticket.branch` was also accepted, with support "
+                        f"{fmt(branch['support'].min())}-{fmt(branch['support'].max())}."
+                    )
+        if discovery is not None and "ambiguous_retrieval_count" in discovery.columns:
+            lines.append(
+                f"- Ambiguous retrieval count range: {fmt(discovery['ambiguous_retrieval_count'].min())}-"
+                f"{fmt(discovery['ambiguous_retrieval_count'].max())}."
+            )
     lines.append(
         "The preregistration reports a development identity functional-dependency false negative; it was not "
         "corrected. Candidate-level results above are evaluation observations, not proof of independence."
     )
+    summary = csv("summary.csv")
+    if summary is not None and {"stream", "arm", "tickets", "total_cost_usd"}.issubset(summary.columns):
+        reference = summary[summary["arm"] == "always_agent"][["stream", "tickets", "total_cost_usd"]]
+        matched = summary.merge(reference, on="stream", suffixes=("", "_reference"), validate="many_to_one")
+        matched = matched[matched["tickets"] == matched["tickets_reference"]].copy()
+        matched["condition"] = matched["stream"].str.replace(r"^seed_\d+_", "", regex=True)
+        cost_rows = []
+        for (arm, condition), group in matched.groupby(["arm", "condition"]):
+            denominator = group["total_cost_usd_reference"].sum()
+            if denominator:
+                cost_rows.append(
+                    {
+                        "arm": arm,
+                        "condition": condition,
+                        "streams": len(group),
+                        "cost_ratio_vs_matched_agent": group["total_cost_usd"].sum() / denominator,
+                    }
+                )
+        for arm, group in matched.groupby("arm"):
+            denominator = group["total_cost_usd_reference"].sum()
+            if denominator:
+                cost_rows.append(
+                    {
+                        "arm": arm,
+                        "condition": "all matched",
+                        "streams": len(group),
+                        "cost_ratio_vs_matched_agent": group["total_cost_usd"].sum() / denominator,
+                    }
+                )
+        lines += [
+            "",
+            "## Stream-matched logical cost ratios",
+            "Ratios are summed arm cost divided by summed always-agent cost on the same streams and tickets.",
+        ]
+        lines += table(pd.DataFrame(cost_rows), ["arm", "condition", "streams", "cost_ratio_vs_matched_agent"])
+        matched["cost_ratio_vs_matched_agent"] = matched["total_cost_usd"] / matched["total_cost_usd_reference"].where(
+            matched["total_cost_usd_reference"] != 0
+        )
+        lines += ["", "Per-stream ratios:", *table(matched, ["stream", "arm", "cost_ratio_vs_matched_agent"])]
+
+    def ticket_frame(stream, arm):
+        path = directory / f"{stream}_{arm}.csv"
+        return pd.read_csv(path) if path.exists() else None
+
+    pairs = {}
+    for seed in (11, 23, 37):
+        stream = f"seed_{seed}_control"
+        arm = ticket_frame(stream, "s1_audit")
+        reference = ticket_frame(stream, "always_agent")
+        if arm is not None and reference is not None:
+            pairs[seed] = arm.merge(reference, on="ticket_index", suffixes=("_arm", "_ref"), validate="one_to_one")
 
     lines += ["", "## H2 — promoted-generation risk control"]
     path = directory / "s5-records.jsonl"
@@ -270,45 +367,68 @@ def report(directory: Path, stop_history: tuple[Path, ...] = ()) -> str:
     else:
         missing.append("s5-records.jsonl")
     if records_ok:
-        known = [
-            p
-            for p in promotions
-            if isinstance(p["validation_upper_bound"], (int, float)) and pd.notna(p["validation_upper_bound"])
-        ]
-        passed = sum(p["validation_upper_bound"] < 0.15 for p in known)
+        windows = (
+            pd.DataFrame(promotions).drop_duplicates(
+                subset=["generation", "validation_served", "validation_errors", "validation_upper_bound"]
+            )
+            if promotions
+            else pd.DataFrame()
+        )
+        known = windows.dropna(subset=["validation_upper_bound"]) if promotions else windows
+        passed = (known["validation_upper_bound"] < 0.15).sum() if not known.empty else 0
         lines.append(
-            f"- Promotion records: {len(promotions)}; bounds available: {len(known)}; "
-            f"below 0.15: {passed}/{len(known)} ({fmt(passed / len(known) if known else None)})."
+            f"- Distinct validation result signatures below 0.15: {passed}/{len(known)}; "
+            f"{len(promotions)} transition rows include repeated arms and secondary replays."
         )
         if not promotions:
             verdict = "not evaluable: no promotions"
-        elif len(known) != len(promotions):
+        elif len(known) != len(windows):
             verdict = "not fully evaluable: missing validation bounds"
-        elif passed == len(promotions):
-            verdict = "all recorded promotion bounds below target"
+        elif passed == len(windows):
+            verdict = "all distinct recorded validation bounds below target"
         else:
-            verdict = "some recorded promotion bounds do not meet target"
+            verdict = "some recorded validation bounds do not meet target"
         lines.append(f"- Verdict: {verdict}.")
-        lines += table(
-            pd.DataFrame(promotions),
-            [
-                "target",
-                "generation",
-                "validation_served",
-                "validation_errors",
-                "validation_upper_bound",
-            ],
-        )
+        if not windows.empty:
+            lines += table(windows, ["generation", "validation_served", "validation_errors", "validation_upper_bound"])
         lines.append(
-            "- Transition records omit stream identity; each row is one recorded decision promotion, "
-            "not an independent stream-level experiment."
+            "- Transition records lack stream identity. Signatures identify repeated results, not necessarily "
+            "distinct windows if independent windows have identical counts and bounds."
         )
     else:
         lines.append("- Verdict: not evaluable; promotion records unavailable or invalid.")
+    if summary is not None and {"stream", "arm", "promotions"}.issubset(summary.columns):
+        refit = summary[summary["arm"] == "s1_refit"]
+        if set(refit["stream"]) == set(STREAMS):
+            lines.append(
+                f"- Refit-arm stream-level promotions: {int(refit['promotions'].sum())}, "
+                "including later-generation refits; shared pre-shift windows are counted per stream."
+            )
+    if records_ok and manifest and manifest.get("git_sha") == "a7cfa6005f1af4be62cfd717adf79573317c628c":
+        lines.append(
+            "- For this evaluation, offline matching to per-ticket promotions identifies seven distinct "
+            "validation windows: restructure and CLINC share the pre-shift window within each seed. "
+            "There were eight first-generation and two second-generation stream-level promotions; "
+            "seed 11 control had two rejected attempts and no promotion."
+        )
     lines.append(
         "- No promotion is not zero-error success. Validation controls teacher disagreement under its assumptions, "
         "not gold error or post-shift risk."
     )
+    lines += ["", "### Served teacher disagreement after promotion"]
+    for stream in STREAMS:
+        frame = ticket_frame(stream, "s1_audit")
+        if frame is None or not {"served_by", "ticket_index", "joint_decision_agreement"}.issubset(frame.columns):
+            continue
+        served = frame[frame["served_by"] != "agent"]
+        if served.empty:
+            lines.append(f"- {stream}: no compiled-served tickets (not a zero-error success).")
+            continue
+        for label, selected in (("all", served), ("post-1200", served[served["ticket_index"] >= 1200])):
+            agreement = selected["joint_decision_agreement"].dropna()
+            if not agreement.empty:
+                errors = int(agreement.eq(False).sum())
+                lines.append(f"- {stream}, {label}: {errors}/{len(agreement)} = {fmt(errors / len(agreement))}.")
     lines += ["", "## H3 — control noninferiority"]
     h3 = csv("h3.csv")
     if (
@@ -344,6 +464,56 @@ def report(directory: Path, stop_history: tuple[Path, ...] = ()) -> str:
         )
     else:
         lines.append("- Verdict: not evaluable; valid h3.csv unavailable.")
+    if len(pairs) == 3:
+        parts = []
+        composition = []
+        served_diffs = []
+        for seed, pair in pairs.items():
+            part = pair[(pair["ticket_index"] >= 1200) & (pair["ticket_index"] < 2400)]
+            served = part["served_by_arm"] != "agent"
+            diff = part["gold_joint_correct_arm"].astype(float) - part["gold_joint_correct_ref"].astype(float)
+            composition.append(
+                {
+                    "seed": seed,
+                    "tickets": len(part),
+                    "compiled_served": int(served.sum()),
+                    "reference_minus_s1_loss": -diff.mean(),
+                }
+            )
+            parts.append(part)
+            if served.any():
+                served_diffs.append(diff[served].to_numpy())
+        lines += [
+            "",
+            "### H3 control composition",
+            *table(pd.DataFrame(composition), ["seed", "tickets", "compiled_served", "reference_minus_s1_loss"]),
+        ]
+        n = sum(len(part) for part in parts)
+        count = sum(len(part) for part in served_diffs)
+        lines.append(
+            f"- Compiled-served: {count}/{n} ({fmt(count / n if n else None)}); remaining tickets are agent-served."
+        )
+        if served_diffs:
+            rng = np.random.default_rng(20261122)
+            draws = [
+                np.concatenate([part[rng.integers(0, len(part), len(part))] for part in served_diffs]).mean()
+                for _ in range(2000)
+            ]
+            low, high = np.quantile(draws, [0.025, 0.975])
+            lines.append(
+                f"- Selected served subset, descriptive only: S1 minus agent accuracy "
+                f"{fmt(np.concatenate(served_diffs).mean())}, seed-stratified 95% bootstrap CI "
+                f"[{fmt(low)}, {fmt(high)}] (2000 resamples, seed 20261122)."
+            )
+            diffs = np.concatenate(served_diffs)
+            lines.append(
+                f"- Served discordant pairs: {int((diffs > 0).sum())} favor S1, "
+                f"{int((diffs < 0).sum())} favor the agent."
+            )
+        lines.append(
+            "- Audits do not replace the compiled answer; an audited ticket is still served by S1. "
+            "The selected-subset interval is not the preregistered noninferiority test."
+        )
 
     lines += ["", "## H4 — 15% restructure"]
     h4 = csv("h4.csv")
@@ -378,6 +548,11 @@ def report(directory: Path, stop_history: tuple[Path, ...] = ()) -> str:
             supported = row["mean_audit_advantage"] > 0 and row["holm_p_within_severity"] < 0.05
             verdict = "lower error demonstrated" if supported else "lower error not demonstrated"
             lines.append(f"- Against {row['comparison']}: {verdict} at Holm-adjusted 0.05.")
+            if row["mean_audit_advantage"] < 0:
+                lines.append(
+                    f"  The observed effect is in the opposite direction (mean "
+                    f"{fmt(row['mean_audit_advantage'])} correct tickets per seed)."
+                )
         lines.append(
             "- Positive advantage favors audit. Ticket sign flips assume exchangeability; adaptation and temporal "
             "dependence may make uncertainty anti-conservative. Three seed effects are an essential secondary check; "
@@ -385,6 +560,35 @@ def report(directory: Path, stop_history: tuple[Path, ...] = ()) -> str:
         )
     else:
         lines.append("- Verdict: not evaluable; both valid Holm-family comparisons are required.")
+    for seed in (11, 23, 37):
+        stream = f"seed_{seed}_restructure_15"
+        escalation = ticket_frame(stream, "escalation_only")
+        agent = ticket_frame(stream, "always_agent")
+        if escalation is None or agent is None:
+            continue
+        paired = escalation.merge(agent, on="ticket_index", suffixes=("_compiled", "_agent"), validate="one_to_one")
+        served = paired[(paired["ticket_index"] >= 1200) & (paired["served_by_compiled"] != "agent")]
+        if not served.empty:
+            lines.append(
+                f"- {stream}: on {len(served)} tickets served by escalation-only after the shift, "
+                f"compiled gold accuracy was {fmt(served['gold_joint_correct_compiled'].mean())} versus "
+                f"agent {fmt(served['gold_joint_correct_agent'].mean())}. Demotion on teacher disagreement "
+                "can therefore hand tickets to a less accurate teacher; this comparison is descriptive."
+            )
+    if summary is not None and {
+        "stream",
+        "arm",
+        "detection_delay_tickets",
+        "detection_delay_audits",
+        "false_demotions",
+    }.issubset(summary.columns):
+        detection = summary[
+            (summary["arm"] == "s1_audit") & (summary["stream"].str.endswith(("_control", "_restructure_15")))
+        ]
+        if not detection.empty:
+            lines += table(
+                detection, ["stream", "detection_delay_tickets", "detection_delay_audits", "false_demotions"]
+            )
 
     lines += ["", "## H5 — exploratory equal-training-label comparison"]
     h5 = csv("h5_exploratory.csv")
@@ -416,7 +620,6 @@ def report(directory: Path, stop_history: tuple[Path, ...] = ()) -> str:
     else:
         lines.append("- Verdict: not evaluable; exploratory comparison unavailable.")
     lines += ["", "## Per-stream outcomes and audit-rate replay"]
-    summary = csv("summary.csv")
     if summary is not None:
         lines += table(
             summary,

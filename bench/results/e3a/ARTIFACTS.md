@@ -19,6 +19,14 @@ tar -xzf "$archive" -C "$restore_dir"
 printf 'Restored to %s/evaluation-resumed-3\n' "$restore_dir"
 ```
 
+## Development artifact restoration
+
+The development files too large for the repository are stored as deterministic
+gzip byte shards under `bench/results/e3a/dev-compressed/`. From the repository
+root, restore their original paths with `uv run python -m bench.e3a.dev_artifacts restore`.
+The restoration refuses to overwrite existing files and verifies the recorded SHA-256
+for each reconstructed file. The evaluation archive above is unchanged.
+
 ## Complete file list
 
 Paths are relative to the archive root:

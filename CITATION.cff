@@ -1,11 +1,20 @@
 cff-version: 1.2.0
-message: "If you use these schemas, please cite the paper."
-title: "Beyond System 2: A Taxonomy and API Contracts for Systems of Models"
+message: "If you use this software or its contracts, please cite it as below."
+title: "systems-of-models: typed decision gates, runtime compilation and response contracts"
+version: 0.1.0
+date-released: 2026-11-24
 authors:
   - family-names: Jose
     given-names: Edwin
     affiliation: Western Michigan University
     email: edwin.jose@wmich.edu
-date-released: 2026-10-20
 repository-code: "https://github.com/edwinjosechittilappilly/systems-of-models"
 license: MIT
+preferred-citation:
+  type: article
+  title: "From Agent Traces to Typed Decisions: Gating and Runtime Compilation with Decision APIs"
+  authors:
+    - family-names: Jose
+      given-names: Edwin
+      affiliation: Western Michigan University
+  year: 2026

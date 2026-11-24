@@ -173,6 +173,16 @@ def report(directory: Path, stop_history: tuple[Path, ...] = ()) -> str:
             "The $1.00 unpriced-call reservation is retained; it is not evidence of actual provider billing. "
             "Actual billing for the failed call is unknown."
         )
+    if any(
+        isinstance(stop, dict)
+        and "429" in str(stop.get("error", ""))
+        and "no credits remaining" in str(stop.get("error", "")).lower()
+        for stop in stops
+    ):
+        lines.append(
+            "- OpenAI 429 deviation: credits were exhausted; after a user-authorized top-up the run resumed "
+            "from cache. The $1.00 unpriced-call reservation was retained; actual billing is unknown."
+        )
     replay = directory / "secondary_replay_cache.json"
     if replay.exists():
         data = json_file("secondary_replay_cache.json")
@@ -464,7 +474,11 @@ def report(directory: Path, stop_history: tuple[Path, ...] = ()) -> str:
     lines += ["", "## Ticket-level agreement and completeness"]
     outcome_rows = []
     for stream in STREAMS:
+        if stream.endswith("_clinc"):
+            lines.append(f"- {stream}: secondary audit-rate replays skipped by user instruction (deviation).")
         for arm in ARMS:
+            if stream.endswith("_clinc") and arm in {"s1_audit_0.1", "s1_audit_0.3", "s1_audit_0.6"}:
+                continue
             name = f"{stream}_{arm}.csv"
             frame = csv(name)
             if frame is None:

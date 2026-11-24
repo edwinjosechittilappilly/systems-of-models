@@ -382,6 +382,8 @@ def main() -> None:
     directory.mkdir(parents=True, exist_ok=True)
     config = {key: value for key, value in vars(args).items() if key not in ("output_dir", "compare_artifacts")}
     manifest = Manifest("e3a", run_id, config)
+    if args.streams == "eval":
+        manifest.notes.append("Deviation: CLINC secondary audit-rate replays skipped by user instruction.")
     for filename in ("banking_policy_4.json", "banking_policy_12.json", "clinc_map.json"):
         source = ROOT / "tasks" / filename
         manifest.data[filename] = hashlib.sha256(source.read_bytes()).hexdigest()
@@ -491,7 +493,8 @@ def main() -> None:
                 for pos, row in enumerate(primary[FACTORIAL[0]])
                 if row["training_available_labels"] is not None
             }
-            secondary_inputs.append((name, shift_at, items, settings, budgets))
+            if args.streams != "eval" or not name.endswith("_clinc"):
+                secondary_inputs.append((name, shift_at, items, settings, budgets))
         baseline_arms = (
             ("fixed_gate_config_hash",) if visible else ("fixed_gate", "fixed_gate_config_hash", "knn_cache")
         )

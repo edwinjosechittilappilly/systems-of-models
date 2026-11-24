@@ -67,6 +67,15 @@ def test_unrelated_503_does_not_claim_openai_reservation(tmp_path):
     assert "$1.00 unpriced-call reservation is retained" not in text
 
 
+def test_openai_credit_stop_and_clinc_replay_deviation(tmp_path):
+    (tmp_path / "budget_stop.json").write_text(json.dumps({"error": "openai: 429 - You have no credits remaining"}))
+    text = report(tmp_path)
+    assert "OpenAI 429 deviation" in text
+    assert "$1.00 unpriced-call reservation was retained" in text
+    assert "seed_11_clinc: secondary audit-rate replays skipped" in text
+    assert "seed_11_clinc_s1_audit_0.1.csv" not in text
+
+
 def test_explicit_current_stop_is_reported_only_once(tmp_path):
     stop = tmp_path / "budget_stop.json"
     stop.write_text(json.dumps({"error": "budget"}))

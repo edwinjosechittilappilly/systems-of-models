@@ -82,7 +82,6 @@ def request_reserve(request: dict) -> float:
     return 1.0
 
 
-
 class JournaledBudget(Budget):
     """Persist reservations and settlements across processes and restarts.
 

@@ -117,6 +117,7 @@ class Agent:
                 "max_output_tokens": 800,
                 "reasoning": {"effort": "low"},
             }
+
             def call(payload: dict[str, Any] = payload) -> dict[str, Any]:
                 with paid_call(self.budget, "openai", request_reserve(payload)) as settle:
                     before = time.perf_counter()

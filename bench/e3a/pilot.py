@@ -168,7 +168,8 @@ def main() -> None:
     ]
     accuracy_threshold = 0.73 if args.model == "gpt-6-luna" else 0.70
     eligible = [
-        row for row in summaries
+        row
+        for row in summaries
         if row["n"] == 100 and row["joint_correct"] >= accuracy_threshold and row["cost_usd"] <= 0.02
     ]
     if eligible:

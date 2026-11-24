@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "systems-of-models"
-version = "0.1.0.dev0"
+version = "0.1.0"
 description = "Typed contracts for systems of models: put a cheap System 1 decision in front of your LLM, escalate when unsure, and compile repeated reasoning into new decisions."
 readme = "README.md"
 requires-python = ">=3.10"

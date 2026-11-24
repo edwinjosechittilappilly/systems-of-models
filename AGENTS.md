@@ -1,7 +1,7 @@
 # systems-of-models
 
 Python package `systems-of-models` (import `som`, CLI `som`) plus the JSON Schema contracts from the paper
-"Beyond System 2". The schemas in `schemas/` are the source of truth; the wheel ships a copy as `som/_schemas`.
+"From Agent Traces to Typed Decisions". The schemas in `schemas/` are the source of truth; the wheel ships a copy as `som/_schemas`.
 
 ## Commands
 

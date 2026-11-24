@@ -1,7 +1,7 @@
-"""Compatibility for the frozen E3a experiment, not new experiments.
+"""Compatibility for the frozen E3a and E3b experiments, not new experiments.
 
-Archived requests used non-identifier question names, which E4 reports as invalid.
-Replay and recording of the archived run must retain them to preserve cache keys.
+Archived requests and questions used non-identifier question names (writer titles), which E4 reports as invalid.
+Replay and recording of the archived runs must retain them to preserve cache keys and archived results.
 """
 
 from collections.abc import Iterator

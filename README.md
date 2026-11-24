@@ -62,6 +62,8 @@ Decision APIs answer each question on its own, so the companion `fit` predicate 
 `result.value` is `None` when the serving system refuses or says nothing fits; handle that case explicitly.
 For offline tests, swap in `som.testing.FunctionDecider` (see [`docs/integrations.md`](docs/integrations.md)).
 
+See [`examples/`](examples/README.md) for runnable offline support-ticket and trace-compilation walkthroughs.
+
 No keys yet? `som demo` replays 20 real recorded decisions offline, and `som breakeven` tells you when a gate pays off:
 
 ```bash

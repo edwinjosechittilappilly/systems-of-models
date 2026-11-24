@@ -4,6 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from som.compile import question_name
 from som.compile.mining import Candidate, Example
 from som.compile.writer import OpenAIQuestionWriter, write_question
 from som.questions import Choice, Predicate
@@ -59,6 +60,35 @@ def test_writer_branch_becomes_predicate():
     assert isinstance(question, Predicate)
     with pytest.raises(ValueError, match="n_samples"):
         write_question(candidate, lambda _: {}, n_samples=0, seed=1)
+
+
+def test_writer_titles_become_contract_valid_names():
+    # E4 found 52,135 E3a envelopes invalid because the writer named a question "Customer Support Intent".
+    candidate = Candidate(
+        kind="branch",
+        name="verify",
+        tool="verify",
+        argument=None,
+        examples=[Example("1", "ticket", True, None), Example("2", "other", False, None)],
+        values=[True, False],
+        support=2,
+    )
+    for title, expected in [("Customer Support Intent", "Customer_Support_Intent"), ("3 days?", "q_3_days")]:
+        question, _ = write_question(candidate, lambda _, t=title: {"name": t, "instructions": "Verify?"}, seed=1)
+        assert question.name == expected
+
+
+def test_candidate_names_become_contract_identifiers():
+    assert question_name("search_policy.retrieval_choice") == "search_policy__retrieval_choice"
+    assert question_name("3 days?") == "q_3_days"
+    assert len(question_name("a" * 100)) == 64
+    Choice(question_name("search_policy.retrieval_choice"), "Choose", ["a", "b"])
+
+
+@pytest.mark.parametrize("make", [lambda n: Predicate(n, "?"), lambda n: Choice(n, "?", ["a", "b"])])
+def test_questions_reject_names_the_contract_cannot_carry(make):
+    with pytest.raises(ValueError, match="question name"):
+        make("Customer Support Intent")
 
 
 def test_openai_writer_uses_structured_response():

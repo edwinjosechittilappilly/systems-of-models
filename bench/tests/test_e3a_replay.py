@@ -7,7 +7,43 @@ import pandas as pd
 import pytest
 
 from bench.e3a import run
+from bench.e3a.legacy import archived_question_names
 from bench.e3a.run import compare_replay
+from som.compile import question_name
+from som.compile.mining import Candidate, Example
+from som.compile.writer import write_question
+from som.questions import Choice
+
+
+def test_archived_question_names_restore_validation_after_exception():
+    candidate = Candidate(
+        kind="retrieval_choice",
+        name="search_policy.retrieval_choice",
+        tool="search_policy",
+        argument=None,
+        examples=[Example("1", "ticket", "a", "A")],
+        values=["a", "b"],
+        support=1,
+    )
+
+    def archived():
+        with archived_question_names():
+            assert Choice(candidate.name, "Choose", ["a", "b"]).name == candidate.name
+            question, _ = write_question(
+                candidate, lambda _: {"name": "Customer Support Intent", "instructions": "Choose"}, seed=1
+            )
+            assert question.name == "Customer Support Intent"
+            raise RuntimeError("stop")
+
+    with pytest.raises(RuntimeError, match="stop"):
+        archived()
+    with pytest.raises(ValueError, match="question name"):
+        Choice(candidate.name, "Choose", ["a", "b"])
+    assert question_name(candidate.name) == "search_policy__retrieval_choice"
+    question, _ = write_question(
+        candidate, lambda _: {"name": "Customer Support Intent", "instructions": "Choose"}, seed=1
+    )
+    assert question.name == "Customer_Support_Intent"
 
 
 def test_replay_comparison_excludes_only_measured_timing_and_reports_provenance(tmp_path):

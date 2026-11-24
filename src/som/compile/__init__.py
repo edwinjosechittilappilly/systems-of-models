@@ -4,7 +4,7 @@ from .lifecycle import CompiledDecision
 from .mining import Candidate, MiningReport, mine
 from .surrogate import EmbeddingSurrogate, ollama_embedder
 from .traces import AgentStep, AgentTrace
-from .writer import OpenAIQuestionWriter, write_question
+from .writer import OpenAIQuestionWriter, question_name, write_question
 
 __all__ = [
     "AgentStep",
@@ -16,5 +16,6 @@ __all__ = [
     "OpenAIQuestionWriter",
     "mine",
     "ollama_embedder",
+    "question_name",
     "write_question",
 ]

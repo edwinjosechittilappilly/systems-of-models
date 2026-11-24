@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
+from bench.e3a.legacy import archived_question_names
 from bench.e3a.local_models import make_surrogate
 from bench.e3a.metrics import discovery_rows, discovery_summary
 from bench.tasks.environment import SupportEnvironment
@@ -230,6 +231,7 @@ def _transition(arm, model, item, cfg, kind, elapsed_ms):
         cfg["meta_records"].append(meta)
 
 
+@archived_question_names()
 def _compile(arm, selected, providers, cfg, index):
     traces = [item["teacher"].trace for item in selected]
     report, timing = _mine_timed(traces, cfg, "e3a_compilation_mining_v2")

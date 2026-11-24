@@ -178,6 +178,9 @@ print(question.name, decision.state)
 This offline writer is illustrative; production drafts need review. The lifecycle separates calibration from
 validation and requires callers to route requests and independently sample audits. Under the assumptions in
 [`lifecycle.py`](src/som/compile/lifecycle.py), an audit e-process controls false demotion at `alpha`.
+Writer titles are converted to contract-valid question names. For questions built directly from mined candidates,
+use `som.compile.question_name(candidate.name)`; for example, `search_policy.retrieval_choice` becomes
+`search_policy__retrieval_choice`.
 
 ## The contract
 

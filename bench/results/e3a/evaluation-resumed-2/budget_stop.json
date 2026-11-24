@@ -1,0 +1,11 @@
+{
+  "error": "BudgetExceeded: openai: budget reserved for unpriced call: Error code: 429 - You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.",
+  "spent_usd": {
+    "openai": 50.205147719999346,
+    "typesafe": 4.612072507994607
+  },
+  "caps_usd": {
+    "openai": 75.0,
+    "typesafe": 8.0
+  }
+}

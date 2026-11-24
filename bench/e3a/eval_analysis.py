@@ -234,23 +234,9 @@ def report(directory: Path, stop_history: tuple[Path, ...] = ()) -> str:
     else:
         lines.append("Verdict: not evaluable; discovery summaries unavailable or empty.")
     if candidates is not None and not candidates.empty:
-        lines += ["", "### Accepted and rejected candidates"]
-        lines += table(
-            candidates,
-            [
-                "stream",
-                "arm",
-                "ticket_index",
-                "generation",
-                "stage",
-                "name",
-                "kind",
-                "tool",
-                "accepted",
-                "is_true",
-                "reason",
-                "determinant",
-            ],
+        lines.append(
+            f"All {len(candidates)} accepted and rejected candidate records, with reasons, are retained in "
+            f"`{directory / 'discovery.csv'}`."
         )
     lines.append(
         "The preregistration reports a development identity functional-dependency false negative; it was not "

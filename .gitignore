@@ -20,6 +20,7 @@ htmlcov/
 # No trailing slash, so symlinks to a shared cache (git worktrees) are ignored too.
 bench/data
 bench/cache
+/bench/results/e3a/eval-full.tar.gz
 
 # OS / editors
 .DS_Store

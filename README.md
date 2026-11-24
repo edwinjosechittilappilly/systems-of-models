@@ -125,7 +125,7 @@ cost ratios use S2-only or the always-agent arm as the denominator. Results are 
 | E3a · compile, silent shift | Shift detected after 102–270 tickets, no false demotions; but demoting on agent disagreement cost 38 correct tickets per seed vs escalation-only, because the compiled decision was more accurate than the agent. Full audits cost 1.023× always-agent. | [Analysis](bench/results/e3a/eval/ANALYSIS.md) |
 | E3b · discovery | Pooled miner precision/recall 0.254/0.750; accept-all-branches baseline 0.517/0.750. | [Discovery](bench/results/e3b/tau2-768f3d8/discovery.csv) |
 | E3b · held-out agreement | 97.0% pooled teacher agreement over two evaluated decisions, full state. | [Analysis](bench/results/e3b/tau2-768f3d8/ANALYSIS.md) |
-| E4 · contract validity | 54,385/54,385 cached envelopes valid against contract **2.0.0**. | [Analysis](bench/results/e4/contracts-v2-dev/ANALYSIS.md) |
+| E4 · contract validity | 83,820 of 135,955 cached envelopes valid against contract 2.1.0. All 59,260 E1/E2/E3b/demo envelopes are valid; 52,135 of 76,695 E3a Jev envelopes are not, because their question names (writer titles such as "Customer Support Intent", mined names such as `search_policy.retrieval_choice`) break the schema's name pattern. Questions now reject such names and the writer emits identifiers. | [Analysis](bench/results/e4/contracts-final/ANALYSIS.md) |
 
 E1's selected gates did **not** meet the stated non-inferiority target. E3b's revisions followed observed results,
 the branch baseline has the same recall and higher precision, and prior assistant text may reveal the answer.

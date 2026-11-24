@@ -1,0 +1,7 @@
+measurement,median_us,iterations
+"gate, served by S1 (stub deciders)",27.5,2000
+"gate, escalated to S2 (stub deciders)",46.0,2000
+envelope.to_dict(),1.7,2000
+envelope.validate() (s1-decision schema),425.3,2000
+"OpenAI SDK responses.create, unwrapped (mock transport)",587.4,2000
+"OpenAI SDK responses.create, som.wrap (mock transport)",631.6,2000

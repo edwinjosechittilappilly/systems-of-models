@@ -1,0 +1,65 @@
+adapter,field,status,evidence
+TypeSafe /v1/systemone,id,D,no response id; generated resp_<hex>
+TypeSafe /v1/systemone,confidence,N,per-answer probabilities (noul / choice / score)
+TypeSafe /v1/systemone,cost.amount,D,usage.input_tokens x dated rate card (list_price)
+TypeSafe /v1/systemone,cost.usage,N,"usage.input_tokens, usage.output_tokens"
+TypeSafe /v1/systemone,latency_ms,D,client monotonic timer
+TypeSafe /v1/systemone,trace_ref,D,W3C ids from the active span or generated
+TypeSafe /v1/systemone,implementation.model,N,model (versioned id behind the alias)
+TypeSafe /v1/systemone,body,N,answers keyed by question name
+OpenAI /v1/decisions,id,D,no response id in the recorded response; generated
+OpenAI /v1/decisions,confidence,N,answers[].probability / probabilities
+OpenAI /v1/decisions,cost.amount,D,usage x dated rate card (input only)
+OpenAI /v1/decisions,cost.usage,N,usage incl. input_tokens_details.cached_tokens
+OpenAI /v1/decisions,latency_ms,D,client monotonic timer
+OpenAI /v1/decisions,trace_ref,D,W3C ids from the active span or generated
+OpenAI /v1/decisions,implementation.model,N,model
+OpenAI /v1/decisions,body,N,answers[] (predicate / choice / score / refusal)
+OpenAI /v1/responses,id,N,id
+OpenAI /v1/responses,confidence,U,no calibrated probability for structured output; envelope confidence is null
+OpenAI /v1/responses,cost.amount,D,usage x dated rate card incl. cached rate
+OpenAI /v1/responses,cost.usage,N,"usage incl. reasoning_tokens, cached_tokens"
+OpenAI /v1/responses,latency_ms,D,client monotonic timer
+OpenAI /v1/responses,trace_ref,D,W3C ids from the active span or generated
+OpenAI /v1/responses,implementation.model,N,model
+OpenAI /v1/responses,body,N,output_text parsed against the strict answer schema
+OpenAI /v1/chat/completions,id,N,id
+OpenAI /v1/chat/completions,confidence,U,logprobs not requested; envelope confidence is null
+OpenAI /v1/chat/completions,cost.amount,D,usage x dated rate card
+OpenAI /v1/chat/completions,cost.usage,N,prompt/completion tokens incl. details
+OpenAI /v1/chat/completions,latency_ms,D,client monotonic timer
+OpenAI /v1/chat/completions,trace_ref,D,W3C ids from the active span or generated
+OpenAI /v1/chat/completions,implementation.model,N,model
+OpenAI /v1/chat/completions,body,N,choices[0].message.content parsed; refusal / finish_reason mapped
+OpenRouter (chat-compatible),id,N,id
+OpenRouter (chat-compatible),confidence,U,upstream-dependent; not requested
+OpenRouter (chat-compatible),cost.amount,N,"usage.cost (credits = USD), basis provider_reported"
+OpenRouter (chat-compatible),cost.usage,N,usage
+OpenRouter (chat-compatible),latency_ms,D,client monotonic timer
+OpenRouter (chat-compatible),trace_ref,D,W3C ids from the active span or generated
+OpenRouter (chat-compatible),implementation.model,N,model (routed upstream)
+OpenRouter (chat-compatible),body,N,structured output parsed
+Ollama / vLLM (chat-compatible),id,N,id
+Ollama / vLLM (chat-compatible),confidence,U,Ollama documents no logprobs on its OpenAI layer
+Ollama / vLLM (chat-compatible),cost.amount,D,"0 API charge, basis local_measured; compute not metered"
+Ollama / vLLM (chat-compatible),cost.usage,N,usage
+Ollama / vLLM (chat-compatible),latency_ms,D,client monotonic timer
+Ollama / vLLM (chat-compatible),trace_ref,D,W3C ids from the active span or generated
+Ollama / vLLM (chat-compatible),implementation.model,N,model tag
+Ollama / vLLM (chat-compatible),body,N,structured output parsed
+Anthropic Messages (fixtures only),id,N,id
+Anthropic Messages (fixtures only),confidence,U,no logprobs in Messages
+Anthropic Messages (fixtures only),cost.amount,U,no built-in price; unknown unless a rate card is passed
+Anthropic Messages (fixtures only),cost.usage,N,usage incl. cache read / creation
+Anthropic Messages (fixtures only),latency_ms,D,client monotonic timer
+Anthropic Messages (fixtures only),trace_ref,D,W3C ids from the active span or generated
+Anthropic Messages (fixtures only),implementation.model,N,model
+Anthropic Messages (fixtures only),body,N,forced tool_use input
+Gemini generateContent (fixtures only),id,N,responseId
+Gemini generateContent (fixtures only),confidence,U,"avgLogprobs is token-level, not answer probability; not used"
+Gemini generateContent (fixtures only),cost.amount,U,no built-in price; unknown unless a rate card is passed
+Gemini generateContent (fixtures only),cost.usage,N,usageMetadata incl. thoughts and cached tokens
+Gemini generateContent (fixtures only),latency_ms,D,client monotonic timer
+Gemini generateContent (fixtures only),trace_ref,D,W3C ids from the active span or generated
+Gemini generateContent (fixtures only),implementation.model,N,modelVersion
+Gemini generateContent (fixtures only),body,N,response JSON parsed against the answer schema

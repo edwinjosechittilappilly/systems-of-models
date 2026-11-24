@@ -148,6 +148,8 @@ def cached_envelopes() -> Iterator[tuple[str, dict[str, Any]]]:
 def validate_envelopes() -> list[dict[str, Any]]:
     counts: dict[tuple[str, str], Counter[str]] = defaultdict(Counter)
     first_error: dict[tuple[str, str], str] = {}
+    latencies: dict[tuple[str, str], list[float]] = defaultdict(list)
+    costs: dict[tuple[str, str], list[float]] = defaultdict(list)
     for namespace, envelope in cached_envelopes():
         system = envelope.get("system", "?")
         key = (namespace, system)
@@ -159,6 +161,9 @@ def validate_envelopes() -> list[dict[str, Any]]:
             errors = list(schemas.validator("envelope").iter_errors(envelope))
         counts[key]["valid" if not errors else "invalid"] += 1
         counts[key][f"basis:{envelope.get('cost', {}).get('basis')}"] += 1
+        latencies[key].append(float(envelope.get("latency_ms", 0.0)))
+        if envelope.get("cost", {}).get("amount") is not None:
+            costs[key].append(float(envelope["cost"]["amount"]))
         if errors and key not in first_error:
             first_error[key] = errors[0].message
     rows = []
@@ -172,6 +177,10 @@ def validate_envelopes() -> list[dict[str, Any]]:
                 "invalid": counter["invalid"],
                 "bases": ";".join(f"{k[6:]}={v}" for k, v in sorted(counter.items()) if k.startswith("basis:")),
                 "first_error": first_error.get((namespace, system), ""),
+                "median_latency_ms": round(statistics.median(latencies[(namespace, system)]), 1),
+                "median_cost_usd": round(statistics.median(costs[(namespace, system)]), 8)
+                if costs[(namespace, system)]
+                else None,
             }
         )
     return rows
@@ -327,9 +336,13 @@ def main() -> None:
         f"Envelopes in the response caches: {total}; valid against contract {som.CONTRACT_VERSION}: {valid}; "
         f"invalid: {total - valid}.",
         "",
-        "| namespace | system | envelopes | valid | cost bases |",
-        "|---|---|---|---|---|",
-        *[f"| {r['namespace']} | {r['system']} | {r['envelopes']} | {r['valid']} | {r['bases']} |" for r in validation],
+        "| namespace | system | envelopes | valid | cost bases | median latency (ms) | median cost (USD) |",
+        "|---|---|---|---|---|---|---|",
+        *[
+            f"| {r['namespace']} | {r['system']} | {r['envelopes']} | {r['valid']} | {r['bases']} | "
+            f"{r['median_latency_ms']} | {r['median_cost_usd']} |"
+            for r in validation
+        ],
         "",
         f"Field matrix over {len(_ADAPTERS)} adapters x {len(_FIELDS)} fields: native {matrix['N']}, derived "
         f"{matrix['D']}, unavailable {matrix['U']} (field_matrix.csv; Anthropic and Gemini from fixtures only).",

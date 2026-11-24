@@ -2,9 +2,19 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any, Literal
+
+_NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_\-]{0,63}")
+
+
+def _check_name(name: str) -> None:
+    """Question names key answers in the S1 contract, which restricts them to an identifier pattern."""
+    # fullmatch: Python's `$` would accept a trailing newline that ECMA-262 validators reject.
+    if not isinstance(name, str) or not _NAME.fullmatch(name):
+        raise ValueError(f"question name {name!r} must match ^{_NAME.pattern}$ (letters, digits, _ or -; max 64)")
 
 
 @dataclass(frozen=True)
@@ -27,6 +37,9 @@ class Predicate:
     instructions: str
     true_means: str | None = None
     false_means: str | None = None
+
+    def __post_init__(self) -> None:
+        _check_name(self.name)
 
     def to_contract(self) -> dict[str, Any]:
         """S1 contract form. The contract has no criteria field, so outcome descriptions travel in the
@@ -52,6 +65,7 @@ class Choice:
     def __init__(
         self, name: str, instructions: str, options: Sequence[str] | Mapping[str, str] | Sequence[Option]
     ) -> None:
+        _check_name(name)
         object.__setattr__(self, "name", name)
         object.__setattr__(self, "instructions", instructions)
         object.__setattr__(self, "options", _options(options))
@@ -78,6 +92,7 @@ class Score:
     levels: tuple[str, ...]
 
     def __init__(self, name: str, instructions: str, levels: Sequence[str]) -> None:
+        _check_name(name)
         object.__setattr__(self, "name", name)
         object.__setattr__(self, "instructions", instructions)
         object.__setattr__(self, "levels", tuple(levels))

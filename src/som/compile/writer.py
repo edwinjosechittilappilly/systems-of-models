@@ -8,12 +8,31 @@ from __future__ import annotations
 
 import json
 import random
+import re
 from collections.abc import Callable, Mapping
 from typing import Any
 
 from som.questions import Choice, Option, Predicate, Question
 
 from .mining import Candidate
+
+
+def question_name(name: str) -> str:
+    """Turn a mined candidate name or writer title into an S1-compatible identifier.
+
+    Dots separating candidate components become double underscores, for example
+    ``search_policy.retrieval_choice`` becomes ``search_policy__retrieval_choice``.
+    Other invalid character runs become underscores; names are limited to 64 characters.
+    """
+    if _VALID.fullmatch(name):
+        return name
+    name = re.sub(r"[^A-Za-z0-9_\-]+", "_", name.strip().replace(".", "__")).strip("_") or "question"
+    if not (name[0].isascii() and (name[0].isalpha() or name[0] == "_")):
+        name = f"q_{name}"
+    return name[:64].rstrip("_-") or "question"
+
+
+_VALID = re.compile(r"[A-Za-z_][A-Za-z0-9_\-]{0,63}")
 
 
 def write_question(
@@ -52,6 +71,7 @@ def write_question(
     name, instructions = draft["name"], draft["instructions"]
     if not isinstance(name, str) or not name.strip() or not isinstance(instructions, str) or not instructions.strip():
         raise ValueError("writer must return a nonempty name and instructions")
+    name = question_name(name)
     if candidate.kind == "branch":
         question: Question = Predicate(name, instructions, draft.get("true_means"), draft.get("false_means"))
     else:

@@ -19,6 +19,25 @@ Generated from retained evaluation artifacts; no model calls. NA means unavailab
 - Logical costs can count cached calls across arms and are not provider spend. Provider dashboard reconciliation is unverified for current spend; hardware and energy are unpriced.
 - Pacing deviation: the runner reserves at most 400,000 estimated tokens per rolling minute, but does not record individual pacing sleeps; actual waits and any backoff cannot be audited from the retained artifacts.
 
+## Offline replay verification
+
+The cache-only replay completed without provider calls. Its strict artifact comparator
+matched 121 of 138 deterministic files after excluding timing fields; it did **not**
+produce byte-identical artifacts overall. H3, H4, H5, the combined summary, the audit
+curve, discovery tables, and all per-ticket arm CSVs matched after timing exclusions.
+The 17 mismatches comprised nine S4 trace files, S5 transition records, and seven
+per-stream summaries. In the summaries, common-arm values were identical; five
+original summaries contained only primary rows while replay summaries also contained
+secondary rows, and two differed only in numeric serialization. The combined summary
+matched exactly. All nine trace files and all 63 S5 records matched after additionally
+excluding generated identifiers and timestamps; this is not a byte-identity claim.
+
+Timing/metadata exclusions were `created_at`, `latency_ms`, `local_cpu_seconds`,
+`raw_mining_latency_ms`, `training_filter_latency_ms`, and gzip-header metadata.
+For the additional trace/transition semantic comparison, generated `id`, `trace_id`,
+`span_id`, `parent_span_id`, and `trace_ref` fields were also excluded. The original
+recorded artifacts and observed timing values were not modified.
+
 ## H1 — discovery
 Candidate-level precision and recall are per mining report; repeated reports are not independent experiments.
 | stream | arm | ticket_index | generation | stage | discovery_precision | discovery_recall | discovery_true_positives | discovery_accepted | discovery_rejected | ambiguous_retrieval_count |

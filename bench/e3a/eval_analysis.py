@@ -549,9 +549,12 @@ def report(directory: Path, stop_history: tuple[Path, ...] = ()) -> str:
             verdict = "lower error demonstrated" if supported else "lower error not demonstrated"
             lines.append(f"- Against {row['comparison']}: {verdict} at Holm-adjusted 0.05.")
             if row["mean_audit_advantage"] < 0:
+                # Only call the effect reversed when the interval excludes zero.
+                reversed_ = row.get("ci_high", 0) < 0
+                tail = "; the interval excludes zero, so the effect went the opposite way" if reversed_ else ""
                 lines.append(
-                    f"  The observed effect is in the opposite direction (mean "
-                    f"{fmt(row['mean_audit_advantage'])} correct tickets per seed)."
+                    f"  The point estimate favours the comparator (mean {fmt(row['mean_audit_advantage'])} correct "
+                    f"tickets per seed){tail}."
                 )
         lines.append(
             "- Positive advantage favors audit. Ticket sign flips assume exchangeability; adaptation and temporal "

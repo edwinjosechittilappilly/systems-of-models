@@ -1,6 +1,6 @@
 # E3a post-evaluation analysis
 
-Generated from retained evaluation artifacts; no model calls. NA means unavailable, not zero.
+Built from retained evaluation artifacts (no model calls) by `bench/e3a/eval_analysis.py`, then edited by hand to add the provenance, deviation and composition notes requested in review; every number was re-checked against the artifacts by an independent reviewer. NA means unavailable, not zero.
 
 ## Run provenance, deviations and spend
 - Run ID: evaluation. Frozen code is tag `prereg-e3a` at original `be24e7c` (rebased patch-equivalent `3a65403`). `PREREG.md`'s older `b5d3617` reference is imprecise: H3 and lifecycle code changed before the tag.

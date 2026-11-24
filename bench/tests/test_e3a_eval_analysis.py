@@ -157,7 +157,7 @@ def test_numeric_verdicts_and_promotions_are_reported(tmp_path):
     assert "noninferiority demonstrated" in text
     assert "Against s1_refit: lower error demonstrated" in text
     assert "Against escalation_only: lower error not demonstrated" in text
-    assert "observed effect is in the opposite direction" in text
+    assert "point estimate favours the comparator" in text
     assert "[1, 2, 9]" in text
 
 

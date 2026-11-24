@@ -8,6 +8,8 @@
 
 The archive uses sorted paths, normalized ownership and timestamps, and a gzip timestamp of zero.
 
+Note: the archive's `manifest.json` still contains the absolute `resume_from` path recorded at run time. The tracked manifests under `bench/results/e3a/evaluation-resumed-2` and `-3` replaced that value with a repo-relative path after the run, so those two files differ from their archived originals in that field only.
+
 ## Safe restore
 
 From the repository root, extract into a newly created temporary directory rather than over existing raw data:

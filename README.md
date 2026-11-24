@@ -109,8 +109,9 @@ som breakeven --c1 0.00004 --c2 0.0025 --escalated-c2 0.0031 --escalation-rate 0
 
 ## Results
 
-Measured on Banking77 and CLINC150 test sets and published τ²-bench traces. Costs are usage-weighted list
-prices, not bills; cost ratios use S2-only as the denominator. Results are task- and model-dependent.
+Measured on Banking77 and CLINC150 test sets, a pre-registered controlled agent task (E3a) and published τ²-bench
+traces. Costs are usage-weighted list prices, not bills (TypeSafe billed about 1.78× list price on our account);
+cost ratios use S2-only or the always-agent arm as the denominator. Results are task- and model-dependent.
 
 <p align="center"><img src="docs/assets/results.svg" alt="Banking77 accuracy and cost ratios for S2-only, Jev, Decisions, their gates, and a supervised classifier; supervised cost is unknown." width="100%"></p>
 
@@ -120,11 +121,11 @@ prices, not bills; cost ratios use S2-only as the denominator. Results are task-
 | E1 · CLINC150 | S2 94.4%; Jev 88.2% at 0.086× S2 cost, Decisions 77.2% at 0.117×. Jev gate 91.7% at 0.315×; Decisions gate 91.8% at 0.486×. | [Baselines](bench/results/e1/full/baselines.csv), [gates](bench/results/e1/full/selected.csv) |
 | E1 · supervised | Banking77 93.2%; CLINC150 90.6%; local monetary cost unknown. | [Analysis](bench/results/e1/full/ANALYSIS.md) |
 | E2 · CLINC150 out-of-scope detection | Raw fit-predicate AUROC: Jev 0.976, Decisions 0.935. | [Metrics](bench/results/e2/full/metrics.csv) |
+| E3a · compile, no shift | Non-inferior to always-agent: 0.765 vs 0.753 joint gold accuracy (loss upper bound −0.69 pt vs 2 pt margin); compiled questions served 42% of tickets; 7/7 validation windows below ε = 0.15. | [Analysis](bench/results/e3a/eval/ANALYSIS.md), [pre-registration](bench/PREREG.md) |
+| E3a · compile, silent shift | Shift detected after 102–270 tickets, no false demotions; but demoting on agent disagreement cost 38 correct tickets per seed vs escalation-only, because the compiled decision was more accurate than the agent. Full audits cost 1.023× always-agent. | [Analysis](bench/results/e3a/eval/ANALYSIS.md) |
 | E3b · discovery | Pooled miner precision/recall 0.254/0.750; accept-all-branches baseline 0.517/0.750. | [Discovery](bench/results/e3b/tau2-768f3d8/discovery.csv) |
 | E3b · held-out agreement | 97.0% pooled teacher agreement over two evaluated decisions, full state. | [Analysis](bench/results/e3b/tau2-768f3d8/ANALYSIS.md) |
 | E4 · contract validity | 54,385/54,385 cached envelopes valid against contract **2.0.0**. | [Analysis](bench/results/e4/contracts-v2-dev/ANALYSIS.md) |
-
-E3a (runtime compilation under shift): results pending
 
 E1's selected gates did **not** meet the stated non-inferiority target. E3b's revisions followed observed results,
 the branch baseline has the same recall and higher precision, and prior assistant text may reveal the answer.

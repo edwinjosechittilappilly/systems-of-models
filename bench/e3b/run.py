@@ -21,6 +21,7 @@ import som
 from bench.common.budget import Budget, BudgetExceeded
 from bench.common.cache import CacheMiss, JsonCache, answer_from_dict, answer_to_dict
 from bench.common.manifest import Manifest
+from bench.e3a.legacy import archived_question_names
 from bench.e3b.data import COMMIT, DOMAINS, MODELS, fetch, file_name, load
 from bench.e3b.discovery import discovery_rows as compute_discovery_rows
 from bench.e3b.extract import instances, to_trace, user_tools_only
@@ -395,7 +396,9 @@ def run(mode: str) -> None:
             cal_episodes = [e for e in training if calibration(domain, e.task_id)]
             source = writer_candidate(candidate, writing)
             try:
-                question, provenance = write_question(source, calls.writer, n_samples=20, seed=0)
+                # The archived E3b questions.json holds the writer's original titles (e.g. "Human agent transfer").
+                with archived_question_names():
+                    question, provenance = write_question(source, calls.writer, n_samples=20, seed=0)
             except (BudgetExceeded, CacheMiss):
                 raise
             except Exception as error:

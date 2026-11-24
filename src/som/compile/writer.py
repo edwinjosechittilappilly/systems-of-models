@@ -24,10 +24,15 @@ def question_name(name: str) -> str:
     ``search_policy.retrieval_choice`` becomes ``search_policy__retrieval_choice``.
     Other invalid character runs become underscores; names are limited to 64 characters.
     """
-    name = re.sub(r"[^A-Za-z0-9_\-]+", "_", name.strip().replace(".", "__")).strip("_")[:64] or "question"
-    if not (name[0].isalpha() or name[0] == "_"):
-        name = f"q_{name}"[:64]
-    return name
+    if _VALID.fullmatch(name):
+        return name
+    name = re.sub(r"[^A-Za-z0-9_\-]+", "_", name.strip().replace(".", "__")).strip("_") or "question"
+    if not (name[0].isascii() and (name[0].isalpha() or name[0] == "_")):
+        name = f"q_{name}"
+    return name[:64].rstrip("_-") or "question"
+
+
+_VALID = re.compile(r"[A-Za-z_][A-Za-z0-9_\-]{0,63}")
 
 
 def write_question(

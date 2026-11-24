@@ -7,13 +7,14 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
-_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_\-]{0,63}$")
+_NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_\-]{0,63}")
 
 
 def _check_name(name: str) -> None:
     """Question names key answers in the S1 contract, which restricts them to an identifier pattern."""
-    if not isinstance(name, str) or not _NAME.match(name):
-        raise ValueError(f"question name {name!r} must match {_NAME.pattern} (letters, digits, _ or -; max 64)")
+    # fullmatch: Python's `$` would accept a trailing newline that ECMA-262 validators reject.
+    if not isinstance(name, str) or not _NAME.fullmatch(name):
+        raise ValueError(f"question name {name!r} must match ^{_NAME.pattern}$ (letters, digits, _ or -; max 64)")
 
 
 @dataclass(frozen=True)

@@ -7,7 +7,7 @@ import pytest
 from som.compile import question_name
 from som.compile.mining import Candidate, Example
 from som.compile.writer import OpenAIQuestionWriter, write_question
-from som.questions import Choice, Predicate
+from som.questions import Choice, Predicate, Score
 
 
 def test_writer_only_receives_samples_and_reproduces_selection():
@@ -83,6 +83,18 @@ def test_candidate_names_become_contract_identifiers():
     assert question_name("3 days?") == "q_3_days"
     assert len(question_name("a" * 100)) == 64
     Choice(question_name("search_policy.retrieval_choice"), "Choose", ["a", "b"])
+    for raw in ["a" * 63 + ".b", "_private", "x_", "Customer Support Intent", "été"]:
+        once = question_name(raw)
+        assert question_name(once) == once
+        Choice(once, "Choose", ["a", "b"])
+    assert question_name("_private") == "_private"
+
+
+def test_trailing_newline_and_score_names_are_rejected():
+    with pytest.raises(ValueError, match="question name"):
+        Choice("abc\n", "?", ["a", "b"])
+    with pytest.raises(ValueError, match="question name"):
+        Score("Customer Support Intent", "?", ["low", "high"])
 
 
 @pytest.mark.parametrize("make", [lambda n: Predicate(n, "?"), lambda n: Choice(n, "?", ["a", "b"])])

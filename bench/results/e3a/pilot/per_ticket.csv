@@ -1,0 +1,401 @@
+model,source_index,ticket,intent,gold_entry,gold_department,gold_priority,gold_identity_check,routed_department,routed_priority,verified,department_correct,priority_correct,identity_correct,entry_correct,searched_policy,joint_correct,cost_usd,input_tokens,output_tokens,cached_tokens,tool_calls,latency_ms,status,trace_id
+gpt-6-luna,2592,"I paid with my card and was charged extra
+Account ID: acct_f6142d191a2f19d2",card_payment_fee_charged,card_payment_fee_charged,department_03,high,False,department_03,high,False,True,True,True,True,True,True,0.00029039999999999996,1669,247,0,4,6076.001125009498,completed,0f3154e5b75cda82103aefdbaba8079c
+gpt-6-luna,3083,"I haven't received my virtual card.
+Account ID: acct_8670bfe4c727cc72",getting_virtual_card,getting_virtual_card,department_02,normal,True,department_02,high,True,True,False,True,False,True,False,0.0004264,2704,312,0,5,6677.12050001137,completed,b12389ed3dc9cb190d4130ab0ea3f038
+gpt-6-luna,1628,"What is your age limit?
+Account ID: acct_e6c3b6f798b0e8d6",age_limit,age_limit,department_03,normal,True,department_03,normal,True,True,True,True,True,True,True,0.00023459999999999998,1466,176,0,4,4284.694126006798,completed,2f65c561d449a8248c1ddce5661dd57c
+gpt-6-luna,5439,"How do I reverse a transaction on my account?
+Account ID: acct_9b8f2fa45e4b5f19; Amount: 210.46",request_refund,request_refund,department_00,normal,True,department_02,normal,False,False,True,False,False,True,False,0.00047460000000000004,2931,363,0,5,6910.3897100139875,completed,5328e4b9f8f114a90cb4a2d8a8144dbb
+gpt-6-luna,3844,"Am I able to use my account if the identity verification is not complete?
+Account ID: acct_05ee8853268c69ba",why_verify_identity,why_verify_identity,department_00,normal,True,department_02,normal,False,False,True,False,False,True,False,0.00042469999999999997,2692,311,0,5,7022.218958998565,completed,2ef9a143007f5fcc0ae1d68a375d9012
+gpt-6-luna,6220,"Your service is bad.  Close my account.
+Account ID: acct_52aa05fc46da50db",terminate_account,terminate_account,department_02,normal,False,department_02,normal,False,True,True,True,True,True,True,0.0001437,792,129,0,3,2772.6492079964373,completed,c21071d6f466661029a16513c0b922c2
+gpt-6-luna,3469,"I deposited a cheque with some money, but the balance hasn't changed.
+Account ID: acct_895ea7bfb9e6d993",balance_not_updated_after_cheque_or_cash_deposit,balance_not_updated_after_cheque_or_cash_deposit,department_00,normal,False,department_00,normal,False,True,True,True,True,True,True,0.00016380000000000002,843,159,0,3,3128.59620800009,completed,93d3f28096ac06fbb24bb974639d9a0a
+gpt-6-luna,9938,"What countries are you issuing cards for?
+Account ID: acct_97a3d725a8b47cd5",country_support,country_support,department_01,normal,False,department_03,normal,True,False,True,False,False,True,False,0.00024320000000000003,1457,195,0,4,4331.614998984151,completed,ad263923d1bf7c35af3bc53ea5c3da3b
+gpt-6-luna,5266,"I can not find my phone or it has been stolen.
+Account ID: acct_2720d8d6d1f50aab",lost_or_stolen_phone,lost_or_stolen_phone,department_02,normal,False,department_02,normal,False,True,True,True,True,True,True,0.00015760000000000004,836,148,0,3,2810.354458008078,completed,3b2090a1afc880c971d818daa1296bfc
+gpt-6-luna,8412,"how do the cards work?
+Account ID: acct_e4a01106d28da364",get_disposable_virtual_card,get_disposable_virtual_card,department_03,normal,False,department_03,normal,True,True,True,False,False,True,False,0.00023920000000000001,1422,194,0,4,5170.104792006896,completed,47ef0b1d79951514bec675df794e59d2
+gpt-6-luna,3535,"I did not do this payment
+Account ID: acct_deb2676eeef1cf8f; Amount: 908.08; Merchant: merchant_cd860a000ac23155",card_payment_not_recognised,card_payment_not_recognised,department_01,normal,True,department_01,normal,True,True,True,True,True,True,True,0.000279,1575,243,0,4,4432.278375999886,completed,1dbf4ad03971dc260129f4db0e935b45
+gpt-6-luna,4188,"I want to get a Visa card
+Account ID: acct_123a999feadac2aa",visa_or_mastercard,visa_or_mastercard,department_00,normal,False,department_00,normal,False,True,True,True,True,True,True,0.0001589,794,159,0,3,3143.751751005766,completed,0262f55dd40f422b0793268fa5ae7e4d
+gpt-6-luna,6785,"I just found out from the seller that my money didn't go through. I checked my account and it was deducted at first but now it's back in my account. Can you  please fix this for me quickly?
+Account ID: acct_db3e138c0d569a22",reverted_card_payment?,reverted_card_payment?,department_02,high,False,department_02,normal,False,True,False,True,False,True,False,0.00032820000000000006,1837,289,0,4,5264.003752003191,completed,cc82bcd082107081eb2d281b0ade3383
+gpt-6-luna,2335,"I tried to withdraw $100, all it gave me was $20.
+Account ID: acct_de74413100cf58e0",wrong_amount_of_cash_received,wrong_amount_of_cash_received,department_02,normal,True,department_02,normal,True,True,True,True,True,True,True,0.000235,1445,181,0,4,5058.816542004934,completed,8ddb1119fcbe8cc68000cfdfcb2b6c38
+gpt-6-luna,923,"What fiat currencies are used with holdings and exchanges?
+Account ID: acct_b5a9ede9a93528be",fiat_currency_support,fiat_currency_support,department_01,normal,False,department_01,normal,False,True,True,True,True,True,True,0.00026770000000000006,1632,209,0,4,4373.240334025468,completed,e188fb99802e64585fd763d28b0cb4c3
+gpt-6-luna,677,"Why is there an extra €1 fee in my statement?
+Account ID: acct_2782526eaa0c5c25",extra_charge_on_statement,extra_charge_on_statement,department_00,high,True,department_00,high,True,True,True,True,True,True,True,0.0002542,1492,210,0,4,4185.216208003112,completed,b67df2b832aa8e775a7c7c06f298444a
+gpt-6-luna,7195,"I was charged a fee for the transfer, but can you tell me why?
+Account ID: acct_a96c35cc20d23ef0; Amount: 62.22",transfer_fee_charged,transfer_fee_charged,department_00,normal,False,department_00,normal,False,True,True,True,True,True,True,0.0001674,834,168,0,3,2917.0181669906015,completed,cbd5edeb7b2257c194df2a60db7289a3
+gpt-6-luna,6751,"I already got my item but just got my money back
+Account ID: acct_0f5640aaf6e089cb",reverted_card_payment?,reverted_card_payment?,department_02,high,False,department_03,high,True,False,True,False,False,True,False,0.00028170000000000007,1532,257,0,4,5802.73229200975,completed,d86167f577ef7e554a114948e3155e9c
+gpt-6-luna,1622,"How can I open an account for my children?
+Account ID: acct_6d7be37d6aa3665d",age_limit,age_limit,department_03,normal,True,department_00,normal,False,False,True,False,False,True,False,0.00036480000000000003,1688,392,0,4,7010.758917007479,completed,c857e4c2e98bdf225a1a57d1d47c805b
+gpt-6-luna,9675,"Can I top-up via Apple Pay?
+Account ID: acct_4310ae7e5053793f",apple_pay_or_google_pay,apple_pay_or_google_pay,department_01,normal,False,department_01,normal,False,True,True,True,True,True,True,0.00017419999999999998,807,187,0,3,3075.4559570050333,completed,3ff4ced6b45672595d469e71bdea754b
+gpt-6-luna,5314,"I just replaced my phone so do I have to make a new account?
+Account ID: acct_1e0b605fa2f516ae",lost_or_stolen_phone,lost_or_stolen_phone,department_02,normal,False,department_02,normal,False,True,True,True,True,True,True,0.00018319999999999998,847,197,0,3,3148.965209009475,completed,bb23130436ee39a565ae30aaa886e6dd
+gpt-6-luna,51,"Is there a way I can get my card expedited?
+Account ID: acct_031b4af5197ec30a",card_arrival,card_arrival,department_00,normal,False,department_01,normal,False,False,True,True,False,True,False,0.0001729,804,185,0,3,3057.488917009323,completed,007974fa27aa1fef33ce11db3abcfaeb
+gpt-6-luna,4995,"Why can't I withdraw cash from this ATM?
+Account ID: acct_f0571d121bc4aafe",declined_cash_withdrawal,declined_cash_withdrawal,department_01,normal,True,department_01,normal,False,True,True,False,False,True,False,0.0001512,802,142,0,3,2868.163374994765,completed,084d6c383c109e5f217049cf8f8715aa
+gpt-6-luna,2576,"Can you explain why I am now getting charged a fee for using my card?
+Account ID: acct_1098335e95d32f09",card_payment_fee_charged,card_payment_fee_charged,department_03,high,False,department_03,high,False,True,True,True,True,True,True,0.00017519999999999998,822,186,0,3,2829.2272509861505,completed,465cf7d20da9fe4f287407bc68977a8c
+gpt-6-luna,6133,"Can you tell me when the transfer will be completed?
+Account ID: acct_76c6b1efb7011428; Amount: 22.03",pending_transfer,pending_transfer,department_03,normal,False,department_02,normal,True,False,True,False,False,True,False,0.0002473,1468,201,0,4,3879.4176659866935,completed,199504b85f46579b3655f8819619e73a
+gpt-6-luna,5837,"My card is not working at stores.
+Account ID: acct_f4707bd71b28e638",declined_card_payment,declined_card_payment,department_02,normal,False,department_03,normal,False,False,True,True,False,True,False,0.00014890000000000001,794,139,0,3,3067.0131240040064,completed,030e311b72e0c511dc99b2235180336b
+gpt-6-luna,5022,"The ATM won't let me take out cash
+Account ID: acct_6eef362598bc0d76",declined_cash_withdrawal,declined_cash_withdrawal,department_01,normal,True,department_01,normal,True,True,True,True,True,True,True,0.00023359999999999999,1456,176,0,4,5268.07383299456,completed,fbf7b745ac49eae354ceab9db4ba8d66
+gpt-6-luna,309,"What do you think of the exchange rate?
+Account ID: acct_43c727ee4fc72505",exchange_rate,exchange_rate,department_03,normal,True,department_03,normal,True,True,True,True,True,True,True,0.00026460000000000003,1486,232,0,4,4914.736709004501,completed,dd809eeb4fc60601c87ec7db7444548d
+gpt-6-luna,1433,"How can I exchange GBP for AUD?
+Account ID: acct_38c02f46b5785559",exchange_via_app,exchange_via_app,department_01,normal,False,department_01,normal,False,True,True,True,False,True,True,0.0001745,820,185,0,3,3990.537374993437,completed,cfc338a6791cab2363ac8f81d2adae91
+gpt-6-luna,8003,"Where can I deposit cash to top up?
+Account ID: acct_bd6ecf2f23cce0df",top_up_by_cash_or_cheque,top_up_by_cash_or_cheque,department_02,normal,True,department_02,normal,True,True,True,True,True,True,True,0.00024859999999999997,1486,200,0,4,4066.3165410078363,completed,615cb919c651b83f7903f4f30b3240fb
+gpt-6-luna,2475,"There was a limited amount of money available at the time of my transaction.
+Account ID: acct_142522997f0a1ec7; Amount: 117.68",wrong_amount_of_cash_received,wrong_amount_of_cash_received,department_02,normal,True,department_01,normal,True,False,True,True,False,True,False,0.0004734,2844,378,0,5,6819.995208003093,completed,8dec29a6354d95f3c381c681e326dd85
+gpt-6-luna,5646,"Why would my transfer result in a decline message?
+Account ID: acct_2099dfc64a3ea8bf; Amount: 328.28",declined_transfer,declined_transfer,department_00,normal,True,department_00,normal,True,True,True,True,True,True,True,0.00035420000000000004,2467,215,0,5,5060.263292005402,completed,72830a6c7d96e27370778345b917835a
+gpt-6-luna,9219,"Would you be so kind as to activate my card? Thanks
+Account ID: acct_b1247fd1e7e63201",activate_my_card,activate_my_card,department_00,normal,False,department_00,normal,False,True,True,True,True,True,True,0.00015060000000000003,811,139,0,3,3706.0657080000965,completed,7d8865883bdb714f5f08a062d83d7fbc
+gpt-6-luna,8120,"Do I get a card to keep in my wallet?
+Account ID: acct_99c34d9d69328bbd",order_physical_card,order_physical_card,department_02,normal,True,department_01,normal,False,False,True,False,False,True,False,0.0001699,809,178,0,3,3798.0921660055174,completed,3bf79053554d82720c921d163324dced
+gpt-6-luna,4489,"I think my card has been used by somebody else since I was never in the little town where some transactions on this bill have come from. Please stop this right away.
+Account ID: acct_9b3ab6b1b5c1d23f; Amount: 820.56",compromised_card,compromised_card,department_03,normal,True,department_02,normal,False,False,True,False,False,True,False,0.0002004,904,220,0,3,3082.042248992366,completed,a7ba514b95cc6d61bbe04b8d6d642191
+gpt-6-luna,1337,"I can't get my actual card to work
+Account ID: acct_5db1fee4b5703808",card_not_working,card_not_working,department_03,normal,False,department_03,normal,False,True,True,True,True,True,True,0.00014790000000000002,809,134,0,3,2480.459458005498,completed,ef51a86dbb77c41ba08736b4c152aaed
+gpt-6-luna,1366,"What currencies can be exchanged in the app?
+Account ID: acct_a6f988d30328bd70",exchange_via_app,exchange_via_app,department_01,normal,False,department_01,normal,False,True,True,True,True,True,True,0.0003235,1685,310,0,4,4932.282334004412,completed,11e52e20bf32c99c811ced29b2669e3c
+gpt-6-luna,4936,"Every ATM I visit is rejecting my card and I don't know why. There should be money on it. Can you check it to see if something is wrong or if I'm doing something wrong?
+Account ID: acct_206bc84a380b29ac",declined_cash_withdrawal,declined_cash_withdrawal,department_01,normal,True,department_01,normal,False,True,True,False,False,True,False,0.00017,855,169,0,3,3110.9094169951277,completed,da25616ed38915523b6ec7574c673dda
+gpt-6-luna,8430,"The disposable cards, what are they for?
+Account ID: acct_820acd0d5a5893bc",get_disposable_virtual_card,get_disposable_virtual_card,department_03,normal,False,department_03,normal,False,True,True,True,True,True,True,0.00027870000000000005,1627,232,0,4,4446.554751004442,completed,7abfcb90c3fb389e0f01c0151e033510
+gpt-6-luna,4095,"how to get card pin?
+Account ID: acct_1afc50560ae4c6f4",get_physical_card,get_physical_card,department_01,normal,False,department_00,normal,False,False,True,True,False,True,False,0.0004547,2662,377,0,5,6767.061459002434,completed,319474c1769a768397c9c1bc6909c20a
+gpt-6-luna,9656,"Why can't I get my top up to work in Apple Pay?
+Account ID: acct_5bd563f1f52bfc4a",apple_pay_or_google_pay,apple_pay_or_google_pay,department_01,normal,False,department_01,normal,False,True,True,True,True,True,True,0.00017060000000000003,831,175,0,3,2948.316417008755,completed,a3c5ff2d37bb103aa9b841dab651e42f
+gpt-6-luna,7853,"How do I get a spare card?
+Account ID: acct_a69a7896a1cbdcea",getting_spare_card,getting_spare_card,department_01,normal,True,department_01,normal,True,True,True,True,True,True,True,0.0002361,1436,185,0,4,4854.455666994909,completed,98f709d05c01a184eadad704b076be2f
+gpt-6-luna,7311,"Will I get extra charges?
+Account ID: acct_b39b7ba7e07d7104; Amount: 266.88",transfer_fee_charged,transfer_fee_charged,department_00,normal,False,department_00,high,True,True,False,False,False,True,False,0.00037270000000000006,2547,236,0,5,5040.793540989398,completed,2ad6f127f51d5c90a7579f8c3eb0aea5
+gpt-6-luna,3677,"My billing address changed and I need to update my information.
+Account ID: acct_2ca9f63bb06128cd",edit_personal_details,edit_personal_details,department_01,normal,True,department_01,normal,True,True,True,True,True,True,True,0.0003728,2533,239,0,5,5775.950209019356,completed,e2dc01307001c72ccaa68bec11df4640
+gpt-6-luna,9215,"How can my new card be activated?
+Account ID: acct_0e3803a9c7361edd",activate_my_card,activate_my_card,department_00,normal,False,department_00,normal,False,True,True,True,True,True,True,0.00015780000000000001,808,154,0,3,2689.967875019647,completed,17d7f90aba8cdb58dc0453df7db3d60d
+gpt-6-luna,2103,"A transfer has to be cancelled.
+Account ID: acct_52ed8fba503e8a9d; Amount: 789.77",cancel_transfer,cancel_transfer,department_02,normal,False,department_02,normal,False,True,True,True,True,True,True,0.0001533,808,145,0,3,2547.8579999908106,completed,21b5fea4065b435f30c6a036e5cccda1
+gpt-6-luna,8935,"There is a cash withdrawal on my statement that I don't recognize
+Account ID: acct_f3216ee25480efdc; Amount: 559.02",cash_withdrawal_not_recognised,cash_withdrawal_not_recognised,department_00,normal,False,department_00,normal,False,True,True,True,True,True,True,0.0001611,826,157,0,3,2911.0237909917487,completed,3c718da32219f6dd2b1099d2125053ca
+gpt-6-luna,5030,"Why am I not able to withdraw cash from this ATM?
+Account ID: acct_cead18006a4de84e",declined_cash_withdrawal,declined_cash_withdrawal,department_01,normal,True,department_01,normal,False,True,True,False,False,True,False,0.0001674,814,172,0,3,3044.279749999987,completed,f97ceb9c2c2334dced3e85826a5cc2eb
+gpt-6-luna,3885,"i need to proof my identity to you why and how?
+Account ID: acct_8f1d857513c617aa",why_verify_identity,why_verify_identity,department_00,normal,True,department_00,normal,True,True,True,True,True,True,True,0.00023620000000000002,1427,187,0,4,4064.8937090008985,completed,e328cf0e721711e523a5734bfb07dae8
+gpt-6-luna,6557,"How can I prove the source of my funds?
+Account ID: acct_60954620d60802ed",verify_source_of_funds,verify_source_of_funds,department_01,high,True,department_01,high,True,True,True,True,True,True,True,0.0003605,2485,224,0,5,5340.185749999364,completed,f96f4c484a6668b0f1ab983da5f152eb
+gpt-6-luna,1534,"I need to order a new card as my other one was stolen.
+Account ID: acct_13be5b896be03995",lost_or_stolen_card,lost_or_stolen_card,department_02,normal,False,department_02,normal,False,True,True,True,True,True,True,0.0002605,1640,193,0,4,4413.024624998798,completed,0f218b400d2f2fcb625e7b7842c9c769
+gpt-6-luna,7321,"Why was a fee charged to me for transferring money?
+Account ID: acct_c0224e278f4b6877",transfer_fee_charged,transfer_fee_charged,department_00,normal,False,department_00,normal,False,True,True,True,True,True,True,0.000172,805,183,0,3,4016.382250993047,completed,414bd386e86002f6d89eb77c6bab506a
+gpt-6-luna,3556,"Payment I did not make.
+Account ID: acct_df9b3513da966487; Amount: 15.27; Merchant: merchant_85ac9ebb7edf43fb",card_payment_not_recognised,card_payment_not_recognised,department_01,normal,True,department_01,normal,True,True,True,True,True,True,True,0.000246,1500,192,0,4,3844.332623993978,completed,7325c8d4af323ab99e26e3316c279fdf
+gpt-6-luna,5715,"I am suppose to be getting a refund from something I purchased but it hasn't showed up in my account.
+Account ID: acct_8595f9e3f5f0a6e7",Refund_not_showing_up,Refund_not_showing_up,department_03,high,True,department_03,high,False,True,True,False,True,True,False,0.00026470000000000004,1567,216,0,4,3880.0573339976836,completed,0c33eff60ea7d084cd6443bbd899d943
+gpt-6-luna,2977,"I want to know which currencies and cards are supported, can you provide a list?
+Account ID: acct_33d1b80a149c66dd",supported_cards_and_currencies,supported_cards_and_currencies,department_03,normal,True,department_03,normal,True,True,True,True,True,True,True,0.0002477,1477,200,0,4,4287.383041984867,completed,7c024f1140bb6abf5bbee1f8838fc616
+gpt-6-luna,3144,"Will my card work at all merchant locations?
+Account ID: acct_90335898d4e10d65; Merchant: merchant_2f900b2ae05d4e1a",card_acceptance,card_acceptance,department_02,normal,False,department_02,normal,False,True,True,True,True,True,True,0.00016419999999999998,827,163,0,3,2931.2940430099843,completed,5612592e9011eead7c1ebc3950c87364
+gpt-6-luna,1761,"My PIN seems to be blocked, help me access it?
+Account ID: acct_c8808071a31da48c",pin_blocked,pin_blocked,department_00,high,True,department_00,high,True,True,True,True,True,True,True,0.00022970000000000003,1447,170,0,4,3823.485332992277,completed,b6716e90fad9c1e556bc7adbc34ee84a
+gpt-6-luna,3036,"How do I get my virtual card?
+Account ID: acct_dcbac9160e0074b1",getting_virtual_card,getting_virtual_card,department_02,normal,True,department_02,normal,True,True,True,True,True,True,True,0.0002425,1445,196,0,4,4571.136708007543,completed,3a0d23f48e63d8c2844305e09baf6f42
+gpt-6-luna,3078,"Where is my virtual card located?
+Account ID: acct_7ddc73742388547e",getting_virtual_card,getting_virtual_card,department_02,normal,True,department_02,normal,True,True,True,True,True,True,True,0.0003365,2410,191,0,5,5692.890624006395,completed,1b9bb800c0a1e6513df8c67d396051d1
+gpt-6-luna,8298,"I did not have the right exchange rate applied to my situation of pulling out cash
+Account ID: acct_69fab7faf4c692ad",wrong_exchange_rate_for_cash_withdrawal,wrong_exchange_rate_for_cash_withdrawal,department_01,normal,True,department_01,normal,True,True,True,True,True,True,True,0.0002315,1460,171,0,4,4355.173957010265,completed,64c5ef4a70f2a9fdfba663331c85bfa3
+gpt-6-luna,6868,"Did a card payment that I made get cancelled?
+Account ID: acct_1c8c47becf333f1a; Amount: 768.11; Merchant: merchant_d5ed3fcb805ae7ee",reverted_card_payment?,reverted_card_payment?,department_02,high,False,department_00,high,True,False,True,False,False,True,False,0.0004005,2660,269,0,5,5833.673540997552,completed,89fd46ded28ac27a5ae7d516570db3cf
+gpt-6-luna,1498,"My bag got stolen with all my cards. Can you please cancel my card and send a new one?
+Account ID: acct_0d9653b98d117db6",lost_or_stolen_card,lost_or_stolen_card,department_02,normal,False,department_02,normal,False,True,True,True,True,True,True,0.0001599,834,153,0,3,2615.630499989493,completed,22d1c950b326e9a94e1bfa2b87555711
+gpt-6-luna,8817,"What is this cash withdrawal I don't recognize?
+Account ID: acct_3189722cce958adc; Amount: 700.77",cash_withdrawal_not_recognised,cash_withdrawal_not_recognised,department_00,normal,False,department_00,normal,False,True,True,True,True,True,True,0.00015610000000000003,826,147,0,3,2683.8068750075763,completed,18fd15c7d7cbef37de79ef40da3d00c1
+gpt-6-luna,8019,"Can I add to my account using a cheque?
+Account ID: acct_62c1a1412c8251a5",top_up_by_cash_or_cheque,top_up_by_cash_or_cheque,department_02,normal,True,department_00,normal,False,False,True,False,False,True,False,0.0003164,1719,289,0,4,5510.018665998359,completed,4c9200e852f1fc078c1b1ab1eab99054
+gpt-6-luna,4046,"wheres my pin
+Account ID: acct_826aaa9db20b9fae",get_physical_card,get_physical_card,department_01,normal,False,department_00,normal,False,False,True,True,False,True,False,0.0002693,1608,217,0,4,4293.430751000415,completed,b831c6d7934046f2a8b92fbb51c63387
+gpt-6-luna,7325,"Is it right that I've been charged for transferring money?
+Account ID: acct_39be3e9ed2896964",transfer_fee_charged,transfer_fee_charged,department_00,normal,False,department_00,normal,False,True,True,True,True,True,True,0.00017160000000000002,816,180,0,3,4220.822916991892,completed,409993abaa1bfc75a24e3e259aecc787
+gpt-6-luna,2838,"I dont see my reciept
+Account ID: acct_344ddf4c03d6a999",transfer_not_received_by_recipient,transfer_not_received_by_recipient,department_00,high,True,department_01,normal,False,False,False,False,False,True,False,0.00055776,4300,460,1136,6,8761.6372499906,completed,0d444251dad919d9379b068b5561f841
+gpt-6-luna,3051,"I have yet to receive my virtual card
+Account ID: acct_9532f197bbc85d99",getting_virtual_card,getting_virtual_card,department_02,normal,True,department_02,high,True,True,False,True,False,True,False,0.0003778,2538,248,0,5,6535.241167017375,completed,3ac53d3db4eb6393e05566874bd19547
+gpt-6-luna,4127,"would a visa or mastercard be more suited to me?
+Account ID: acct_f0f92eb79cec3fad",visa_or_mastercard,visa_or_mastercard,department_00,normal,False,department_00,normal,False,True,True,True,True,True,True,0.00028460000000000003,1636,242,0,4,4865.507874987088,completed,6b6d46f62ddb81466a2462545d21d625
+gpt-6-luna,7729,"Why are top-ups being verified?
+Account ID: acct_1de9a94dd85dc768",verify_top_up,verify_top_up,department_01,normal,False,department_01,normal,True,True,True,False,False,True,False,0.00035620000000000004,2507,211,0,5,5819.866749996436,completed,947d0b911b4277cd17eadc9a2e77d7a1
+gpt-6-luna,7873,"Am I allowed to carry an additional card?
+Account ID: acct_509a9edbeff0c385",getting_spare_card,getting_spare_card,department_01,normal,True,department_02,normal,False,False,True,False,False,True,False,0.00047490000000000005,2714,407,0,5,8321.64395901782,completed,d22da87c30f575973cc6327bc5af2911
+gpt-6-luna,7914,"I would like to give another card to my daughter, how can I proceed?
+Account ID: acct_d9f3e0597d973d5f",getting_spare_card,getting_spare_card,department_01,normal,True,department_00,normal,False,False,True,False,False,True,False,0.0003661,1706,391,0,4,6489.65220899845,completed,19397c0eafea174cfb27073e5fa51a13
+gpt-6-luna,3910,"It can take between 10 minutes to an hour before you hear back from us about the verification result.  Please try again if your verification fails.  Make sure you double check that images are clear and all document photos are readable without blur or glare. You have to be 18 or older and live in the European Economic area or live in Switzerland to be able to open an account.
+Account ID: acct_e70a396cdf3eea9d",unable_to_verify_identity,unable_to_verify_identity,department_00,high,False,department_00,high,False,True,True,True,True,True,True,0.0003557,1922,327,0,4,5506.414998992113,completed,491c9d4ac14fef681673fc0501dbec38
+gpt-6-luna,3553,"There is a payment I don't recognize
+Account ID: acct_4d2b4fd054827a51; Amount: 985.53; Merchant: merchant_8f315c0a530adae8",card_payment_not_recognised,card_payment_not_recognised,department_01,normal,True,department_01,normal,True,True,True,True,True,True,True,0.0002524,1539,197,0,4,4073.045832992648,completed,5cde52f16d8311b2600674849a45d28a
+gpt-6-luna,6722,"I wanted to purchase something online but the payment was returned back to me. This has been going on for a couple of weeks. Please tell me what is going on here?
+Account ID: acct_53eb7f9dcaa22b09; Amount: 482.23; Merchant: merchant_a158a6893089db59",reverted_card_payment?,reverted_card_payment?,department_02,high,False,department_02,normal,False,True,False,True,False,True,False,0.00018260000000000002,911,183,0,3,3136.951874999795,completed,bd2dac8f808fc615550ed75773fce2f5
+gpt-6-luna,8148,"I still don't have a card. How do I get one?
+Account ID: acct_c068e38b5bc9d237",order_physical_card,order_physical_card,department_02,normal,True,department_02,normal,True,True,True,True,True,True,True,0.0004172,2682,298,0,5,6437.840539991157,completed,407bb14d2f8ea1f5b35f61a220aeb702
+gpt-6-luna,3988,"Help me verify my identity.
+Account ID: acct_318c731917609d7f",unable_to_verify_identity,unable_to_verify_identity,department_00,high,False,department_02,normal,False,False,False,True,False,True,False,0.000158,785,159,0,3,2643.660749992705,completed,ccec99cb6b8de24a93837ad90bccd062
+gpt-6-luna,6571,"can i see money source?
+Account ID: acct_28d0efc8e1848b4f",verify_source_of_funds,verify_source_of_funds,department_01,high,True,department_01,high,True,True,True,True,True,True,True,0.0002534,1499,207,0,4,4174.640874989564,completed,8636e1b145d621af01f966f51e406004
+gpt-6-luna,3300,"Why did my top-up not get approved this time?
+Account ID: acct_d3b63363e3c4234a",top_up_reverted,top_up_reverted,department_03,high,True,department_02,normal,True,False,False,True,False,True,False,0.00038710000000000003,2586,257,0,5,5678.384708997328,completed,6502c8362d3b4665b9fb6884889493c3
+gpt-6-luna,4163,"I want to get a Visa and Mastercard, is it possible to get both from you?
+Account ID: acct_95d4362bd3cd4315",visa_or_mastercard,visa_or_mastercard,department_00,normal,False,department_00,normal,False,True,True,True,True,True,True,0.0002919,1694,245,0,4,4289.921458985191,completed,26486995a1148e540d130229cc429562
+gpt-6-luna,1724,"I put the wrong pin too many times and now it is blocked. Can you help me unblock it?
+Account ID: acct_41a5bf614853fabc",pin_blocked,pin_blocked,department_00,high,True,department_00,high,True,True,True,True,True,True,True,0.0002469,1474,199,0,4,4865.617167000892,completed,b9b3e903aab60a228c211797b9a7b8a1
+gpt-6-luna,5900,"my card payment has been declined, do you know why?
+Account ID: acct_b0a1cafd46c582f8; Amount: 546.83; Merchant: merchant_94d6e1dce4305e35",declined_card_payment,declined_card_payment,department_02,normal,False,department_02,normal,False,True,True,True,True,True,True,0.0001875,860,203,0,3,3205.4191659990465,completed,6413925195396ecda2e89b638401f64c
+gpt-6-luna,2767,"I set up a payment to a new payee and sent some money but the person I'm sending it to has not received it.  Can you check where the money is?
+Account ID: acct_2021dc8bd93e4492; Amount: 93.41; Merchant: merchant_18eabf53579b19c8",transfer_not_received_by_recipient,transfer_not_received_by_recipient,department_00,high,True,department_00,high,True,True,True,True,True,True,True,0.0002654,1619,207,0,4,4370.002708994434,completed,b969528311344385a2d23334c7442807
+gpt-6-luna,7676,"where do i go to transfer money from one account to this one
+Account ID: acct_accceffe127e0f02; Amount: 524.58",transfer_into_account,transfer_into_account,department_03,normal,False,department_03,normal,False,True,True,True,True,True,True,0.000159,825,153,0,3,2880.738708001445,completed,d355e1f16dc913cc5d6b37f9e5f0ba79
+gpt-6-luna,265,"How do I reactivate my card?
+Account ID: acct_768b84ef05f655d5",card_linking,card_linking,department_03,normal,True,department_00,normal,False,False,True,False,False,True,False,0.0001739,819,184,0,3,3025.4512510000495,completed,cbc6119d48d93e38a204db5fb375e19b
+gpt-6-luna,7566,"How do I transfer money into my account?
+Account ID: acct_b2ca4f93866dc5f5; Amount: 273.27",transfer_into_account,transfer_into_account,department_03,normal,False,department_03,normal,False,True,True,True,True,True,True,0.00018260000000000002,846,196,0,3,3010.4425419995096,completed,ad5d255d02fa1522aa16dde34d955af7
+gpt-6-luna,3784,"Why are you asking so many questions about who I am
+Account ID: acct_c69d3e1929d4c616",why_verify_identity,why_verify_identity,department_00,normal,True,department_00,normal,True,True,True,True,True,True,True,0.0003556,2481,215,0,5,5373.360874000355,completed,fa76fd476be4d8c1f697ffdd8a973c6b
+gpt-6-luna,2972,"Is American Express supported for adding money into my account?
+Account ID: acct_7b8b6e396edf1894",supported_cards_and_currencies,supported_cards_and_currencies,department_03,normal,True,department_03,normal,True,True,True,True,True,True,True,0.0003865,2550,263,0,5,6434.485500998562,completed,7864cb822921a921398e51e7885c1500
+gpt-6-luna,5647,"The transfer that I was trying to complete was declined. What was the cause?
+Account ID: acct_edbb15588efba3a5; Amount: 577.90",declined_transfer,declined_transfer,department_00,normal,True,department_00,normal,True,True,True,True,True,True,True,0.00023490000000000002,1444,181,0,4,4433.207750000292,completed,aeb3d9155bf656573a27082abc7a62ae
+gpt-6-luna,3202,"My money is gone :( I had topped up recently and saw it was there and went through, but now it's disappeared, what's going on?
+Account ID: acct_2851eb1b0839402a",top_up_reverted,top_up_reverted,department_03,high,True,department_01,normal,False,False,False,False,False,True,False,0.00031670000000000005,1777,278,0,4,6331.195874008699,completed,4feda22919fe43b8a63f180b8ede2dad
+gpt-6-luna,8329,"When I got cash, my exchange rate was off.
+Account ID: acct_5a8872eea42b4ef8",wrong_exchange_rate_for_cash_withdrawal,wrong_exchange_rate_for_cash_withdrawal,department_01,normal,True,department_01,normal,True,True,True,True,True,True,True,0.00023590000000000001,1479,176,0,4,3667.5937509717187,completed,c871099b3e7da9fd745d9c75ee6b3ead
+gpt-6-luna,3505,"I don't recognize a purchase that was made with my card.
+Account ID: acct_fb937217a0d04da5; Amount: 20.37; Merchant: merchant_22cc743b370857cd",card_payment_not_recognised,card_payment_not_recognised,department_01,normal,True,department_01,normal,True,True,True,True,True,True,True,0.00044741000000000003,3897,310,1081,6,8509.768459000043,completed,1bd10f11bbca5bf00fe18c7a12c703b3
+gpt-6-luna,8311,"I got money overseas and the exchange rate was wrong
+Account ID: acct_ca3b40e3f4a5398e",wrong_exchange_rate_for_cash_withdrawal,wrong_exchange_rate_for_cash_withdrawal,department_01,normal,True,department_03,normal,True,False,True,True,False,True,False,0.0002573,1498,215,0,4,4080.515249981545,completed,375ae1bbefb696bcc45587d4ce52c440
+gpt-6-luna,7518,"My transfer didn't complete. Why can't I access funds?
+Account ID: acct_2a42480087db6658; Amount: 128.78",failed_transfer,failed_transfer,department_03,high,True,department_03,high,True,True,True,True,True,True,True,0.00024320000000000003,1437,199,0,4,4223.353708002833,completed,8fcf078358a1ff85d7434673385d0670
+gpt-6-luna,8439,"How do I use disposable cards?
+Account ID: acct_7890391448702e41",get_disposable_virtual_card,get_disposable_virtual_card,department_03,normal,False,department_03,normal,False,True,True,True,True,True,True,0.00017010000000000001,791,182,0,3,2887.262207994354,completed,e021f3571c6b7a0bf27cf1618fe178eb
+gpt-6-luna,3796,"What if I don't verify my identity?
+Account ID: acct_ae1f31e1ba28b07b",why_verify_identity,why_verify_identity,department_00,normal,True,department_00,normal,True,True,True,True,True,True,True,0.0002662,1492,234,0,4,4580.018499997095,completed,f619b53c5da49e515bda077000b7ac86
+gpt-6-luna,6820,"Hello, I was contacted by a seller who let me know my money didn't come through on their side. It most certainly came out of my account so I need this looked at immediately because now it has been returned to me!
+Account ID: acct_3b858550be000541",reverted_card_payment?,reverted_card_payment?,department_02,high,False,department_03,high,True,False,True,False,False,True,False,0.0005042,2942,420,0,5,7564.884249994066,completed,e58446a44a48463cc46e047b758f04be
+gpt-6-luna,2509,"I'm stuck here at your broken ATM and I don't know what to do next. Asked for 30 pounds, got 10. ATM said I got 30. Something very wrong here and I want my money now!
+Account ID: acct_fd98aa9d9cc36596",wrong_amount_of_cash_received,wrong_amount_of_cash_received,department_02,normal,True,department_02,normal,True,True,True,True,True,True,True,0.0003221,1641,316,0,4,5438.566791999619,completed,2e000ad8e89fb6207b2ee05a56b60256
+gpt-6-luna,5038,"Why can't I get cash from the ATM?
+Account ID: acct_672ec4dda4a89456",declined_cash_withdrawal,declined_cash_withdrawal,department_01,normal,True,department_01,normal,True,True,True,True,True,True,True,0.00024890000000000003,1439,210,0,4,4584.198541997466,completed,7a2d7acd71f826d2682e586b145f2692
+gpt-6-luna,6095,"Why does my transfer still say it is pending?
+Account ID: acct_62d0407f1998951b; Amount: 825.90",pending_transfer,pending_transfer,department_03,normal,False,department_03,normal,False,True,True,True,True,True,True,0.0001725,810,183,0,3,2955.116041994188,completed,131f6613ba7a83615e4d4afb6906f81c
+gpt-6.1-terra,2592,"I paid with my card and was charged extra
+Account ID: acct_f6142d191a2f19d2",card_payment_fee_charged,card_payment_fee_charged,department_03,high,False,department_03,high,False,True,True,True,True,True,True,0.001537,802,147,0,3,3698.0182909901487,completed,3893f6969286dcf63c75221040d71773
+gpt-6.1-terra,3083,"I haven't received my virtual card.
+Account ID: acct_8670bfe4c727cc72",getting_virtual_card,getting_virtual_card,department_02,normal,True,department_02,normal,True,True,True,True,True,True,True,0.00354,2455,217,0,5,7948.4850829903735,completed,4bad0cb99ec266b108d94d4fb8fa94b8
+gpt-6.1-terra,1628,"What is your age limit?
+Account ID: acct_e6c3b6f798b0e8d6",age_limit,age_limit,department_03,normal,True,department_03,normal,True,True,True,True,True,True,True,0.00227,1410,172,0,4,4859.261207006057,completed,1a3c721183926081077567d87ef7e3ea
+gpt-6.1-terra,5439,"How do I reverse a transaction on my account?
+Account ID: acct_9b8f2fa45e4b5f19; Amount: 210.46",request_refund,request_refund,department_00,normal,True,department_00,normal,True,True,True,True,True,True,True,0.002334,1449,177,0,4,5189.968958002282,completed,46f226d749e87b748aaba1b535236064
+gpt-6.1-terra,3844,"Am I able to use my account if the identity verification is not complete?
+Account ID: acct_05ee8853268c69ba",why_verify_identity,why_verify_identity,department_00,normal,True,department_02,normal,False,False,True,False,False,True,False,0.005176,3891,257,0,6,8645.590250991518,completed,e50bd69cd6523cc51db2b0ff07e21d4a
+gpt-6.1-terra,6220,"Your service is bad.  Close my account.
+Account ID: acct_52aa05fc46da50db",terminate_account,terminate_account,department_02,normal,False,department_02,normal,False,True,True,True,True,True,True,0.001547,792,151,0,3,4292.963957996108,completed,abfef9f9c08d7c6c82e8c8d56af3f848
+gpt-6.1-terra,3469,"I deposited a cheque with some money, but the balance hasn't changed.
+Account ID: acct_895ea7bfb9e6d993",balance_not_updated_after_cheque_or_cash_deposit,balance_not_updated_after_cheque_or_cash_deposit,department_00,normal,False,department_00,normal,False,True,True,True,True,True,True,0.001538,823,143,0,3,4188.614792001317,completed,cdc79a605650ee2437950c987fec42b0
+gpt-6.1-terra,9938,"What countries are you issuing cards for?
+Account ID: acct_97a3d725a8b47cd5",country_support,country_support,department_01,normal,False,department_03,normal,True,False,True,False,False,True,False,0.002283,1418,173,0,4,5294.11270802666,completed,e678d6811ac37f55d8298baaa78b9c85
+gpt-6.1-terra,5266,"I can not find my phone or it has been stolen.
+Account ID: acct_2720d8d6d1f50aab",lost_or_stolen_phone,lost_or_stolen_phone,department_02,normal,False,department_02,normal,False,True,True,True,True,True,True,0.001526,831,139,0,3,3746.8660000158707,completed,fc42316351b4b8f86af22fffc5c066b9
+gpt-6.1-terra,8412,"how do the cards work?
+Account ID: acct_e4a01106d28da364",get_disposable_virtual_card,get_disposable_virtual_card,department_03,normal,False,department_02,normal,False,False,True,True,False,True,False,0.002491,1546,189,0,4,5875.7575009949505,completed,1dcf15210d53bc30e53a67c21f1af2fe
+gpt-6.1-terra,3535,"I did not do this payment
+Account ID: acct_deb2676eeef1cf8f; Amount: 908.08; Merchant: merchant_cd860a000ac23155",card_payment_not_recognised,card_payment_not_recognised,department_01,normal,True,department_01,normal,True,True,True,True,True,True,True,0.002548,1523,205,0,4,5487.59816699021,completed,5fece51d9ba8b13abf7c347e75548c22
+gpt-6.1-terra,4188,"I want to get a Visa card
+Account ID: acct_123a999feadac2aa",visa_or_mastercard,visa_or_mastercard,department_00,normal,False,department_00,normal,False,True,True,True,True,True,True,0.00249,1575,183,0,4,5275.699042002088,completed,8db412b1efa89c74e8afe9beb6c6ea54
+gpt-6.1-terra,6785,"I just found out from the seller that my money didn't go through. I checked my account and it was deducted at first but now it's back in my account. Can you  please fix this for me quickly?
+Account ID: acct_db3e138c0d569a22",reverted_card_payment?,reverted_card_payment?,department_02,high,False,department_02,high,False,True,True,True,True,True,True,0.00268,1720,192,0,4,5842.799082995043,completed,a277fb39a7c978a594c38347f4ee7391
+gpt-6.1-terra,2335,"I tried to withdraw $100, all it gave me was $20.
+Account ID: acct_de74413100cf58e0",wrong_amount_of_cash_received,wrong_amount_of_cash_received,department_02,normal,True,department_02,normal,True,True,True,True,True,True,True,0.003574,2524,210,0,5,7003.319041978102,completed,b7f5d71dbd660341dae8863d9609e292
+gpt-6.1-terra,923,"What fiat currencies are used with holdings and exchanges?
+Account ID: acct_b5a9ede9a93528be",fiat_currency_support,fiat_currency_support,department_01,normal,False,department_01,normal,False,True,True,True,True,True,True,0.001522,792,146,0,3,3830.0003740005195,completed,e2e5ac7767e07a99994ffb65bd99efdd
+gpt-6.1-terra,677,"Why is there an extra €1 fee in my statement?
+Account ID: acct_2782526eaa0c5c25",extra_charge_on_statement,extra_charge_on_statement,department_00,high,True,department_00,high,True,True,True,True,True,True,True,0.002334,1439,179,0,4,4780.619958008174,completed,f3c46e6fdebe1460b3c280e413cf49e3
+gpt-6.1-terra,7195,"I was charged a fee for the transfer, but can you tell me why?
+Account ID: acct_a96c35cc20d23ef0; Amount: 62.22",transfer_fee_charged,transfer_fee_charged,department_00,normal,False,department_00,normal,False,True,True,True,True,True,True,0.001499,819,136,0,3,3686.5222500055097,completed,be9c4b87b270adab3f9aee862cb8a7dc
+gpt-6.1-terra,6751,"I already got my item but just got my money back
+Account ID: acct_0f5640aaf6e089cb",reverted_card_payment?,reverted_card_payment?,department_02,high,False,department_02,high,False,True,True,True,True,True,True,0.0043764,4036,271,1068,6,9066.35095900856,completed,386c04f25409e6d753476f69d9acd75d
+gpt-6.1-terra,1622,"How can I open an account for my children?
+Account ID: acct_6d7be37d6aa3665d",age_limit,age_limit,department_03,normal,True,department_03,normal,True,True,True,True,True,True,True,0.005281699999999999,5139,263,1234,7,10914.531793008791,completed,5af6abbcbfb4e78322fb220117382194
+gpt-6.1-terra,9675,"Can I top-up via Apple Pay?
+Account ID: acct_4310ae7e5053793f",apple_pay_or_google_pay,apple_pay_or_google_pay,department_01,normal,False,department_01,normal,False,True,True,True,True,True,True,0.001441,791,130,0,3,3596.333625013358,completed,22148589d6e4fe3737b9b3dfa01af2eb
+gpt-6.1-terra,5314,"I just replaced my phone so do I have to make a new account?
+Account ID: acct_1e0b605fa2f516ae",lost_or_stolen_phone,lost_or_stolen_phone,department_02,normal,False,department_02,normal,False,True,True,True,True,True,True,0.002485,1590,179,0,4,5243.6792489897925,completed,e712398270063e3ef60e60cb610a1e7e
+gpt-6.1-terra,51,"Is there a way I can get my card expedited?
+Account ID: acct_031b4af5197ec30a",card_arrival,card_arrival,department_00,normal,False,department_01,normal,False,False,True,True,False,True,False,0.002389,1564,165,0,4,5332.4597499886295,completed,7202396d2e4ceb552473ab0f1bbf68e0
+gpt-6.1-terra,4995,"Why can't I withdraw cash from this ATM?
+Account ID: acct_f0571d121bc4aafe",declined_cash_withdrawal,declined_cash_withdrawal,department_01,normal,True,department_01,normal,True,True,True,True,True,True,True,0.002249,1414,167,0,4,5139.711664989591,completed,ba4b438659471b85932ca79cfde79f73
+gpt-6.1-terra,2576,"Can you explain why I am now getting charged a fee for using my card?
+Account ID: acct_1098335e95d32f09",card_payment_fee_charged,card_payment_fee_charged,department_03,high,False,department_03,high,False,True,True,True,True,True,True,0.001526,811,143,0,3,3595.902583008865,completed,a1f82508004793de8f54a0420ce62eaa
+gpt-6.1-terra,6133,"Can you tell me when the transfer will be completed?
+Account ID: acct_76c6b1efb7011428; Amount: 22.03",pending_transfer,pending_transfer,department_03,normal,False,department_03,normal,False,True,True,True,True,True,True,0.001501,806,139,0,3,3667.5108739873394,completed,99cedf33e60899c40831d5989907e892
+gpt-6.1-terra,5837,"My card is not working at stores.
+Account ID: acct_f4707bd71b28e638",declined_card_payment,declined_card_payment,department_02,normal,False,department_03,normal,False,False,True,True,False,True,False,0.001441,791,130,0,3,4076.581833025557,completed,d42d4f27897dd2089f3fcdf035d0cfdb
+gpt-6.1-terra,5022,"The ATM won't let me take out cash
+Account ID: acct_6eef362598bc0d76",declined_cash_withdrawal,declined_cash_withdrawal,department_01,normal,True,department_01,normal,True,True,True,True,True,True,True,0.002218,1408,162,0,4,5355.48558399023,completed,b3159f00692b54233b8c7a40eea1dcb7
+gpt-6.1-terra,309,"What do you think of the exchange rate?
+Account ID: acct_43c727ee4fc72505",exchange_rate,exchange_rate,department_03,normal,True,department_03,normal,True,True,True,True,True,True,True,0.002216,1406,162,0,4,5208.754958002828,completed,fc366b7511e7d41cc86f837eaf4459c0
+gpt-6.1-terra,1433,"How can I exchange GBP for AUD?
+Account ID: acct_38c02f46b5785559",exchange_via_app,exchange_via_app,department_01,normal,False,department_01,normal,False,True,True,True,True,True,True,0.00152,785,147,0,3,6897.7446670032805,completed,4a39a194ebb786681015a49d29496f17
+gpt-6.1-terra,8003,"Where can I deposit cash to top up?
+Account ID: acct_bd6ecf2f23cce0df",top_up_by_cash_or_cheque,top_up_by_cash_or_cheque,department_02,normal,True,department_02,normal,True,True,True,True,True,True,True,0.002298,1448,170,0,4,5183.1161660084035,completed,0f644fcf23fae6c04b0d3bc4788223b4
+gpt-6.1-terra,2475,"There was a limited amount of money available at the time of my transaction.
+Account ID: acct_142522997f0a1ec7; Amount: 117.68",wrong_amount_of_cash_received,wrong_amount_of_cash_received,department_02,normal,True,department_02,normal,False,True,True,False,False,True,False,0.004267,2807,292,0,5,8294.086833004258,completed,48f640769ead90d8b6f0a9727016c34f
+gpt-6.1-terra,5646,"Why would my transfer result in a decline message?
+Account ID: acct_2099dfc64a3ea8bf; Amount: 328.28",declined_transfer,declined_transfer,department_00,normal,True,department_00,normal,True,True,True,True,True,True,True,0.002262,1432,166,0,4,5515.385292004794,completed,86f1472c579c7de30e85d5000d59282a
+gpt-6.1-terra,9219,"Would you be so kind as to activate my card? Thanks
+Account ID: acct_b1247fd1e7e63201",activate_my_card,activate_my_card,department_00,normal,False,department_00,normal,False,True,True,True,True,True,True,0.001432,792,128,0,3,3376.9709170155693,completed,ade062e3f539c2461918595748eb3888
+gpt-6.1-terra,8120,"Do I get a card to keep in my wallet?
+Account ID: acct_99c34d9d69328bbd",order_physical_card,order_physical_card,department_02,normal,True,department_01,normal,False,False,True,False,False,True,False,0.001601,801,160,0,3,4235.779875001754,completed,406f3f99743c0219fb579f7e075efe25
+gpt-6.1-terra,4489,"I think my card has been used by somebody else since I was never in the little town where some transactions on this bill have come from. Please stop this right away.
+Account ID: acct_9b3ab6b1b5c1d23f; Amount: 820.56",compromised_card,compromised_card,department_03,normal,True,department_01,normal,True,False,True,True,False,True,False,0.00382,2620,240,0,5,7388.1980840087635,completed,50d4eda8f1738d4bc8c5d786e112629e
+gpt-6.1-terra,1337,"I can't get my actual card to work
+Account ID: acct_5db1fee4b5703808",card_not_working,card_not_working,department_03,normal,False,department_03,normal,False,True,True,True,True,True,True,0.001439,794,129,0,3,3289.0982080134563,completed,7badf55c53d688585096f0d51b04276e
+gpt-6.1-terra,1366,"What currencies can be exchanged in the app?
+Account ID: acct_a6f988d30328bd70",exchange_via_app,exchange_via_app,department_01,normal,False,department_01,normal,False,True,True,True,True,True,True,0.002848,1653,239,0,4,5583.139791007852,completed,22d32595980a93946821c8305444f389
+gpt-6.1-terra,4936,"Every ATM I visit is rejecting my card and I don't know why. There should be money on it. Can you check it to see if something is wrong or if I'm doing something wrong?
+Account ID: acct_206bc84a380b29ac",declined_cash_withdrawal,declined_cash_withdrawal,department_01,normal,True,department_01,normal,False,True,True,False,False,True,False,0.001587,842,149,0,3,4243.017916000099,completed,7cb153e092ba50738044dfb56e3bdf8a
+gpt-6.1-terra,8430,"The disposable cards, what are they for?
+Account ID: acct_820acd0d5a5893bc",get_disposable_virtual_card,get_disposable_virtual_card,department_03,normal,False,department_03,normal,False,True,True,True,True,True,True,0.001531,801,146,0,3,3782.7749170101015,completed,d38e64c2b3ecc65f31e36256fbd59e93
+gpt-6.1-terra,4095,"how to get card pin?
+Account ID: acct_1afc50560ae4c6f4",get_physical_card,get_physical_card,department_01,normal,False,department_00,normal,False,False,True,True,False,True,False,0.00510195,5176,213,1199,7,12260.42912498815,completed,578b204e4cbff5b1c5ea0d3091234cac
+gpt-6.1-terra,9656,"Why can't I get my top up to work in Apple Pay?
+Account ID: acct_5bd563f1f52bfc4a",apple_pay_or_google_pay,apple_pay_or_google_pay,department_01,normal,False,department_01,normal,False,True,True,True,True,True,True,0.001569,809,152,0,3,4321.618250003667,completed,bdcbe2eb009061ad025376d94fd20313
+gpt-6.1-terra,7853,"How do I get a spare card?
+Account ID: acct_a69a7896a1cbdcea",getting_spare_card,getting_spare_card,department_01,normal,True,department_01,normal,True,True,True,True,True,True,True,0.002182,1382,160,0,4,4830.161456993665,completed,6a9e55110ec8a410a344ae76d6687c86
+gpt-6.1-terra,7311,"Will I get extra charges?
+Account ID: acct_b39b7ba7e07d7104; Amount: 266.88",transfer_fee_charged,transfer_fee_charged,department_00,normal,False,department_00,high,True,True,False,False,False,True,False,0.002301,1436,173,0,4,4950.934041000437,completed,01e580c92b5b7db0365e8d2ba5df6da4
+gpt-6.1-terra,3677,"My billing address changed and I need to update my information.
+Account ID: acct_2ca9f63bb06128cd",edit_personal_details,edit_personal_details,department_01,normal,True,department_01,normal,True,True,True,True,True,True,True,0.004692,3607,217,0,6,8132.047457998851,completed,7f8f1a35155210826df56712b74c10e7
+gpt-6.1-terra,9215,"How can my new card be activated?
+Account ID: acct_0e3803a9c7361edd",activate_my_card,activate_my_card,department_00,normal,False,department_00,normal,False,True,True,True,True,True,True,0.001436,786,130,0,3,3811.8077499966603,completed,ec4212d59dc411049691a363ed9934f5
+gpt-6.1-terra,2103,"A transfer has to be cancelled.
+Account ID: acct_52ed8fba503e8a9d; Amount: 789.77",cancel_transfer,cancel_transfer,department_02,normal,False,department_02,normal,False,True,True,True,True,True,True,0.001455,795,132,0,3,3815.7588739995845,completed,94fdd0cf79f973a7d385cb7f6b7b372a
+gpt-6.1-terra,8935,"There is a cash withdrawal on my statement that I don't recognize
+Account ID: acct_f3216ee25480efdc; Amount: 559.02",cash_withdrawal_not_recognised,cash_withdrawal_not_recognised,department_00,normal,False,department_00,normal,False,True,True,True,True,True,True,0.001514,819,139,0,3,4292.359415994724,completed,edf1b7177768372b5e2cba15d1da36ad
+gpt-6.1-terra,5030,"Why am I not able to withdraw cash from this ATM?
+Account ID: acct_cead18006a4de84e",declined_cash_withdrawal,declined_cash_withdrawal,department_01,normal,True,department_01,normal,True,True,True,True,True,True,True,0.002236,1421,163,0,4,5315.130541974213,completed,e8311a91050f8a8d2f460216ceff6e87
+gpt-6.1-terra,3885,"i need to proof my identity to you why and how?
+Account ID: acct_8f1d857513c617aa",why_verify_identity,why_verify_identity,department_00,normal,True,department_00,normal,True,True,True,True,True,True,True,0.002401,1446,191,0,4,5934.134874987649,completed,01322b3f83de40550bc3bf0ddb0cbdbf
+gpt-6.1-terra,6557,"How can I prove the source of my funds?
+Account ID: acct_60954620d60802ed",verify_source_of_funds,verify_source_of_funds,department_01,high,True,department_01,high,True,True,True,True,True,True,True,0.002216,1406,162,0,4,5217.7642499882495,completed,3005266de2a17a0802140fd0d5c60617
+gpt-6.1-terra,1534,"I need to order a new card as my other one was stolen.
+Account ID: acct_13be5b896be03995",lost_or_stolen_card,lost_or_stolen_card,department_02,normal,False,department_02,normal,False,True,True,True,True,True,True,0.001543,798,149,0,3,3908.2864569936646,completed,b5870699b1e51f395d4d710d456069a0
+gpt-6.1-terra,7321,"Why was a fee charged to me for transferring money?
+Account ID: acct_c0224e278f4b6877",transfer_fee_charged,transfer_fee_charged,department_00,normal,False,department_00,normal,False,True,True,True,True,True,True,0.001462,797,133,0,3,3793.804874017951,completed,1c62c0e74022c76e83e9183250868964
+gpt-6.1-terra,3556,"Payment I did not make.
+Account ID: acct_df9b3513da966487; Amount: 15.27; Merchant: merchant_85ac9ebb7edf43fb",card_payment_not_recognised,card_payment_not_recognised,department_01,normal,True,department_01,normal,True,True,True,True,True,True,True,0.002544,1514,206,0,4,5872.2007509932155,completed,7380a448a5a41ee658a3ca99557f260b
+gpt-6.1-terra,5715,"I am suppose to be getting a refund from something I purchased but it hasn't showed up in my account.
+Account ID: acct_8595f9e3f5f0a6e7",Refund_not_showing_up,Refund_not_showing_up,department_03,high,True,department_03,high,True,True,True,True,True,True,True,0.002437,1522,183,0,4,7675.800582990632,completed,91f38034455e865ee679c4190f5ae4ee
+gpt-6.1-terra,2977,"I want to know which currencies and cards are supported, can you provide a list?
+Account ID: acct_33d1b80a149c66dd",supported_cards_and_currencies,supported_cards_and_currencies,department_03,normal,True,department_03,normal,True,True,True,True,True,True,True,0.002276,1436,168,0,4,5296.067667004536,completed,0b03448ec5ffb3d8a647974988eedfe7
+gpt-6.1-terra,3144,"Will my card work at all merchant locations?
+Account ID: acct_90335898d4e10d65; Merchant: merchant_2f900b2ae05d4e1a",card_acceptance,card_acceptance,department_02,normal,False,department_02,normal,False,True,True,True,True,True,True,0.001581,821,152,0,3,3732.7995829982683,completed,58e48ec982dc994eabce74a7498823f3
+gpt-6.1-terra,1761,"My PIN seems to be blocked, help me access it?
+Account ID: acct_c8808071a31da48c",pin_blocked,pin_blocked,department_00,high,True,department_00,high,True,True,True,True,True,True,True,0.002227,1407,164,0,4,4950.032082007965,completed,c2c5fbda4ce4bc28968c0009f69b89ae
+gpt-6.1-terra,3036,"How do I get my virtual card?
+Account ID: acct_dcbac9160e0074b1",getting_virtual_card,getting_virtual_card,department_02,normal,True,department_02,normal,True,True,True,True,True,True,True,0.00222,1400,164,0,4,4736.639499999001,completed,d1a55cc18ac92d44af3c9e8e0b9227db
+gpt-6.1-terra,3078,"Where is my virtual card located?
+Account ID: acct_7ddc73742388547e",getting_virtual_card,getting_virtual_card,department_02,normal,True,department_02,normal,True,True,True,True,True,True,True,0.002277,1412,173,0,4,5892.598332997295,completed,fde3377862e2f3a74524b29df00f85da
+gpt-6.1-terra,8298,"I did not have the right exchange rate applied to my situation of pulling out cash
+Account ID: acct_69fab7faf4c692ad",wrong_exchange_rate_for_cash_withdrawal,wrong_exchange_rate_for_cash_withdrawal,department_01,normal,True,department_01,normal,True,True,True,True,True,True,True,0.002285,1450,167,0,4,5134.813791999477,completed,f8f19192cf88f461675abd276a7d2690
+gpt-6.1-terra,6868,"Did a card payment that I made get cancelled?
+Account ID: acct_1c8c47becf333f1a; Amount: 768.11; Merchant: merchant_d5ed3fcb805ae7ee",reverted_card_payment?,reverted_card_payment?,department_02,high,False,department_02,high,False,True,True,True,True,True,True,0.002645,1685,192,0,4,6106.831831988529,completed,ed7d653be46f979f1671a901232f38b4
+gpt-6.1-terra,1498,"My bag got stolen with all my cards. Can you please cancel my card and send a new one?
+Account ID: acct_0d9653b98d117db6",lost_or_stolen_card,lost_or_stolen_card,department_02,normal,False,department_02,normal,False,True,True,True,True,True,True,0.001528,818,142,0,3,3395.9247509919805,completed,a36002a457aa62860420814f7d9a8482
+gpt-6.1-terra,8817,"What is this cash withdrawal I don't recognize?
+Account ID: acct_3189722cce958adc; Amount: 700.77",cash_withdrawal_not_recognised,cash_withdrawal_not_recognised,department_00,normal,False,department_00,normal,False,True,True,True,True,True,True,0.001491,811,136,0,3,3735.0192930171033,completed,a36c221edf6cbe6a4b0aab8e45abe42f
+gpt-6.1-terra,8019,"Can I add to my account using a cheque?
+Account ID: acct_62c1a1412c8251a5",top_up_by_cash_or_cheque,top_up_by_cash_or_cheque,department_02,normal,True,department_02,normal,True,True,True,True,True,True,True,0.002361,1456,181,0,4,5371.066125007928,completed,71de304db218d32aac3ab05b78a774e3
+gpt-6.1-terra,4046,"wheres my pin
+Account ID: acct_826aaa9db20b9fae",get_physical_card,get_physical_card,department_01,normal,False,department_00,normal,False,False,True,True,False,True,False,0.0053706000000000005,5153,270,1192,7,9503.483291016892,completed,6802d5bb8382129185ed817d526ddd4a
+gpt-6.1-terra,7325,"Is it right that I've been charged for transferring money?
+Account ID: acct_39be3e9ed2896964",transfer_fee_charged,transfer_fee_charged,department_00,normal,False,department_00,normal,False,True,True,True,True,True,True,0.001468,798,134,0,3,3610.6849160132697,completed,d189c963f7c4c591ebb0f7aeebbdc380
+gpt-6.1-terra,2838,"I dont see my reciept
+Account ID: acct_344ddf4c03d6a999",transfer_not_received_by_recipient,transfer_not_received_by_recipient,department_00,high,True,,,False,False,False,False,False,True,False,0.003511,2591,184,0,4,7348.778249986935,incomplete,bc510e7e727face4ab86701dccd51b8e
+gpt-6.1-terra,3051,"I have yet to receive my virtual card
+Account ID: acct_9532f197bbc85d99",getting_virtual_card,getting_virtual_card,department_02,normal,True,department_02,normal,True,True,True,True,True,True,True,0.003483,2438,209,0,5,7445.225417017355,completed,42faacb9b1da01bdf82f28a33d8824d7
+gpt-6.1-terra,4127,"would a visa or mastercard be more suited to me?
+Account ID: acct_f0f92eb79cec3fad",visa_or_mastercard,visa_or_mastercard,department_00,normal,False,department_00,normal,False,True,True,True,True,True,True,0.001472,807,133,0,3,3653.6008330003824,completed,749900d1e6d89f496af72c16b57ed3f0
+gpt-6.1-terra,7729,"Why are top-ups being verified?
+Account ID: acct_1de9a94dd85dc768",verify_top_up,verify_top_up,department_01,normal,False,department_01,normal,False,True,True,True,True,True,True,0.003813,2688,225,0,5,7921.7623739968985,completed,a27cd57cac37cb160f60d5b0b883b6a2
+gpt-6.1-terra,7873,"Am I allowed to carry an additional card?
+Account ID: acct_509a9edbeff0c385",getting_spare_card,getting_spare_card,department_01,normal,True,department_01,normal,True,True,True,True,True,True,True,0.00511245,5036,245,1209,7,12061.145041006966,completed,285b4e5a66627f9361b8df57233f7f5c
+gpt-6.1-terra,7914,"I would like to give another card to my daughter, how can I proceed?
+Account ID: acct_d9f3e0597d973d5f",getting_spare_card,getting_spare_card,department_01,normal,True,,,False,False,False,False,False,True,False,0.0058489,8787,229,4298,9,14383.086417001323,incomplete,9dcf1693758e57696bf377b175e172d4
+gpt-6.1-terra,3910,"It can take between 10 minutes to an hour before you hear back from us about the verification result.  Please try again if your verification fails.  Make sure you double check that images are clear and all document photos are readable without blur or glare. You have to be 18 or older and live in the European Economic area or live in Switzerland to be able to open an account.
+Account ID: acct_e70a396cdf3eea9d",unable_to_verify_identity,unable_to_verify_identity,department_00,high,False,department_00,high,False,True,True,True,True,True,True,0.002984,1764,244,0,4,6234.240833000513,completed,1fa5d276a3f9b5570b4199cf2657fff1
+gpt-6.1-terra,3553,"There is a payment I don't recognize
+Account ID: acct_4d2b4fd054827a51; Amount: 985.53; Merchant: merchant_8f315c0a530adae8",card_payment_not_recognised,card_payment_not_recognised,department_01,normal,True,department_01,normal,True,True,True,True,True,True,True,0.002687,1542,229,0,4,5837.043374995119,completed,8fd3106b17177f452b813eb2e021aef0
+gpt-6.1-terra,6722,"I wanted to purchase something online but the payment was returned back to me. This has been going on for a couple of weeks. Please tell me what is going on here?
+Account ID: acct_53eb7f9dcaa22b09; Amount: 482.23; Merchant: merchant_a158a6893089db59",reverted_card_payment?,reverted_card_payment?,department_02,high,False,department_02,normal,False,True,False,True,False,True,False,0.001779,899,176,0,3,4592.415042003267,completed,9c9fd8d654206d3f4377513756616619
+gpt-6.1-terra,8148,"I still don't have a card. How do I get one?
+Account ID: acct_c068e38b5bc9d237",order_physical_card,order_physical_card,department_02,normal,True,department_01,normal,False,False,True,False,False,True,False,0.001513,808,141,0,3,4819.458833997487,completed,7f9eb1fa4c533ab194950ac561764cd2
+gpt-6.1-terra,3988,"Help me verify my identity.
+Account ID: acct_318c731917609d7f",unable_to_verify_identity,unable_to_verify_identity,department_00,high,False,department_02,normal,False,False,False,True,False,True,False,0.001406,776,126,0,3,3576.8240420002257,completed,4b41eeea13196235d53594b6d0b9d6c4
+gpt-6.1-terra,6571,"can i see money source?
+Account ID: acct_28d0efc8e1848b4f",verify_source_of_funds,verify_source_of_funds,department_01,high,True,department_01,high,True,True,True,True,True,True,True,0.002306,1431,175,0,4,5386.7054599832045,completed,71797060d1a070f15131d7875776e7c1
+gpt-6.1-terra,3300,"Why did my top-up not get approved this time?
+Account ID: acct_d3b63363e3c4234a",top_up_reverted,top_up_reverted,department_03,high,True,department_02,normal,True,False,False,True,False,True,False,0.002236,1416,164,0,4,5000.839418004034,completed,7b53f8d9b304b619b31d586da1d6c48e
+gpt-6.1-terra,4163,"I want to get a Visa and Mastercard, is it possible to get both from you?
+Account ID: acct_95d4362bd3cd4315",visa_or_mastercard,visa_or_mastercard,department_00,normal,False,department_00,normal,False,True,True,True,True,True,True,0.001479,804,135,0,3,3560.284750012215,completed,4c2138577913b01d0f8d84d4c77c9e63
+gpt-6.1-terra,1724,"I put the wrong pin too many times and now it is blocked. Can you help me unblock it?
+Account ID: acct_41a5bf614853fabc",pin_blocked,pin_blocked,department_00,high,True,department_00,high,True,True,True,True,True,True,True,0.002234,1414,164,0,4,5103.473876006319,completed,68d4f5e0649ce8a724963c3417747440
+gpt-6.1-terra,5900,"my card payment has been declined, do you know why?
+Account ID: acct_b0a1cafd46c582f8; Amount: 546.83; Merchant: merchant_94d6e1dce4305e35",declined_card_payment,declined_card_payment,department_02,normal,False,department_02,normal,False,True,True,True,True,True,True,0.001662,852,162,0,3,4149.100333990646,completed,1f40b90d67c51b9cce21439a2b07fb9e
+gpt-6.1-terra,2767,"I set up a payment to a new payee and sent some money but the person I'm sending it to has not received it.  Can you check where the money is?
+Account ID: acct_2021dc8bd93e4492; Amount: 93.41; Merchant: merchant_18eabf53579b19c8",transfer_not_received_by_recipient,transfer_not_received_by_recipient,department_00,high,True,department_00,high,True,True,True,True,True,True,True,0.002567,1587,196,0,4,5279.19891498459,completed,0457369818e86caeab2e27731d17c185
+gpt-6.1-terra,7676,"where do i go to transfer money from one account to this one
+Account ID: acct_accceffe127e0f02; Amount: 524.58",transfer_into_account,transfer_into_account,department_03,normal,False,department_03,normal,False,True,True,True,True,True,True,0.001516,811,141,0,3,3727.9011250066105,completed,b74183e056e9aa9a79a4c6f076db396d
+gpt-6.1-terra,265,"How do I reactivate my card?
+Account ID: acct_768b84ef05f655d5",card_linking,card_linking,department_03,normal,True,department_00,normal,False,False,True,False,False,True,False,0.002392,1557,167,0,4,5082.311541002127,completed,d00d0ef0f1a655e1b6420aed6b0b6945
+gpt-6.1-terra,7566,"How do I transfer money into my account?
+Account ID: acct_b2ca4f93866dc5f5; Amount: 273.27",transfer_into_account,transfer_into_account,department_03,normal,False,department_03,normal,False,True,True,True,True,True,True,0.001512,817,139,0,3,3652.5186670041876,completed,9b36231a84392a04317c855a21dc0d33
+gpt-6.1-terra,3784,"Why are you asking so many questions about who I am
+Account ID: acct_c69d3e1929d4c616",why_verify_identity,why_verify_identity,department_00,normal,True,department_00,normal,True,True,True,True,True,True,True,0.002236,1411,165,0,4,5157.370126005844,completed,70f58741932f5154687e1f7b86565962
+gpt-6.1-terra,2972,"Is American Express supported for adding money into my account?
+Account ID: acct_7b8b6e396edf1894",supported_cards_and_currencies,supported_cards_and_currencies,department_03,normal,True,department_03,normal,True,True,True,True,True,True,True,0.003599,2509,218,0,5,7199.279708976974,completed,b2b8ab0963ba641e01e1960be5cd9fa6
+gpt-6.1-terra,5647,"The transfer that I was trying to complete was declined. What was the cause?
+Account ID: acct_edbb15588efba3a5; Amount: 577.90",declined_transfer,declined_transfer,department_00,normal,True,department_00,normal,True,True,True,True,True,True,True,0.002232,1432,160,0,4,4934.357000005548,completed,fd490ded3a41f29cc1543ef193dbf7f5
+gpt-6.1-terra,3202,"My money is gone :( I had topped up recently and saw it was there and went through, but now it's disappeared, what's going on?
+Account ID: acct_2851eb1b0839402a",top_up_reverted,top_up_reverted,department_03,high,True,department_03,high,True,True,True,True,True,True,True,0.003661,2571,218,0,5,7344.073583008139,completed,807d52d64d6f9540d9bdcc232dd36165
+gpt-6.1-terra,8329,"When I got cash, my exchange rate was off.
+Account ID: acct_5a8872eea42b4ef8",wrong_exchange_rate_for_cash_withdrawal,wrong_exchange_rate_for_cash_withdrawal,department_01,normal,True,department_01,normal,True,True,True,True,True,True,True,0.002348,1463,177,0,4,5066.642499004956,completed,6e2b77de252e8e14fc6bf9b2818ded3e
+gpt-6.1-terra,3505,"I don't recognize a purchase that was made with my card.
+Account ID: acct_fb937217a0d04da5; Amount: 20.37; Merchant: merchant_22cc743b370857cd",card_payment_not_recognised,card_payment_not_recognised,department_01,normal,True,department_01,normal,True,True,True,True,True,True,True,0.003547,2492,211,0,5,6198.611917003291,completed,feb6dc441bcaf952a03e4519180d0fbc
+gpt-6.1-terra,8311,"I got money overseas and the exchange rate was wrong
+Account ID: acct_ca3b40e3f4a5398e",wrong_exchange_rate_for_cash_withdrawal,wrong_exchange_rate_for_cash_withdrawal,department_01,normal,True,department_01,normal,True,True,True,True,True,True,True,0.002448,1448,200,0,4,5329.748499993002,completed,50c40e9ab36ac1c429eb6e7d45d01d8a
+gpt-6.1-terra,7518,"My transfer didn't complete. Why can't I access funds?
+Account ID: acct_2a42480087db6658; Amount: 128.78",failed_transfer,failed_transfer,department_03,high,True,department_03,high,True,True,True,True,True,True,True,0.002226,1401,165,0,4,5896.576457977062,completed,ce1401039ac121da4cc43e3fcdbdc18b
+gpt-6.1-terra,8439,"How do I use disposable cards?
+Account ID: acct_7890391448702e41",get_disposable_virtual_card,get_disposable_virtual_card,department_03,normal,False,department_03,normal,False,True,True,True,True,True,True,0.002387,1567,164,0,4,5441.92541600205,completed,67bdfffd1e2592918ca10cb16be77790
+gpt-6.1-terra,3796,"What if I don't verify my identity?
+Account ID: acct_ae1f31e1ba28b07b",why_verify_identity,why_verify_identity,department_00,normal,True,department_00,high,False,True,False,False,False,True,False,0.001603,803,160,0,3,4113.872291985899,completed,3665c46101641b49043f3671b3474f87
+gpt-6.1-terra,6820,"Hello, I was contacted by a seller who let me know my money didn't come through on their side. It most certainly came out of my account so I need this looked at immediately because now it has been returned to me!
+Account ID: acct_3b858550be000541",reverted_card_payment?,reverted_card_payment?,department_02,high,False,department_02,high,False,True,True,True,True,True,True,0.004763600000000001,4314,305,1132,6,10113.262001003022,completed,46ade835c30912b82b81ec62ca813fdd
+gpt-6.1-terra,2509,"I'm stuck here at your broken ATM and I don't know what to do next. Asked for 30 pounds, got 10. ATM said I got 30. Something very wrong here and I want my money now!
+Account ID: acct_fd98aa9d9cc36596",wrong_amount_of_cash_received,wrong_amount_of_cash_received,department_02,normal,True,department_02,normal,True,True,True,True,True,True,True,0.002425,1525,180,0,4,5356.601916995714,completed,e92ba3f3d3207559bc0b99bc7266ba99
+gpt-6.1-terra,5038,"Why can't I get cash from the ATM?
+Account ID: acct_672ec4dda4a89456",declined_cash_withdrawal,declined_cash_withdrawal,department_01,normal,True,department_01,normal,True,True,True,True,True,True,True,0.00224,1410,166,0,4,4983.893623997574,completed,293ced8ae1ae73de476502b9bbcde0ca
+gpt-6.1-terra,6095,"Why does my transfer still say it is pending?
+Account ID: acct_62d0407f1998951b; Amount: 825.90",pending_transfer,pending_transfer,department_03,normal,False,department_03,normal,False,True,True,True,True,True,True,0.001473,798,135,0,3,3967.548957996769,completed,e3eb2d0b99181d3abda66ba7d37d7ac9

@@ -1,0 +1,541 @@
+[
+  {
+    "id": "activate_my_card",
+    "title": "Activate My Card",
+    "department": "department_04",
+    "priority": "normal",
+    "identity_check": false
+  },
+  {
+    "id": "age_limit",
+    "title": "Age Limit",
+    "department": "department_03",
+    "priority": "normal",
+    "identity_check": true
+  },
+  {
+    "id": "apple_pay_or_google_pay",
+    "title": "Apple Pay Or Google Pay",
+    "department": "department_09",
+    "priority": "normal",
+    "identity_check": false
+  },
+  {
+    "id": "atm_support",
+    "title": "Atm Support",
+    "department": "department_05",
+    "priority": "normal",
+    "identity_check": false
+  },
+  {
+    "id": "automatic_top_up",
+    "title": "Automatic Top Up",
+    "department": "department_03",
+    "priority": "normal",
+    "identity_check": false
+  },
+  {
+    "id": "balance_not_updated_after_bank_transfer",
+    "title": "Balance Not Updated After Bank Transfer",
+    "department": "department_08",
+    "priority": "normal",
+    "identity_check": true
+  },
+  {
+    "id": "balance_not_updated_after_cheque_or_cash_deposit",
+    "title": "Balance Not Updated After Cheque Or Cash Deposit",
+    "department": "department_08",
+    "priority": "normal",
+    "identity_check": false
+  },
+  {
+    "id": "beneficiary_not_allowed",
+    "title": "Beneficiary Not Allowed",
+    "department": "department_10",
+    "priority": "normal",
+    "identity_check": false
+  },
+  {
+    "id": "cancel_transfer",
+    "title": "Cancel Transfer",
+    "department": "department_10",
+    "priority": "normal",
+    "identity_check": false
+  },
+  {
+    "id": "card_about_to_expire",
+    "title": "Card About To Expire",
+    "department": "department_11",
+    "priority": "normal",
+    "identity_check": false
+  },
+  {
+    "id": "card_acceptance",
+    "title": "Card Acceptance",
+    "department": "department_06",
+    "priority": "normal",
+    "identity_check": false
+  },
+  {
+    "id": "card_arrival",
+    "title": "Card Arrival",
+    "department": "department_00",
+    "priority": "normal",
+    "identity_check": false
+  },
+  {
+    "id": "card_delivery_estimate",
+    "title": "Card Delivery Estimate",
+    "department": "department_01",
+    "priority": "normal",
+    "identity_check": false
+  },
+  {
+    "id": "card_linking",
+    "title": "Card Linking",
+    "department": "department_07",
+    "priority": "normal",
+    "identity_check": true
+  },
+  {
+    "id": "card_not_working",
+    "title": "Card Not Working",
+    "department": "department_11",
+    "priority": "normal",
+    "identity_check": false
+  },
+  {
+    "id": "card_payment_fee_charged",
+    "title": "Card Payment Fee Charged",
+    "department": "department_07",
+    "priority": "high",
+    "identity_check": false
+  },
+  {
+    "id": "card_payment_not_recognised",
+    "title": "Card Payment Not Recognised",
+    "department": "department_05",
+    "priority": "normal",
+    "identity_check": true
+  },
+  {
+    "id": "card_payment_wrong_exchange_rate",
+    "title": "Card Payment Wrong Exchange Rate",
+    "department": "department_10",
+    "priority": "normal",
+    "identity_check": true
+  },
+  {
+    "id": "card_swallowed",
+    "title": "Card Swallowed",
+    "department": "department_02",
+    "priority": "normal",
+    "identity_check": true
+  },
+  {
+    "id": "cash_withdrawal_charge",
+    "title": "Cash Withdrawal Charge",
+    "department": "department_02",
+    "priority": "normal",
+    "identity_check": true
+  },
+  {
+    "id": "cash_withdrawal_not_recognised",
+    "title": "Cash Withdrawal Not Recognised",
+    "department": "department_00",
+    "priority": "normal",
+    "identity_check": false
+  },
+  {
+    "id": "change_pin",
+    "title": "Change Pin",
+    "department": "department_04",
+    "priority": "normal",
+    "identity_check": false
+  },
+  {
+    "id": "compromised_card",
+    "title": "Compromised Card",
+    "department": "department_07",
+    "priority": "normal",
+    "identity_check": true
+  },
+  {
+    "id": "contactless_not_working",
+    "title": "Contactless Not Working",
+    "department": "department_03",
+    "priority": "high",
+    "identity_check": true
+  },
+  {
+    "id": "country_support",
+    "title": "Country Support",
+    "department": "department_01",
+    "priority": "normal",
+    "identity_check": false
+  },
+  {
+    "id": "declined_card_payment",
+    "title": "Declined Card Payment",
+    "department": "department_02",
+    "priority": "normal",
+    "identity_check": false
+  },
+  {
+    "id": "declined_cash_withdrawal",
+    "title": "Declined Cash Withdrawal",
+    "department": "department_09",
+    "priority": "normal",
+    "identity_check": true
+  },
+  {
+    "id": "declined_transfer",
+    "title": "Declined Transfer",
+    "department": "department_04",
+    "priority": "normal",
+    "identity_check": true
+  },
+  {
+    "id": "direct_debit_payment_not_recognised",
+    "title": "Direct Debit Payment Not Recognised",
+    "department": "department_07",
+    "priority": "normal",
+    "identity_check": true
+  },
+  {
+    "id": "disposable_card_limits",
+    "title": "Disposable Card Limits",
+    "department": "department_00",
+    "priority": "normal",
+    "identity_check": true
+  },
+  {
+    "id": "edit_personal_details",
+    "title": "Edit Personal Details",
+    "department": "department_01",
+    "priority": "normal",
+    "identity_check": true
+  },
+  {
+    "id": "exchange_charge",
+    "title": "Exchange Charge",
+    "department": "department_03",
+    "priority": "normal",
+    "identity_check": false
+  },
+  {
+    "id": "exchange_rate",
+    "title": "Exchange Rate",
+    "department": "department_11",
+    "priority": "normal",
+    "identity_check": true
+  },
+  {
+    "id": "exchange_via_app",
+    "title": "Exchange Via App",
+    "department": "department_09",
+    "priority": "normal",
+    "identity_check": false
+  },
+  {
+    "id": "extra_charge_on_statement",
+    "title": "Extra Charge On Statement",
+    "department": "department_00",
+    "priority": "high",
+    "identity_check": true
+  },
+  {
+    "id": "failed_transfer",
+    "title": "Failed Transfer",
+    "department": "department_07",
+    "priority": "high",
+    "identity_check": true
+  },
+  {
+    "id": "fiat_currency_support",
+    "title": "Fiat Currency Support",
+    "department": "department_05",
+    "priority": "normal",
+    "identity_check": false
+  },
+  {
+    "id": "get_disposable_virtual_card",
+    "title": "Get Disposable Virtual Card",
+    "department": "department_03",
+    "priority": "normal",
+    "identity_check": false
+  },
+  {
+    "id": "get_physical_card",
+    "title": "Get Physical Card",
+    "department": "department_01",
+    "priority": "normal",
+    "identity_check": false
+  },
+  {
+    "id": "getting_spare_card",
+    "title": "Getting Spare Card",
+    "department": "department_05",
+    "priority": "normal",
+    "identity_check": true
+  },
+  {
+    "id": "getting_virtual_card",
+    "title": "Getting Virtual Card",
+    "department": "department_06",
+    "priority": "normal",
+    "identity_check": true
+  },
+  {
+    "id": "lost_or_stolen_card",
+    "title": "Lost Or Stolen Card",
+    "department": "department_10",
+    "priority": "normal",
+    "identity_check": false
+  },
+  {
+    "id": "lost_or_stolen_phone",
+    "title": "Lost Or Stolen Phone",
+    "department": "department_02",
+    "priority": "normal",
+    "identity_check": false
+  },
+  {
+    "id": "order_physical_card",
+    "title": "Order Physical Card",
+    "department": "department_02",
+    "priority": "normal",
+    "identity_check": true
+  },
+  {
+    "id": "passcode_forgotten",
+    "title": "Passcode Forgotten",
+    "department": "department_04",
+    "priority": "normal",
+    "identity_check": true
+  },
+  {
+    "id": "pending_card_payment",
+    "title": "Pending Card Payment",
+    "department": "department_08",
+    "priority": "high",
+    "identity_check": true
+  },
+  {
+    "id": "pending_cash_withdrawal",
+    "title": "Pending Cash Withdrawal",
+    "department": "department_09",
+    "priority": "normal",
+    "identity_check": true
+  },
+  {
+    "id": "pending_top_up",
+    "title": "Pending Top Up",
+    "department": "department_05",
+    "priority": "normal",
+    "identity_check": false
+  },
+  {
+    "id": "pending_transfer",
+    "title": "Pending Transfer",
+    "department": "department_11",
+    "priority": "normal",
+    "identity_check": false
+  },
+  {
+    "id": "pin_blocked",
+    "title": "Pin Blocked",
+    "department": "department_04",
+    "priority": "high",
+    "identity_check": true
+  },
+  {
+    "id": "receiving_money",
+    "title": "Receiving Money",
+    "department": "department_11",
+    "priority": "normal",
+    "identity_check": false
+  },
+  {
+    "id": "Refund_not_showing_up",
+    "title": "Refund Not Showing Up",
+    "department": "department_11",
+    "priority": "high",
+    "identity_check": true
+  },
+  {
+    "id": "request_refund",
+    "title": "Request Refund",
+    "department": "department_00",
+    "priority": "normal",
+    "identity_check": true
+  },
+  {
+    "id": "reverted_card_payment?",
+    "title": "Reverted Card Payment",
+    "department": "department_06",
+    "priority": "high",
+    "identity_check": false
+  },
+  {
+    "id": "supported_cards_and_currencies",
+    "title": "Supported Cards And Currencies",
+    "department": "department_03",
+    "priority": "normal",
+    "identity_check": true
+  },
+  {
+    "id": "terminate_account",
+    "title": "Terminate Account",
+    "department": "department_10",
+    "priority": "normal",
+    "identity_check": false
+  },
+  {
+    "id": "top_up_by_bank_transfer_charge",
+    "title": "Top Up By Bank Transfer Charge",
+    "department": "department_01",
+    "priority": "normal",
+    "identity_check": true
+  },
+  {
+    "id": "top_up_by_card_charge",
+    "title": "Top Up By Card Charge",
+    "department": "department_01",
+    "priority": "normal",
+    "identity_check": true
+  },
+  {
+    "id": "top_up_by_cash_or_cheque",
+    "title": "Top Up By Cash Or Cheque",
+    "department": "department_06",
+    "priority": "normal",
+    "identity_check": true
+  },
+  {
+    "id": "top_up_failed",
+    "title": "Top Up Failed",
+    "department": "department_06",
+    "priority": "normal",
+    "identity_check": true
+  },
+  {
+    "id": "top_up_limits",
+    "title": "Top Up Limits",
+    "department": "department_08",
+    "priority": "high",
+    "identity_check": true
+  },
+  {
+    "id": "top_up_reverted",
+    "title": "Top Up Reverted",
+    "department": "department_07",
+    "priority": "high",
+    "identity_check": true
+  },
+  {
+    "id": "topping_up_by_card",
+    "title": "Topping Up By Card",
+    "department": "department_09",
+    "priority": "normal",
+    "identity_check": true
+  },
+  {
+    "id": "transaction_charged_twice",
+    "title": "Transaction Charged Twice",
+    "department": "department_04",
+    "priority": "normal",
+    "identity_check": false
+  },
+  {
+    "id": "transfer_fee_charged",
+    "title": "Transfer Fee Charged",
+    "department": "department_00",
+    "priority": "normal",
+    "identity_check": false
+  },
+  {
+    "id": "transfer_into_account",
+    "title": "Transfer Into Account",
+    "department": "department_03",
+    "priority": "normal",
+    "identity_check": false
+  },
+  {
+    "id": "transfer_not_received_by_recipient",
+    "title": "Transfer Not Received By Recipient",
+    "department": "department_04",
+    "priority": "high",
+    "identity_check": true
+  },
+  {
+    "id": "transfer_timing",
+    "title": "Transfer Timing",
+    "department": "department_02",
+    "priority": "normal",
+    "identity_check": true
+  },
+  {
+    "id": "unable_to_verify_identity",
+    "title": "Unable To Verify Identity",
+    "department": "department_08",
+    "priority": "high",
+    "identity_check": false
+  },
+  {
+    "id": "verify_my_identity",
+    "title": "Verify My Identity",
+    "department": "department_06",
+    "priority": "normal",
+    "identity_check": false
+  },
+  {
+    "id": "verify_source_of_funds",
+    "title": "Verify Source Of Funds",
+    "department": "department_05",
+    "priority": "high",
+    "identity_check": true
+  },
+  {
+    "id": "verify_top_up",
+    "title": "Verify Top Up",
+    "department": "department_01",
+    "priority": "normal",
+    "identity_check": false
+  },
+  {
+    "id": "virtual_card_not_working",
+    "title": "Virtual Card Not Working",
+    "department": "department_02",
+    "priority": "high",
+    "identity_check": true
+  },
+  {
+    "id": "visa_or_mastercard",
+    "title": "Visa Or Mastercard",
+    "department": "department_08",
+    "priority": "normal",
+    "identity_check": false
+  },
+  {
+    "id": "why_verify_identity",
+    "title": "Why Verify Identity",
+    "department": "department_00",
+    "priority": "normal",
+    "identity_check": true
+  },
+  {
+    "id": "wrong_amount_of_cash_received",
+    "title": "Wrong Amount Of Cash Received",
+    "department": "department_10",
+    "priority": "normal",
+    "identity_check": true
+  },
+  {
+    "id": "wrong_exchange_rate_for_cash_withdrawal",
+    "title": "Wrong Exchange Rate For Cash Withdrawal",
+    "department": "department_09",
+    "priority": "normal",
+    "identity_check": true
+  }
+]

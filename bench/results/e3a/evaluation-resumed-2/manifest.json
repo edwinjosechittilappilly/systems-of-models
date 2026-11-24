@@ -1,0 +1,64 @@
+{
+  "cache": {},
+  "config": {
+    "allow_eval": true,
+    "alpha": 0.05,
+    "audit_rate": 1.0,
+    "dev_condition": null,
+    "dev_run_id": "dev-tuning",
+    "epsilon": 0.15,
+    "metric": "probability",
+    "mode": "record",
+    "n_cal": 400,
+    "n_val": 400,
+    "phase_limit": null,
+    "refit_interval": 200,
+    "resume_eval": true,
+    "resume_from": "bench/results/e3a/evaluation-resumed",
+    "seed": 20261122,
+    "streams": "eval",
+    "tau_rule": "margin",
+    "warmup": 300,
+    "workers": 2
+  },
+  "contract_version": "2.1.0",
+  "cost_usd": {},
+  "counts": {
+    "seed_11_clinc": 2400,
+    "seed_11_control": 2400,
+    "seed_11_restructure_15": 2400,
+    "seed_23_clinc": 2400,
+    "seed_23_control": 2400,
+    "seed_23_restructure_15": 2400,
+    "seed_37_control": 2400
+  },
+  "data": {
+    "banking_policy_12.json": "4d3db67081e8e10388d1dfc68ac2ba91dd55be08fd4057fb7bda94c7329d4877",
+    "banking_policy_4.json": "7067d1a293259fe29f5096fcea81b83704ba7059fae9852f6e682c30c34cffbd",
+    "clinc_map.json": "46f0075065a85b3d6b1a6bd15f7ce12302931fdc4371fa94bd604d2eed14477f",
+    "seed_11_clinc.csv": "6a40f85a2166af848bf257aba82c1e89b2adfd7e620eb5334daf1e93ca72349c",
+    "seed_11_control.csv": "aa21ed71687f2d195b402313906d020694bcee93aea8ceaa9c6eebac0ff7a6ed",
+    "seed_11_restructure_15.csv": "7444d3bf15aa08aa2261aaa46e16be313f5ad93dc04f5d6c34c71d3a8ffce2b4",
+    "seed_23_clinc.csv": "7d95390b9cf1fa5f2f2664623fa67fe4a2d1ed65d3c71eab6726153694d5d22c",
+    "seed_23_control.csv": "301c7a0d60561debb87bea3abe8d96005c3c779577da1b24ed1f949cf1325bcc",
+    "seed_23_restructure_15.csv": "5dc3bf7361d9f899e09c04c346edc9fe1300f9dea5f27904c4007bcfe47878ce",
+    "seed_37_control.csv": "727259c82887bd684afa3b6320e5f363a6d4702846b51edd8bc943962fa36620",
+    "seed_37_restructure_15.csv": "ab3dfd66afa5010b898820fa89efcb5abf00877db0e2e91663a7bac92ef8595d"
+  },
+  "experiment": "e3a",
+  "finished_at": "2026-11-24T10:44:23Z",
+  "git_dirty": true,
+  "git_sha": "278d5b35e79f81860b485b10eaef1c9ff51da657",
+  "models": {},
+  "new_spend_usd": {
+    "openai": 15.09260654999948,
+    "typesafe": 1.1891068559975886
+  },
+  "notes": [
+    "seed_37_restructure_15: 44 failed teacher calls; see collection CSV"
+  ],
+  "python": "3.12.9",
+  "run_id": "evaluation",
+  "som_version": "0.1.0.dev0",
+  "started_at": "2026-11-23T21:53:41Z"
+}

@@ -1,0 +1,102 @@
+{
+  "cache": {
+    "embeddings": {
+      "hits": 67741,
+      "misses": 1026
+    },
+    "local_timings": {
+      "hits": 25895,
+      "misses": 16670
+    },
+    "mining_timings": {
+      "hits": 569,
+      "misses": 61
+    },
+    "s1": {
+      "hits": 65932,
+      "misses": 20768
+    },
+    "teacher": {
+      "hits": 46585,
+      "misses": 0
+    },
+    "writer": {
+      "hits": 94,
+      "misses": 26
+    }
+  },
+  "config": {
+    "allow_eval": false,
+    "alpha": 0.05,
+    "audit_rate": 0.2,
+    "cost_bound_percent": null,
+    "epsilon": 0.1,
+    "metric": "probability",
+    "mode": "record",
+    "n_cal": 250,
+    "n_val": 250,
+    "phase_limit": 1000,
+    "refit_interval": 200,
+    "seed": 20261122,
+    "streams": "dev",
+    "tau_rule": "margin",
+    "warmup": 300,
+    "workers": 2
+  },
+  "contract_version": "2.1.0",
+  "cost_usd": {
+    "always_agent": 35.19454655,
+    "discarded_initial_writer_calls": 0.059448,
+    "escalation_only": 29.961934446,
+    "fixed_gate": 22.890269598,
+    "fixed_gate_config_hash": 33.595233864,
+    "knn_cache": 29.080475550000003,
+    "oracle_audit": 29.961934446,
+    "s1_audit": 29.961934446,
+    "s1_refit": 29.953924446000002,
+    "surrogate_audit": 29.080475550000003,
+    "surrogate_refit": 29.080475550000003
+  },
+  "counts": {
+    "dev_clinc": 2000,
+    "dev_control": 2000,
+    "dev_restructure_05": 2000,
+    "dev_restructure_15": 2000,
+    "dev_restructure_30": 2000,
+    "dev_visible": 2000,
+    "meta_records": 20,
+    "s5_records": 20
+  },
+  "data": {
+    "banking_policy_12.json": "4d3db67081e8e10388d1dfc68ac2ba91dd55be08fd4057fb7bda94c7329d4877",
+    "banking_policy_4.json": "7067d1a293259fe29f5096fcea81b83704ba7059fae9852f6e682c30c34cffbd",
+    "clinc_map.json": "46f0075065a85b3d6b1a6bd15f7ce12302931fdc4371fa94bd604d2eed14477f",
+    "dev_clinc.csv": "11af8680671aa0d5233b0079bb608da4e793d21fe4815a89f81922866fd7a1ba",
+    "dev_control.csv": "fafaa8401f36dbc9db182b5d9d04acc6e676e857c8f4052bd2b16d4e30929c64",
+    "dev_restructure_05.csv": "41f51808267ee299e7cec178d24a85bae48bc8ef1fd6048d3d9abe2e44b50944",
+    "dev_restructure_15.csv": "bc61e2a89dc57c6b6a85761323a3251de0d90a2cb770b1d627a43713812de286",
+    "dev_restructure_30.csv": "0ad1065a1a3124231d0721919903087648de717006231e0a7dc19a7ac497b59b",
+    "dev_visible.csv": "079abec214d26cd80ebac37c358e49d8cbe7dd4cb10da15e9e2219fc7fcd6dd1"
+  },
+  "experiment": "e3a",
+  "finished_at": "2026-11-23T02:41:08Z",
+  "git_dirty": false,
+  "git_sha": "d3eb98e08ea6f4c12c24142e84bada279c0b030c",
+  "models": {
+    "embedder": "embeddinggemma",
+    "s1": "jev-1.14.0",
+    "teacher": "gpt-6.1-terra",
+    "writer": "gpt-6.1-terra"
+  },
+  "new_spend_usd": {
+    "openai": 0.07602600000000237,
+    "typesafe": 1.4086428299999991
+  },
+  "notes": [
+    "Initial failed simulator attempt and its prior TypeSafe spend are documented in initial_writer_failure.json; cached calls may also appear in logical arm costs."
+  ],
+  "python": "3.12.9",
+  "run_id": "dev-tuning",
+  "som_version": "0.1.0.dev0",
+  "started_at": "2026-11-23T01:55:59Z"
+}

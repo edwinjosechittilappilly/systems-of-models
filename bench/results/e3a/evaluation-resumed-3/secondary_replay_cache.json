@@ -1,0 +1,21 @@
+{
+  "caches": {
+    "teacher": {
+      "hits": 0,
+      "misses": 0
+    },
+    "s1": {
+      "hits": 30500,
+      "misses": 7300
+    },
+    "writer": {
+      "hits": 24,
+      "misses": 9
+    },
+    "mining_timings": {
+      "hits": 0,
+      "misses": 0
+    }
+  },
+  "error": null
+}

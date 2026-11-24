@@ -1,0 +1,2 @@
+hypothesis,paired_accuracy_loss,upper_one_sided_95,margin,noninferior,served_count,served_arm_accuracy,served_reference_accuracy,served_paired_accuracy_loss,resamples
+H3,-0.011666666666666667,-0.006930555555555568,0.02,True,1511,0.900727994705493,0.8729318332230311,-0.027796161482461945,2000

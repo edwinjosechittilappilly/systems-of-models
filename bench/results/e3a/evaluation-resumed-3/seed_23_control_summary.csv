@@ -1,0 +1,11 @@
+stream,arm,tickets,shift_at,joint_accuracy,teacher_agreement,coverage,total_cost_usd,cost_per_ticket_usd,agent_calls,cumulative_excess_error,postshift_cumulative_excess_error,promotions,demotions,audits,false_demotions,detection_ticket,detection_delay_tickets,detection_delay_audits,detection_miss,recovery_ticket,recovery_delay_tickets,amortization_ticket,amortization_horizon_tickets
+seed_23_control,always_agent,2400,,0.7383333333333333,1.0,0.0,6.894125600000001,0.0028725523333333336,2400,0.0,,0,0,0,0,,,,,,,,
+seed_23_control,escalation_only,2400,,0.7525,0.9786689419795221,0.325,4.956382974,0.0020651595725,1620,-34.0,,1,0,0,0,,,,,,,1162.0,1162.0
+seed_23_control,fixed_gate,2400,,0.7625,0.9722696245733788,0.3725,4.626286424,0.0019276193433333333,1506,-58.0,,1,0,0,0,,,,,,,1147.0,1147.0
+seed_23_control,fixed_gate_config_hash,2400,,0.7383333333333333,1.0,0.0,7.049420474,0.0029372585308333333,2400,0.0,,0,0,0,0,,,,,,,,
+seed_23_control,knn_cache,2400,,0.7379166666666667,0.9995733788395904,0.0004166666666666667,6.894125600000001,0.0028725523333333336,2400,1.0,,1,1,1,1,,,,,,,,
+seed_23_control,oracle_audit,2400,,0.7525,0.9786689419795221,0.325,7.040897074,0.002933707114166667,2400,-34.0,,1,0,780,0,,,,,,,,
+seed_23_control,s1_audit,2400,,0.7525,0.9786689419795221,0.325,7.040897074,0.002933707114166667,2400,-34.0,,1,0,780,0,,,,,,,,
+seed_23_control,s1_refit,2400,,0.74125,0.9948805460750854,0.0925,6.446049574,0.0026858539891666667,2178,-7.0,,2,0,0,0,,,,,,,1162.0,1162.0
+seed_23_control,surrogate_audit,2400,,0.7383333333333333,1.0,0.0,6.894125600000001,0.0028725523333333336,2400,0.0,,0,0,0,0,,,,,,,,
+seed_23_control,surrogate_refit,2400,,0.7383333333333333,1.0,0.0,6.894125600000001,0.0028725523333333336,2400,0.0,,0,0,0,0,,,,,,,,

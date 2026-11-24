@@ -1,0 +1,2 @@
+stream,ticket_index,error,limit_tpm,used_tpm,requested_tokens,retry_after
+dev_control,1593,HTTP 429 TPM rate limit for org-REDACTED,1000000,999291,1397,42ms

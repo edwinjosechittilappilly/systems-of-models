@@ -214,9 +214,9 @@ Live mode (`--mode record`) needs `OPENAI_API_KEY` and `TYPESAFE_API_KEY` in `.e
 See [`CITATION.cff`](CITATION.cff):
 
 ```bibtex
-@misc{jose2026traces,
-  author = {Jose, Edwin},
-  title = {From Agent Traces to Typed Decisions: Gating and Runtime Compilation with Decision APIs},
+@misc{jose2026escalate,
+  author = {Jose, Edwin and Hong, Guan Yue and Fong, Alvis C.},
+  title = {Escalate Up, Compile Down: Moving Work Across Systems of Models},
   year = {2026}
 }
 ```

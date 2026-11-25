@@ -12,9 +12,15 @@ repository-code: "https://github.com/edwinjosechittilappilly/systems-of-models"
 license: MIT
 preferred-citation:
   type: article
-  title: "From Agent Traces to Typed Decisions: Gating and Runtime Compilation with Decision APIs"
+  title: "Escalate Up, Compile Down: Moving Work Across Systems of Models"
   authors:
     - family-names: Jose
       given-names: Edwin
+      affiliation: Western Michigan University
+    - family-names: Hong
+      given-names: Guan Yue
+      affiliation: Western Michigan University
+    - family-names: Fong
+      given-names: Alvis C.
       affiliation: Western Michigan University
   year: 2026
